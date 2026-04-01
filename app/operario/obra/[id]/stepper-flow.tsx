@@ -1762,40 +1762,46 @@ export function EjecucionObra({ projectId }: Props) {
               usuario y acceso a la plataforma de monitorizacion.
             </span>
           </label>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div>
+          <div className="mt-3 grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="min-w-0 w-full">
               <p className={`mb-2 text-xs font-extrabold ${sunMode ? "text-neutral-950" : "text-slate-200"}`}>
                 Firma del instalador
               </p>
               <div
-                className={`overflow-hidden rounded-xl ${sunMode ? "border-2 border-neutral-900 bg-white" : "border border-white/20 bg-white"}`}
+                className={`w-full min-w-0 overflow-hidden rounded-xl ${sunMode ? "border-2 border-neutral-900 bg-white" : "border border-white/20 bg-white"}`}
               >
                 <SignatureCanvas
                   ref={(ref) => {
                     installerSignatureRef.current = ref;
                   }}
                   penColor="#000000"
-                  minWidth={2.5}
-                  maxWidth={2.5}
-                  canvasProps={{ className: "h-44 w-full bg-white" }}
+                  minWidth={4}
+                  maxWidth={4.5}
+                  velocityFilterWeight={0.85}
+                  canvasProps={{
+                    className: "h-52 w-full min-h-[13rem] max-w-full touch-none bg-white sm:h-48",
+                  }}
                 />
               </div>
             </div>
-            <div>
+            <div className="min-w-0 w-full">
               <p className={`mb-2 text-xs font-extrabold ${sunMode ? "text-neutral-950" : "text-slate-200"}`}>
                 Firma del cliente
               </p>
               <div
-                className={`overflow-hidden rounded-xl ${sunMode ? "border-2 border-neutral-900 bg-white" : "border border-white/20 bg-white"}`}
+                className={`w-full min-w-0 overflow-hidden rounded-xl ${sunMode ? "border-2 border-neutral-900 bg-white" : "border border-white/20 bg-white"}`}
               >
                 <SignatureCanvas
                   ref={(ref) => {
                     clientSignatureRef.current = ref;
                   }}
                   penColor="#000000"
-                  minWidth={2.5}
-                  maxWidth={2.5}
-                  canvasProps={{ className: "h-44 w-full bg-white" }}
+                  minWidth={4}
+                  maxWidth={4.5}
+                  velocityFilterWeight={0.85}
+                  canvasProps={{
+                    className: "h-52 w-full min-h-[13rem] max-w-full touch-none bg-white sm:h-48",
+                  }}
                 />
               </div>
             </div>

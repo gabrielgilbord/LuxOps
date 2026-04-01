@@ -105,7 +105,7 @@ export default async function DashboardPage() {
   const showOnboardingChecklist = completedSteps < onboardingSteps.length;
 
   return (
-    <section className="relative mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+    <section className="relative mx-auto min-w-0 max-w-7xl overflow-x-hidden px-4 py-6 sm:px-6">
         {showOnboardingChecklist ? (
           <Card className="mb-4 overflow-hidden border border-slate-700/70 bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-slate-950/95 backdrop-blur-xl">
             <CardContent className="py-4">
@@ -169,8 +169,8 @@ export default async function DashboardPage() {
         ) : null}
 
         <SpotlightCard className="mb-6 animate-fade-in-up rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-black p-6 shadow-2xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 Panel de Control de Instalaciones
               </h1>
@@ -178,25 +178,27 @@ export default async function DashboardPage() {
                 Gestiona tus obras, checklists y documentacion en un solo lugar.
               </p>
             </div>
-            <Link
-              href="/dashboard/new-project"
-              className="inline-flex h-12 items-center justify-center rounded-xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-400 px-5 text-sm font-bold text-amber-950 shadow-lg shadow-amber-500/30 ring-1 ring-amber-200/80 transition hover:-translate-y-0.5 hover:from-amber-200 hover:via-yellow-300 hover:to-amber-300"
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Nuevo Proyecto de Instalacion
-            </Link>
-            <Link
-              href="/dashboard/team"
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-500/60 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 px-5 text-sm font-bold text-white shadow-md shadow-black/20 ring-1 ring-slate-400/20 transition hover:from-slate-600 hover:to-slate-900"
-            >
-              Gestionar Equipo
-            </Link>
-            <Link
-              href="/dashboard/reports"
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-500/60 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 px-5 text-sm font-bold text-white shadow-md shadow-black/20 ring-1 ring-slate-400/20 transition hover:from-slate-600 hover:to-slate-900"
-            >
-              Generación de Informes
-            </Link>
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch lg:max-w-[min(100%,28rem)] lg:flex-nowrap lg:justify-end">
+              <Link
+                href="/dashboard/new-project"
+                className="inline-flex h-12 min-w-0 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-400 px-4 text-sm font-bold text-amber-950 shadow-lg shadow-amber-500/30 ring-1 ring-amber-200/80 transition hover:-translate-y-0.5 hover:from-amber-200 hover:via-yellow-300 hover:to-amber-300 sm:px-5"
+              >
+                <Plus className="mr-1 h-4 w-4 shrink-0" />
+                <span className="truncate sm:whitespace-normal">Nuevo Proyecto de Instalacion</span>
+              </Link>
+              <Link
+                href="/dashboard/team"
+                className="inline-flex h-12 shrink-0 items-center justify-center rounded-xl border border-slate-500/60 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 px-4 text-sm font-bold text-white shadow-md shadow-black/20 ring-1 ring-slate-400/20 transition hover:from-slate-600 hover:to-slate-900 sm:px-5"
+              >
+                Gestionar Equipo
+              </Link>
+              <Link
+                href="/dashboard/reports"
+                className="inline-flex h-12 shrink-0 items-center justify-center rounded-xl border border-slate-500/60 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 px-4 text-sm font-bold text-white shadow-md shadow-black/20 ring-1 ring-slate-400/20 transition hover:from-slate-600 hover:to-slate-900 sm:px-5"
+              >
+                Generación de Informes
+              </Link>
+            </div>
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">

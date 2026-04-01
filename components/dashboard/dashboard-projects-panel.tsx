@@ -194,7 +194,124 @@ export function DashboardProjectsPanel({
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-950/50 shadow-xl ring-1 ring-slate-800/80">
+        <>
+          <div className="space-y-3 lg:hidden">
+            {filtered.map((project) => {
+              const pack = showPackActions(project.estado);
+              return (
+                <Card
+                  key={project.id}
+                  className="border-slate-700/90 bg-slate-900/95 shadow-lg ring-1 ring-slate-800/60"
+                >
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-white">{project.cliente}</p>
+                        <p className="mt-1 text-xs leading-snug text-slate-300">
+                          {project.direccion}
+                        </p>
+                      </div>
+                      <Badge
+                        className={cn("shrink-0 font-bold", statusUi[project.estado].className)}
+                      >
+                        {statusUi[project.estado].label}
+                      </Badge>
+                    </div>
+                    {pack && project.cieReady ? (
+                      <span className="animate-cie-ready inline-flex w-fit items-center rounded-md border border-emerald-300/90 bg-emerald-400 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-950 ring-1 ring-emerald-200/80">
+                        CIE Ready
+                      </span>
+                    ) : null}
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                      <span className="tabular-nums text-slate-300">
+                        {formatUpdatedAt(project.updatedAt)}
+                      </span>
+                      <span className="text-slate-600">·</span>
+                      {project.assignedUserId ? (
+                        <span className="inline-flex items-center gap-2 text-slate-200">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-yellow-950">
+                            {project.operarioInitials || "—"}
+                          </span>
+                          <span className="max-w-[10rem] truncate">{project.operarioNombre}</span>
+                        </span>
+                      ) : (
+                        <form action={reassignUnassignedProjectAction} className="inline">
+                          <input type="hidden" name="projectId" value={project.id} />
+                          <button
+                            type="submit"
+                            className="text-xs font-semibold text-amber-300 underline-offset-2 hover:underline"
+                          >
+                            Reasignar operario
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 border-t border-slate-700/80 pt-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-500/50 bg-slate-800 px-2 text-xs font-semibold text-slate-100"
+                        >
+                          Detalle
+                        </Link>
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="inline-flex h-10 items-center justify-center rounded-lg bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-400 px-2 text-xs font-bold text-amber-950"
+                        >
+                          <Camera className="mr-1 h-3.5 w-3.5 shrink-0" />
+                          Fotos
+                        </Link>
+                      </div>
+                      {pack ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            <a
+                              href={`/api/projects/${project.id}/report`}
+                              className="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-slate-500/50 bg-slate-800 px-2 text-[11px] font-semibold text-slate-100"
+                            >
+                              <FileText className="mr-1 h-3.5 w-3.5" />
+                              PDF
+                            </a>
+                            <a
+                              href={`/api/projects/${project.id}/subsidy-pack`}
+                              className="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-emerald-400/70 bg-emerald-600/40 px-2 text-[11px] font-bold text-emerald-50"
+                            >
+                              <Archive className="mr-1 h-3.5 w-3.5" />
+                              ZIP
+                            </a>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <form action={resendProjectDossierEmailAction} className="flex-1 min-w-[44px]">
+                              <input type="hidden" name="projectId" value={project.id} />
+                              <button
+                                type="submit"
+                                title="Reenviar dossier PDF"
+                                className="flex h-9 w-full items-center justify-center rounded-lg border border-sky-500/50 bg-sky-600/30 text-sky-100"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </button>
+                            </form>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCieModal({ id: project.id, cliente: project.cliente })
+                              }
+                              className="inline-flex min-h-9 flex-1 items-center justify-center rounded-lg border border-yellow-400/40 bg-slate-800 px-2 text-[11px] font-semibold text-yellow-100"
+                            >
+                              <ScrollText className="mr-1 h-3.5 w-3.5 shrink-0" />
+                              CIE
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-950/50 shadow-xl ring-1 ring-slate-800/80 lg:block">
           <table className="w-full min-w-[920px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-slate-700 bg-slate-900/95">
@@ -331,6 +448,7 @@ export function DashboardProjectsPanel({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );

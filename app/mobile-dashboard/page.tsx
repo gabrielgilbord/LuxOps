@@ -15,7 +15,7 @@ export default async function MobileDashboardPage() {
   const projects = await getProjects();
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-5 text-white">
+    <main className="min-h-screen min-w-0 overflow-x-hidden bg-slate-950 px-4 py-5 text-white">
       <OfflineWarmup />
       <header className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-slate-900/80 px-4 py-3">
         <div>
@@ -39,11 +39,11 @@ export default async function MobileDashboardPage() {
           <Link
             key={project.id}
             href={`/mobile-dashboard/obra/${project.id}`}
-            className="flex min-h-20 items-center justify-between rounded-xl border border-white/15 bg-slate-900 px-4 transition hover:border-yellow-300/40"
+            className="flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-xl border border-white/15 bg-slate-900 px-4 transition hover:border-yellow-300/40"
           >
-            <div>
-              <p className="text-base font-bold text-white">{project.cliente}</p>
-              <p className="text-xs text-slate-300">{project.direccion}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-bold text-white">{project.cliente}</p>
+              <p className="mt-0.5 line-clamp-2 text-xs text-slate-300">{project.direccion}</p>
             </div>
             <span className="rounded-lg bg-yellow-400 px-3 py-1 text-sm font-bold text-yellow-950">
               Abrir

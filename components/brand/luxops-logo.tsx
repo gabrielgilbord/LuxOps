@@ -2,19 +2,24 @@
 
 type Props = {
   darkBackground?: boolean;
-  /** Solo dashboard: invierte colores del PNG para fondo oscuro (resto de la app sin tocar). */
+  /** Header dashboard: invierte el PNG estándar sobre fondo oscuro. */
   invertColors?: boolean;
   className?: string;
 };
 
+/**
+ * Un solo asset `/luxops-logo.png`: en fondo oscuro forzamos “Lux Light” vía CSS
+ * (`brightness(0) invert(1)`), evitando PNG oscuros ilegibles.
+ */
 export function LuxOpsLogo({ darkBackground = false, invertColors = false, className }: Props) {
-  const src = darkBackground ? "/luxops-logo-dark.png" : "/luxops-logo.png";
   const base = className ?? "h-8 w-auto";
+  const onDark = darkBackground ? "brightness-0 invert" : "";
+  const dashInvert = !darkBackground && invertColors ? "invert" : "";
   return (
     <img
-      src={src}
+      src="/luxops-logo.png"
       alt="LuxOps"
-      className={[base, invertColors ? "invert" : ""].filter(Boolean).join(" ")}
+      className={[base, onDark, dashInvert].filter(Boolean).join(" ")}
       draggable={false}
     />
   );

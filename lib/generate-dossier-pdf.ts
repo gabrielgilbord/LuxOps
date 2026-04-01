@@ -164,13 +164,20 @@ function formatDurationMs(ms: number) {
 }
 
 async function getDefaultLuxOpsLogo(pdf: PDFDocument) {
-  try {
-    const logoPath = join(process.cwd(), "LuxOps-logo.png");
-    const bytes = await readFile(logoPath);
-    return pdf.embedPng(bytes);
-  } catch {
-    return null;
+  const candidates = [
+    join(process.cwd(), "public", "luxops-logo.png"),
+    join(process.cwd(), "LuxOps-logo.png"),
+    join(process.cwd(), "luxops_logo.png"),
+  ];
+  for (const logoPath of candidates) {
+    try {
+      const bytes = await readFile(logoPath);
+      return await pdf.embedPng(bytes);
+    } catch {
+      /* siguiente candidato (Vercel / local) */
+    }
   }
+  return null;
 }
 
 function wrapPdfLines(text: string, maxWidth: number, font: import("pdf-lib").PDFFont, size: number) {
@@ -486,13 +493,26 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     kpy -= 12;
   }
 
-  // Sello tipo cera — esquina inferior derecha de la portada
-  const sealCX = 538;
-  const sealCY = 72;
+  // Sello de verificación: margen seguro respecto al bloque KPI (altura variable).
+  const sealGap = 14;
+  let sealR = 30;
+  let sealCX = 526;
+  let sealCY = 56;
+  const sealBottom = sealCY - sealR;
+  const sealTop = sealCY + sealR;
+  const kpiLow = boxY;
+  const kpiHigh = boxY + boxH;
+  const overlapsKpi =
+    sealTop >= kpiLow - sealGap && sealBottom <= kpiHigh + sealGap;
+  if (overlapsKpi) {
+    sealR = 28;
+    sealCX = 518;
+    sealCY = 692;
+  }
   coverPage.drawCircle({
     x: sealCX,
     y: sealCY,
-    size: 44,
+    size: sealR + 10,
     color: rgb(0.94, 0.97, 0.96),
     borderColor: rgb(0.06, 0.45, 0.32),
     borderWidth: 2.2,
@@ -500,13 +520,13 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   coverPage.drawCircle({
     x: sealCX,
     y: sealCY,
-    size: 36,
+    size: sealR + 2,
     borderColor: rgb(0.06, 0.45, 0.32),
     borderWidth: 1.4,
   });
   coverPage.drawText("VERIFICADO", {
     x: sealCX - bold.widthOfTextAtSize("VERIFICADO", 7.2) / 2,
-    y: sealCY + 10,
+    y: sealCY + sealR * 0.32,
     size: 7.2,
     font: bold,
     color: rgb(0.05, 0.38, 0.28),
@@ -520,7 +540,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   });
   coverPage.drawText("CONTROL", {
     x: sealCX - bold.widthOfTextAtSize("CONTROL", 6.2) / 2,
-    y: sealCY - 14,
+    y: sealCY - sealR * 0.45,
     size: 6.2,
     font: bold,
     color: rgb(0.05, 0.38, 0.28),
@@ -1472,9 +1492,10 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     if (params.source) {
       const img = await embedAutoImage(pdf, params.source, params.storagePath);
       if (img) {
-        const maxW = sigBoxW - 30;
-        const maxH = sigBoxH - 96;
-        const ratio = Math.min(maxW / img.width, maxH / img.height);
+        const maxW = sigBoxW - 22;
+        const maxH = sigBoxH - 86;
+        const baseRatio = Math.min(maxW / img.width, maxH / img.height);
+        const ratio = Math.min(baseRatio * 1.08, maxW / img.width, maxH / img.height);
         const w = img.width * ratio;
         const h = img.height * ratio;
         legalPage.drawImage(img, {

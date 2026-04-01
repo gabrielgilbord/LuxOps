@@ -166,7 +166,7 @@ export function DashboardNavShell({ organizationName, userLabel }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.24 }}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] sm:hidden"
+            className="fixed inset-0 z-40 bg-black/60 sm:hidden"
             onClick={() => setOpen(false)}
           />
         ) : null}
@@ -179,7 +179,7 @@ export function DashboardNavShell({ organizationName, userLabel }: Props) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed right-0 top-0 z-50 h-full w-72 border-l border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-xl sm:hidden"
+            className="fixed right-0 top-0 z-50 h-full w-72 border-l border-slate-700 bg-slate-900 p-4 shadow-2xl sm:hidden"
           >
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-semibold text-white">Menú</p>
