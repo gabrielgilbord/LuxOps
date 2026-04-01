@@ -945,7 +945,7 @@ export function EjecucionObra({ projectId }: Props) {
   }
 
   return (
-    <section className={`space-y-4 ${shellClass}`}>
+    <section className={`w-full min-w-0 max-w-full space-y-4 ${shellClass}`}>
       {!isHydrated ? (
         <p
           className={`rounded-lg px-3 py-2 text-xs ${sunMode ? "border-2 border-neutral-800 bg-white font-semibold text-neutral-950" : "border border-slate-700 bg-slate-900 text-slate-300"}`}

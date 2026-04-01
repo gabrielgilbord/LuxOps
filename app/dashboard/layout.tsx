@@ -17,9 +17,9 @@ export default async function DashboardLayout({
   const showSubscriptionAlert = ["past_due", "unpaid", "canceled", "incomplete"].includes(status);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <header className="sticky top-0 z-30 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-3 py-2 sm:px-6">
+    <main className="min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden bg-slate-950 text-white">
+      <header className="sticky top-0 z-30 border-b border-slate-800/50 bg-slate-950 sm:bg-slate-950/80 sm:backdrop-blur-xl">
+        <div className="mx-auto flex w-full min-w-0 max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-6">
           <Link
             href="/dashboard"
             className="group relative inline-flex items-center gap-2 text-lg font-bold tracking-tight"

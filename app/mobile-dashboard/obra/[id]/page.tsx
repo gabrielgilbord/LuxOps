@@ -15,8 +15,8 @@ export default async function MobileObraPage({ params }: Props) {
   if (!project || project.assignedUserId !== dbUser.id) notFound();
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-5 text-white">
-      <header className="mb-4 rounded-xl border border-white/15 bg-slate-900/80 px-4 py-3">
+    <main className="min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden bg-slate-950 px-3 py-4 text-white sm:px-4 sm:py-5">
+      <header className="mb-4 w-full min-w-0 rounded-xl border border-white/15 bg-slate-900 px-3 py-3 sm:px-4">
         <p className="text-xs text-slate-300">Modo Tejado</p>
         <h1 className="text-lg font-bold">{project.cliente}</h1>
         <p className="text-xs text-slate-300">{project.direccion}</p>

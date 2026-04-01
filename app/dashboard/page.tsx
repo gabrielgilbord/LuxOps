@@ -105,7 +105,7 @@ export default async function DashboardPage() {
   const showOnboardingChecklist = completedSteps < onboardingSteps.length;
 
   return (
-    <section className="relative mx-auto min-w-0 max-w-7xl overflow-x-hidden px-4 py-6 sm:px-6">
+    <section className="relative mx-auto w-full min-w-0 max-w-7xl overflow-x-hidden px-3 py-5 sm:px-6 sm:py-6">
         {showOnboardingChecklist ? (
           <Card className="mb-4 overflow-hidden border border-slate-700/70 bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-slate-950/95 backdrop-blur-xl">
             <CardContent className="py-4">

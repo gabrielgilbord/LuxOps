@@ -165,9 +165,10 @@ export function DashboardNavShell({ organizationName, userLabel }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.24 }}
-            className="fixed inset-0 z-40 bg-black/60 sm:hidden"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/70 sm:hidden"
             onClick={() => setOpen(false)}
+            aria-hidden
           />
         ) : null}
       </AnimatePresence>
@@ -179,56 +180,66 @@ export function DashboardNavShell({ organizationName, userLabel }: Props) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed right-0 top-0 z-50 h-full w-72 border-l border-slate-700 bg-slate-900 p-4 shadow-2xl sm:hidden"
+            className="fixed inset-0 z-50 flex h-[100dvh] w-full max-w-[100vw] flex-col sm:hidden"
+            style={{ backgroundColor: "#0f172a" }}
           >
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Menú</p>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="rounded-md border border-slate-700 p-1 text-slate-200"
-            aria-label="Cerrar menú"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="grid gap-1">
-          <p className="mb-2 rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-300">
-            Organización: <span className="font-semibold text-slate-100">{organizationName}</span>
-          </p>
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-2 text-sm text-slate-200 hover:bg-slate-900"
-            >
-              {item.label}
-            </Link>
-          ))}
-          <Link
-            href="/profile"
-            onClick={() => setOpen(false)}
-            className="rounded-md px-3 py-2 text-sm text-slate-200 hover:bg-slate-900"
-          >
-            Mi Perfil
-          </Link>
-          <Link
-            href="/dashboard/settings?tab=subscription"
-            onClick={() => setOpen(false)}
-            className="rounded-md px-3 py-2 text-sm text-slate-200 hover:bg-slate-900"
-          >
-            Suscripción
-          </Link>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="mt-2 w-full rounded-md border border-slate-700 px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-900"
-            >
-              Salir
-            </button>
-          </form>
-        </div>
+            {/* Capa sólida explícita: Framer a veces deja ver el fondo si solo hay clases Tailwind en el motion node */}
+            <div
+              className="absolute inset-0 bg-slate-900"
+              style={{ backgroundColor: "rgb(15 23 42)" }}
+              aria-hidden
+            />
+            <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+              <div className="mb-4 flex w-full min-w-0 items-center justify-between border-b border-slate-700/80 pb-3">
+                <p className="text-sm font-semibold text-white">Menú</p>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md border border-slate-600 bg-slate-800 p-2 text-slate-100"
+                  aria-label="Cerrar menú"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <nav className="grid w-full min-w-0 gap-1">
+                <p className="mb-2 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200">
+                  Organización:{" "}
+                  <span className="font-semibold text-white">{organizationName}</span>
+                </p>
+                {NAV_ITEMS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="w-full min-w-0 rounded-md px-3 py-3 text-base text-slate-100 hover:bg-slate-800 active:bg-slate-700"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <Link
+                  href="/profile"
+                  onClick={() => setOpen(false)}
+                  className="w-full min-w-0 rounded-md px-3 py-3 text-base text-slate-100 hover:bg-slate-800 active:bg-slate-700"
+                >
+                  Mi Perfil
+                </Link>
+                <Link
+                  href="/dashboard/settings?tab=subscription"
+                  onClick={() => setOpen(false)}
+                  className="w-full min-w-0 rounded-md px-3 py-3 text-base text-slate-100 hover:bg-slate-800 active:bg-slate-700"
+                >
+                  Suscripción
+                </Link>
+                <form action={logoutAction} className="mt-2 w-full min-w-0">
+                  <button
+                    type="submit"
+                    className="w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-3 text-left text-base text-slate-100 hover:bg-slate-700"
+                  >
+                    Salir
+                  </button>
+                </form>
+              </nav>
+            </div>
           </motion.aside>
         ) : null}
       </AnimatePresence>

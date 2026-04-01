@@ -15,9 +15,9 @@ export default async function MobileDashboardPage() {
   const projects = await getProjects();
 
   return (
-    <main className="min-h-screen min-w-0 overflow-x-hidden bg-slate-950 px-4 py-5 text-white">
+    <main className="min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden bg-slate-950 px-3 py-4 text-white sm:px-4 sm:py-5">
       <OfflineWarmup />
-      <header className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-slate-900/80 px-4 py-3">
+      <header className="mb-4 flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-white/15 bg-slate-900 px-3 py-3 sm:px-4">
         <div>
           <div className="inline-flex items-center gap-2">
             <LuxOpsLogo darkBackground className="h-6 w-auto" />
