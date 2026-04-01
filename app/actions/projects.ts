@@ -84,7 +84,16 @@ export async function resendProjectDossierEmailAction(formData: FormData): Promi
   revalidatePath("/dashboard");
 }
 
-export async function createProjectAction(formData: FormData) {
+export type CreateProjectFormState = { error: string } | null;
+
+/**
+ * Pensado para `useActionState`: errores de validación vuelven al cliente;
+ * éxito hace `redirect` (lanza internamente).
+ */
+export async function createProjectAction(
+  _prev: CreateProjectFormState,
+  formData: FormData,
+): Promise<CreateProjectFormState> {
   const admin = await requireAdminUser();
 
   const cliente = String(formData.get("cliente") ?? "").trim();
@@ -97,16 +106,17 @@ export async function createProjectAction(formData: FormData) {
   const estimatedRevenueRaw = String(formData.get("estimatedRevenue") ?? "").trim().replace(",", ".");
 
   if (!cliente || !direccion || !assignedUserId) {
-    return { error: "Completa cliente, direccion y operario asignado." };
+    return { error: "Completa cliente, dirección y operario asignado." };
   }
   if (!/^[A-Z0-9]{20,22}$/.test(cupsRaw)) {
     return {
-      error: "CUPS obligatorio: 20 a 22 caracteres alfanumericos (sin espacios). Ej.: ES0021...",
+      error:
+        "CUPS obligatorio: 20 a 22 caracteres alfanuméricos (sin espacios). Ej.: ES002100000123456789AB",
     };
   }
   if (!catastralReference || catastralReference.length < 10 || catastralReference.length > 50) {
     return {
-      error: "Referencia catastral obligatoria (entre 10 y 50 caracteres, sin espacios irrelevantes).",
+      error: "Referencia catastral obligatoria (entre 10 y 50 caracteres).",
     };
   }
   if (!ownerTaxId || ownerTaxId.length < 7 || ownerTaxId.length > 14) {
@@ -116,10 +126,10 @@ export async function createProjectAction(formData: FormData) {
     clienteNotificacionEmail &&
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clienteNotificacionEmail)
   ) {
-    return { error: "El email de notificacion al cliente no es valido." };
+    return { error: "El email de notificación al cliente no es válido." };
   }
   if (estimatedRevenueRaw && !/^\d+(\.\d{1,2})?$/.test(estimatedRevenueRaw)) {
-    return { error: "El importe estimado debe ser un numero valido (max 2 decimales)." };
+    return { error: "El importe estimado debe ser un número válido (máx. 2 decimales)." };
   }
 
   const assignedUser = await prisma.user.findFirst({
@@ -132,7 +142,7 @@ export async function createProjectAction(formData: FormData) {
   });
 
   if (!assignedUser) {
-    return { error: "El operario seleccionado no es valido." };
+    return { error: "El operario seleccionado no es válido." };
   }
 
   const initials = (assignedUser.name ?? assignedUser.email)
@@ -142,23 +152,31 @@ export async function createProjectAction(formData: FormData) {
     .map((chunk) => chunk[0]?.toUpperCase() ?? "")
     .join("");
 
-  await prisma.project.create({
-    data: {
-      cliente,
-      direccion,
-      cups: cupsRaw,
-      catastralReference,
-      ownerTaxId,
-      estado: "PRESUPUESTO",
-      progreso: 0,
-      organizationId: admin.organizationId,
-      assignedUserId: assignedUser.id,
-      operarioNombre: assignedUser.name ?? assignedUser.email,
-      operarioInitials: initials || "OP",
-      clienteNotificacionEmail: clienteNotificacionEmail || null,
-      estimatedRevenue: estimatedRevenueRaw || null,
-    },
-  });
+  try {
+    await prisma.project.create({
+      data: {
+        cliente,
+        direccion,
+        cups: cupsRaw,
+        catastralReference,
+        ownerTaxId,
+        estado: "PRESUPUESTO",
+        progreso: 0,
+        organizationId: admin.organizationId,
+        assignedUserId: assignedUser.id,
+        operarioNombre: assignedUser.name ?? assignedUser.email,
+        operarioInitials: initials || "OP",
+        clienteNotificacionEmail: clienteNotificacionEmail || null,
+        estimatedRevenue: estimatedRevenueRaw || null,
+      },
+    });
+  } catch (e) {
+    console.error("LuxOps createProjectAction DB:", e);
+    return {
+      error:
+        "No se pudo guardar el proyecto en la base de datos. En Vercel, revisa DATABASE_URL (pool 6543 + ?pgbouncer=true) y que las migraciones estén aplicadas.",
+    };
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/mobile-dashboard");
