@@ -4,10 +4,255 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum EstadoProyecto {
+  PRESUPUESTO
+  PENDIENTE_MATERIAL
+  EN_INSTALACION
+  FINALIZADO
+  SUBVENCION_TRAMITADA
+}
+
+enum TipoFoto {
+  ANTES
+  DURANTE
+  DESPUES
+}
+
+enum UserRole {
+  ADMIN
+  OPERARIO
+}
+
+enum StructureMountingType {
+  COPLANAR
+  INCLINACION
+  LASTRADA
+}
+
+/// Catálogo global LuxOps: solo marca + modelo (nunca S/N). Compartido entre organizaciones.
+enum EquipmentCatalogCategory {
+  PANEL
+  INVERTER
+  BATTERY
+}
+
+model EquipmentCatalogEntry {
+  id        String                   @id @default(cuid())
+  category  EquipmentCatalogCategory
+  brand     String
+  model     String
+  brandKey  String
+  modelKey  String
+  hitCount  Int                      @default(1)
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
+
+  @@unique([category, brandKey, modelKey])
+  @@index([category, brandKey])
+}
+
+model Organization {
+  id                    String    @id @default(cuid())
+  name                  String
+  taxAddress            String?
+  logoUrl               String?
+  logoPath              String?
+  brandColor            String    @default("#1F2937")
+  isSubscribed          Boolean   @default(false)
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?   @unique
+  stripeCheckoutSessionId String? @unique
+  subscriptionStatus    String?
+  planPriceCents        Int?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  users                 User[]
+  invites               OperatorInvite[]
+  projects              Project[]
+  syncEvents            SyncEvent[]
+  notificationJobs      NotificationJob[]
+  stripeEvents          StripeEvent[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  supabaseUserId String       @unique
+  email          String       @unique
+  name           String?
+  role           UserRole     @default(OPERARIO)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedProjects Project[]  @relation("ProjectAssignedUser")
+  syncEvents       SyncEvent[]
+  notificationJobs NotificationJob[]
+}
+
+model OperatorInvite {
+  id             String       @id @default(cuid())
+  email          String
+  name           String
+  status         String       @default("PENDING")
+  tokenHash      String       @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  invitedByUserId String?
+  createdAt      DateTime     @default(now())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, email])
+}
+
+model Project {
+  id               String         @id @default(cuid())
+  cliente          String
+  direccion        String
+  /** Punto de suministro (20–22 caracteres, validado en alta) */
+  cups             String         @default("")
+  /** Referencia catastral del inmueble */
+  catastralReference String       @default("")
+  /** DNI / NIE / CIF del titular del suministro */
+  ownerTaxId       String         @default("")
+  estimatedRevenue Decimal?       @db.Decimal(12, 2)
+  /** Nº presupuesto / oferta (oficina comercial) */
+  quoteReference   String?
+  estado           EstadoProyecto @default(PRESUPUESTO)
+  progreso         Int            @default(0)
+  operarioNombre   String
+  operarioInitials String
+  rebtCompanyNumber String?
+  dossierReference  String?
+  technicalMemory   String?
+  reviewedByOfficeTech Boolean    @default(false)
+  assetPanelBrand   String?
+  assetPanelModel   String?
+  assetPanelSerial  String?
+  equipmentPanelSerials String[] @default([])
+  equipmentPanelItems   Json?
+  assetInverterBrand String?
+  assetInverterModel String?
+  equipmentInverterSerial  String?
+  equipmentInverterItems   Json?
+  assetBatteryBrand  String?
+  assetBatteryModel  String?
+  equipmentBatterySerial   String?
+  equipmentBatterySerials  String[] @default([])
+  equipmentBatteryItems    Json?
+  peakPowerKwp       Decimal?       @db.Decimal(10, 2)
+  inverterPowerKwn   Decimal?       @db.Decimal(10, 2)
+  storageCapacityKwh Decimal?       @db.Decimal(10, 2)
+  equipmentVatimetroSerial String?
+  warrantyNotes            String?
+  installationIncidentNotes String?
+  structureBrand             String?
+  structureMounting          StructureMountingType?
+  stringConfiguration        String?  @db.Text
+  electricVocVolts           Decimal? @db.Decimal(10, 2)
+  electricIscAmps            Decimal? @db.Decimal(10, 2)
+  earthResistanceOhms        Decimal? @db.Decimal(10, 3)
+  thermalProtectionBrand     String?
+  thermalProtectionModel     String?
+  spdBrand                   String?
+  spdModel                   String?
+  panelAzimuthDegrees        Decimal? @db.Decimal(8, 2)
+  panelTiltDegrees           Decimal? @db.Decimal(8, 2)
+  installerProfessionalCard  String?
+  photoProtocolNameplates           Boolean @default(false)
+  photoProtocolDistributionBoard    Boolean @default(false)
+  photoProtocolFixings              Boolean @default(false)
+  photoProtocolStructureEarthing    Boolean @default(false)
+  clientTrainingAcknowledged        Boolean @default(false)
+  /** PRL — Seguridad y salud antes de iniciar trabajos en cubierta */
+  prlLineLifeHarness         Boolean @default(false)
+  prlCollectiveProtection     Boolean @default(false)
+  prlRoofTransitOk            Boolean @default(false)
+  prlPpeInUse                 Boolean @default(false)
+  prlAckLatitude              Float?
+  prlAckLongitude             Float?
+  prlAcknowledgedAt           DateTime?
+  clienteNotificacionEmail   String?
+  subsidyPackDownloadedAt    DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  organizationId   String
+  assignedUserId   String?
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedUser     User?          @relation("ProjectAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  photos           Photo[]
+  signatures       ProjectSignature[]
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  url       String
+  storagePath String?
+  tipo      TipoFoto
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model SyncEvent {
+  id             String       @id
+  kind           String
+  createdAt      DateTime     @default(now())
+  organizationId String
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationJob {
+  id             String       @id @default(cuid())
+  type           String
+  payload        Json
+  status         String       @default("PENDING")
+  attempts       Int          @default(0)
+  lastError      String?
+  nextAttemptAt  DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId String
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StripeEvent {
+  id             String       @id @default(cuid())
+  eventId        String       @unique
+  eventType      String
+  processedAt    DateTime     @default(now())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+}
+
+model ProjectSignature {
+  id        String   @id @default(cuid())
+  imageDataUrl String
+  storagePath String?
+  /** Firma del instalador (opcional si la obra se cerró con la versión antigua). */
+  installerImageDataUrl String?
+  installerStoragePath String?
+  /** Nombres mostrados bajo cada firma en el PDF (snapshot). */
+  installerName String?
+  clientName String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }

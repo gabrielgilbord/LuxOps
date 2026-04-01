@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: "Aptos", "Atos", var(--font-geist-sans), "Inter", "Segoe UI", Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,24 +49,24 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.98 0.01 252);
+  --foreground: oklch(0.25 0.03 253);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.25 0.03 253);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.34 0.1 252);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.95 0.01 252);
+  --secondary-foreground: oklch(0.32 0.04 252);
+  --muted: oklch(0.93 0.01 252);
+  --muted-foreground: oklch(0.54 0.02 252);
+  --accent: oklch(0.88 0.15 90);
+  --accent-foreground: oklch(0.28 0.05 252);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.86 0.01 252);
+  --input: oklch(0.9 0.01 252);
+  --ring: oklch(0.62 0.07 252);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -84,20 +84,20 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --background: oklch(0.2 0.03 252);
+  --foreground: oklch(0.97 0.01 252);
+  --card: oklch(0.27 0.03 252);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.72 0.09 252);
+  --primary-foreground: oklch(0.22 0.03 252);
+  --secondary: oklch(0.31 0.03 252);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.31 0.03 252);
+  --muted-foreground: oklch(0.8 0.01 252);
+  --accent: oklch(0.8 0.14 90);
+  --accent-foreground: oklch(0.2 0.03 252);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
@@ -126,5 +126,85 @@
   }
   html {
     @apply font-sans;
+  }
+  a,
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a {
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  }
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  a:active {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cie-ready-soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 0 rgb(52 211 153 / 0.35),
+      0 0 0 0 rgb(16 185 129 / 0.2);
+  }
+  50% {
+    opacity: 0.94;
+    box-shadow:
+      0 0 0 1px rgb(52 211 153 / 0.45),
+      0 0 16px 2px rgb(16 185 129 / 0.35);
+  }
+}
+
+@layer utilities {
+  .animate-cie-ready {
+    animation: cie-ready-soft-pulse 2.6s ease-in-out infinite;
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.7s ease-out both;
+  }
+  .spotlight-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .spotlight-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--spot-opacity, 0);
+    transition: opacity 220ms ease;
+    background: radial-gradient(
+      220px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      rgba(251, 191, 36, 0.2),
+      rgba(251, 191, 36, 0.08) 35%,
+      transparent 70%
+    );
+  }
+  @media (hover: none), (pointer: coarse) {
+    .spotlight-card::before {
+      display: none;
+    }
   }
 }

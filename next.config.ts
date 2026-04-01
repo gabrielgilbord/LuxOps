@@ -1,7 +1,40 @@
 import type { NextConfig } from "next";
+import withPWA from "next-pwa";
+import runtimeCaching from "next-pwa/cache";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {},
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "hwueuvmfmvxzkrsuprel.supabase.co",
+      },
+    ],
+  },
 };
 
-export default nextConfig;
+export default withPWA({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  runtimeCaching: [
+    ...runtimeCaching,
+    {
+      urlPattern: /^https?.*/,
+      handler: "StaleWhileRevalidate",
+      options: {
+        cacheName: "http-cache",
+        expiration: {
+          maxEntries: 120,
+          maxAgeSeconds: 60 * 60 * 24,
+        },
+      },
+    },
+  ],
+  disable: process.env.NODE_ENV === "development",
+})(nextConfig);
