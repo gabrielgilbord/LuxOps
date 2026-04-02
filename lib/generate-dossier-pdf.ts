@@ -210,20 +210,64 @@ function wrapPdfLines(text: string, maxWidth: number, font: import("pdf-lib").PD
   return lines.length ? lines : [""];
 }
 
+/** Opacidad del sello VERIFICADO en portada (marca de agua, mitad derecha). */
+const COVER_SEAL_WATERMARK_OPACITY = 0.38;
+
 function parseEquipmentItems(value: Prisma.JsonValue | null | undefined): EquipmentItem[] {
-  if (!Array.isArray(value)) return [];
+  if (value == null || value === undefined) return [];
+  let raw: unknown = value;
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw) as unknown;
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(raw)) return [];
   const out: EquipmentItem[] = [];
-  for (const item of value) {
+  for (const item of raw) {
     if (!item || typeof item !== "object" || Array.isArray(item)) continue;
     const row = item as Record<string, unknown>;
     out.push({
       brand: String(row.brand ?? "").trim(),
       model: String(row.model ?? "").trim(),
-      serial: String(row.serial ?? "").trim(),
-      peakWp: String(row.peakWp ?? "").trim() || undefined,
-      nominalKw: String(row.nominalKw ?? "").trim() || undefined,
-      capacityKwh: String(row.capacityKwh ?? "").trim() || undefined,
+      serial: String(row.serial ?? row.sn ?? row.SN ?? "").trim(),
+      peakWp: String(row.peakWp ?? row.peak_wp ?? "").trim() || undefined,
+      nominalKw: String(row.nominalKw ?? row.nominal_kw ?? "").trim() || undefined,
+      capacityKwh: String(row.capacityKwh ?? row.capacity_kwh ?? "").trim() || undefined,
     });
+  }
+  return out;
+}
+
+function uniqueSerials(list: (string | null | undefined)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    const s = (raw ?? "").trim();
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
+
+/** Une filas JSON del stepper con N/S sueltos en arrays legacy (misma marca/modelo de activo). */
+function mergeSerialsIntoItems(
+  items: EquipmentItem[],
+  serials: string[],
+  brand: string | null | undefined,
+  model: string | null | undefined,
+): EquipmentItem[] {
+  const seen = new Set(items.map((i) => i.serial.trim()).filter(Boolean));
+  const b = (brand ?? "").trim();
+  const m = (model ?? "").trim();
+  const out = [...items];
+  for (const serial of serials) {
+    const t = serial.trim();
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push({ brand: b, model: m, serial: t });
   }
   return out;
 }
@@ -244,7 +288,8 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const slateBorder = rgb(0.2, 0.2549, 0.3333);
   const solarYellow = rgb(0.9843, 0.8196, 0.1412);
   const accent = hexToRgb(project.organization.brandColor ?? "#1F2937");
-  const companyName = project.organization.name;
+  const companyName = (project.organization.name ?? "").trim() || "Organización";
+  const installerCompanyLabel = pdfLibSafeText(companyName);
   const dossierReference =
     project.dossierReference?.trim() ||
     `EXP-${project.id.slice(-8).toUpperCase()}-${new Date(project.updatedAt).getFullYear()}`;
@@ -273,12 +318,20 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const coverPage = pdf.addPage([595, 842]);
   coverPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
   coverPage.drawRectangle({ x: 0, y: 794, width: 595, height: 48, color: rgb(0.97, 0.98, 1) });
-  coverPage.drawText("Lux Light / OPS Black", {
+  coverPage.drawText(installerCompanyLabel, {
     x: 24,
-    y: 812,
-    size: 8.5,
+    y: 818,
+    size: 9.5,
     font: bold,
-    color: rgb(0.12, 0.12, 0.12),
+    color: rgb(0.1, 0.1, 0.12),
+    maxWidth: 420,
+  });
+  coverPage.drawText("Dossier certificado · trazabilidad LuxOps", {
+    x: 24,
+    y: 800,
+    size: 7.5,
+    font,
+    color: rgb(0.32, 0.34, 0.38),
   });
 
   const orgLogoSource =
@@ -493,57 +546,53 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     kpy -= 12;
   }
 
-  // Sello de verificación: margen seguro respecto al bloque KPI (altura variable).
-  const sealGap = 14;
-  let sealR = 30;
-  let sealCX = 526;
-  let sealCY = 56;
-  const sealBottom = sealCY - sealR;
-  const sealTop = sealCY + sealR;
-  const kpiLow = boxY;
-  const kpiHigh = boxY + boxH;
-  const overlapsKpi =
-    sealTop >= kpiLow - sealGap && sealBottom <= kpiHigh + sealGap;
-  if (overlapsKpi) {
-    sealR = 28;
-    sealCX = 518;
-    sealCY = 692;
-  }
+  // Sello VERIFICADO: mitad derecha de la portada, altura media — marca de agua (no esquina inferior).
+  const sealR = 24;
+  const sealCX = 532;
+  const sealCY = 421;
+  const sealOp = COVER_SEAL_WATERMARK_OPACITY;
   coverPage.drawCircle({
     x: sealCX,
     y: sealCY,
-    size: sealR + 10,
+    size: sealR + 9,
     color: rgb(0.94, 0.97, 0.96),
     borderColor: rgb(0.06, 0.45, 0.32),
-    borderWidth: 2.2,
+    borderWidth: 1.8,
+    opacity: sealOp,
+    borderOpacity: sealOp,
   });
   coverPage.drawCircle({
     x: sealCX,
     y: sealCY,
-    size: sealR + 2,
+    size: sealR + 1,
     borderColor: rgb(0.06, 0.45, 0.32),
-    borderWidth: 1.4,
+    borderWidth: 1.2,
+    opacity: sealOp,
+    borderOpacity: sealOp,
   });
   coverPage.drawText("VERIFICADO", {
-    x: sealCX - bold.widthOfTextAtSize("VERIFICADO", 7.2) / 2,
-    y: sealCY + sealR * 0.32,
-    size: 7.2,
+    x: sealCX - bold.widthOfTextAtSize("VERIFICADO", 6.8) / 2,
+    y: sealCY + sealR * 0.28,
+    size: 6.8,
     font: bold,
     color: rgb(0.05, 0.38, 0.28),
+    opacity: sealOp,
   });
   coverPage.drawText("LuxOps", {
-    x: sealCX - bold.widthOfTextAtSize("LuxOps", 6.5) / 2,
+    x: sealCX - bold.widthOfTextAtSize("LuxOps", 6.2) / 2,
     y: sealCY - 2,
-    size: 6.5,
-    font: bold,
-    color: rgb(0.05, 0.38, 0.28),
-  });
-  coverPage.drawText("CONTROL", {
-    x: sealCX - bold.widthOfTextAtSize("CONTROL", 6.2) / 2,
-    y: sealCY - sealR * 0.45,
     size: 6.2,
     font: bold,
     color: rgb(0.05, 0.38, 0.28),
+    opacity: sealOp,
+  });
+  coverPage.drawText("CONTROL", {
+    x: sealCX - bold.widthOfTextAtSize("CONTROL", 5.9) / 2,
+    y: sealCY - sealR * 0.42,
+    size: 5.9,
+    font: bold,
+    color: rgb(0.05, 0.38, 0.28),
+    opacity: sealOp,
   });
 
   const summaryPage = pdf.addPage([595, 842]);
@@ -574,11 +623,12 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     borderWidth: 0.5,
   });
 
-  summaryPage.drawText(`Empresa instaladora: ${companyName}`, {
+  summaryPage.drawText(`Empresa instaladora: ${installerCompanyLabel}`, {
     x: 36,
     y: 698,
     size: 11,
     font: bold,
+    maxWidth: 340,
   });
   summaryPage.drawText(`Cliente: ${project.cliente}`, { x: 36, y: 682, size: 10, font });
   summaryPage.drawText(`CUPS: ${cupsHead}`, { x: 36, y: 666, size: 9.5, font: bold });
@@ -658,44 +708,64 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const panelItemsFromDb = parseEquipmentItems(project.equipmentPanelItems);
   const batteryItemsFromDb = parseEquipmentItems(project.equipmentBatteryItems);
   const inverterItemsFromDb = parseEquipmentItems(project.equipmentInverterItems);
-  const panelSerials = (project.equipmentPanelSerials ?? []).filter((serial) => serial.trim().length > 0);
-  const batterySerials = (project.equipmentBatterySerials ?? []).filter((serial) => serial.trim().length > 0);
-  const normalizedPanelItems: EquipmentItem[] =
-    panelItemsFromDb.length > 0
-      ? panelItemsFromDb
-      : (panelSerials.length > 0
-          ? panelSerials
-          : (project.assetPanelSerial?.trim() ? [project.assetPanelSerial.trim()] : [])
-        ).map((serial) => ({
-          brand: project.assetPanelBrand?.trim() || "",
-          model: project.assetPanelModel?.trim() || "",
-          serial,
-        }));
-  const normalizedBatteryItems: EquipmentItem[] =
-    batteryItemsFromDb.length > 0
-      ? batteryItemsFromDb
-      : (batterySerials.length > 0
-          ? batterySerials
-          : (project.equipmentBatterySerial?.trim() ? [project.equipmentBatterySerial.trim()] : [])
-        ).map((serial) => ({
-          brand: project.assetBatteryBrand?.trim() || "",
-          model: project.assetBatteryModel?.trim() || "",
-          serial,
-        }));
-  const normalizedInverterItems: EquipmentItem[] =
-    inverterItemsFromDb.length > 0
-      ? inverterItemsFromDb
-      : (
-          project.equipmentInverterSerial?.trim()
-            ? [
-                {
-                  brand: project.assetInverterBrand?.trim() || "",
-                  model: project.assetInverterModel?.trim() || "",
-                  serial: project.equipmentInverterSerial.trim(),
-                },
-              ]
-            : []
-        );
+  const inverterSerials = uniqueSerials(
+    project.equipmentInverterSerial?.trim()
+      ? [project.equipmentInverterSerial.trim()]
+      : [],
+  );
+  const panelSerials = uniqueSerials([
+    ...(project.equipmentPanelSerials ?? []),
+    ...(project.assetPanelSerial?.trim() ? [project.assetPanelSerial.trim()] : []),
+  ]);
+  const batterySerials = uniqueSerials([
+    ...(project.equipmentBatterySerials ?? []),
+    ...(project.equipmentBatterySerial?.trim() ? [project.equipmentBatterySerial.trim()] : []),
+  ]);
+  let normalizedPanelItems: EquipmentItem[] = mergeSerialsIntoItems(
+    panelItemsFromDb,
+    panelSerials,
+    project.assetPanelBrand,
+    project.assetPanelModel,
+  );
+  let normalizedBatteryItems: EquipmentItem[] = mergeSerialsIntoItems(
+    batteryItemsFromDb,
+    batterySerials,
+    project.assetBatteryBrand,
+    project.assetBatteryModel,
+  );
+  let normalizedInverterItems: EquipmentItem[] = mergeSerialsIntoItems(
+    inverterItemsFromDb,
+    inverterSerials,
+    project.assetInverterBrand,
+    project.assetInverterModel,
+  );
+  if (normalizedInverterItems.length === 0 && inverterSerials.length > 0) {
+    normalizedInverterItems = [
+      {
+        brand: project.assetInverterBrand?.trim() || "",
+        model: project.assetInverterModel?.trim() || "",
+        serial: inverterSerials[0],
+        nominalKw:
+          project.inverterPowerKwn != null
+            ? String(Number(project.inverterPowerKwn))
+            : undefined,
+      },
+    ];
+  }
+  normalizedInverterItems = normalizedInverterItems.map((it) => {
+    if (it.nominalKw?.trim()) return it;
+    if (project.inverterPowerKwn == null) return it;
+    return { ...it, nominalKw: String(Number(project.inverterPowerKwn)) };
+  });
+  const peakKwpStr =
+    project.peakPowerKwp != null ? String(Number(project.peakPowerKwp)) : "";
+  if (
+    normalizedPanelItems.length === 1 &&
+    peakKwpStr &&
+    !normalizedPanelItems[0].peakWp?.trim()
+  ) {
+    normalizedPanelItems = [{ ...normalizedPanelItems[0], peakWp: peakKwpStr }];
+  }
   const tableRows: string[][] = [
     ...normalizedPanelItems.map((item, index) => [
       `Panel ${index + 1}`,
@@ -720,12 +790,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     ]),
   ];
   if (normalizedPanelItems.length === 0) {
+    const serialCell =
+      panelSerials.length > 0
+        ? pdfLibSafeText(panelSerials.join(", ").slice(0, 120))
+        : project.assetPanelSerial?.trim() || "—";
     tableRows.unshift([
       "Panel",
       project.assetPanelBrand?.trim() || "—",
       project.assetPanelModel?.trim() || "—",
-      "—",
-      "—",
+      peakKwpStr ? `${peakKwpStr} kWp` : "—",
+      serialCell,
     ]);
   }
   if (normalizedInverterItems.length === 0) {
@@ -1429,7 +1503,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     legalPage.drawText(line, { x: 24, y: legalY, size: 9.5, font, color: rgb(0.22, 0.22, 0.24) });
     legalY -= 14;
   }
-  legalY -= 14;
+  legalY -= 36;
 
   const signature = project.signatures[0];
   const installerSigSource = signature?.installerImageDataUrl ?? "";
@@ -1440,21 +1514,21 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const clientName = (signature?.clientName ?? project.cliente ?? "").trim() || "Cliente";
 
   // Incluye metadatos (GPS + timestamp) bajo las cajas de firma.
-  const signatureBlockH = 285;
+  const signatureBlockH = 318;
   const minBottom = 110;
   if (legalY - signatureBlockH < minBottom) {
     // No cabe holgado: saltamos a nueva página para firmas.
     legalPage = pdf.addPage([595, 842]);
     legalPage.drawText("FIRMAS Y CONFORMIDAD", { x: 24, y: 808, size: 14, font: bold });
-    legalY = 782;
+    legalY = 752;
   } else {
     legalPage.drawText("FIRMAS Y CONFORMIDAD", { x: 24, y: legalY, size: 12, font: bold });
-    legalY -= 18;
+    legalY -= 32;
   }
 
   const sigBoxYTop = legalY;
   const sigBoxH = 210;
-  const gapX = 16;
+  const gapX = 26;
   const sigBoxW = (547 - gapX) / 2;
   const leftX = 24;
   const rightX = 24 + sigBoxW + gapX;
@@ -1468,7 +1542,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     storagePath: string | null;
     meta?: { latitude?: number | null; longitude?: number | null; createdAt?: Date | null } | null;
   }) => {
-    legalPage.drawText(params.title, { x: params.x, y: sigBoxYTop + 10, size: 9.5, font: bold });
+    legalPage.drawText(params.title, { x: params.x, y: sigBoxYTop + 14, size: 9.5, font: bold });
     legalPage.drawRectangle({
       x: params.x,
       y: sigBoxY,
@@ -1495,7 +1569,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
         const maxW = sigBoxW - 22;
         const maxH = sigBoxH - 86;
         const baseRatio = Math.min(maxW / img.width, maxH / img.height);
-        const ratio = Math.min(baseRatio * 1.08, maxW / img.width, maxH / img.height);
+        const ratio = Math.min(baseRatio * 1.28, maxW / img.width, maxH / img.height);
         const w = img.width * ratio;
         const h = img.height * ratio;
         legalPage.drawImage(img, {
