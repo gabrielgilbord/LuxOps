@@ -211,7 +211,7 @@ function wrapPdfLines(text: string, maxWidth: number, font: import("pdf-lib").PD
 }
 
 /** Opacidad del sello VERIFICADO en portada (marca de agua). */
-const COVER_SEAL_WATERMARK_OPACITY = 0.5;
+const COVER_SEAL_WATERMARK_OPACITY = 0.6;
 
 function parseEquipmentItems(value: Prisma.JsonValue | null | undefined): EquipmentItem[] {
   if (value == null || value === undefined) return [];
@@ -640,15 +640,22 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     { x: 36, y: 606, size: 10, font },
   );
   summaryPage.drawText(`Estado: ${project.estado}`, { x: 36, y: 590, size: 10, font });
-  summaryPage.drawText(`Carné profesional instalador: ${installerCard || "—"}`, {
-    x: 36,
-    y: 574,
-    size: 9.5,
-    font: bold,
-  });
+  summaryPage.drawText(
+    pdfLibSafeText(
+      `Nº Empresa Instaladora Autorizada (REBT): ${installerCard || "—"}`,
+    ),
+    {
+      x: 36,
+      y: 574,
+      size: 9.5,
+      font: bold,
+      maxWidth: 500,
+      lineHeight: 11,
+    },
+  );
   summaryPage.drawText(`Referencia de Expediente: ${dossierReference}`, {
     x: 36,
-    y: 558,
+    y: 532,
     size: 9.5,
     font: bold,
     color: rgb(0.2, 0.2, 0.25),
