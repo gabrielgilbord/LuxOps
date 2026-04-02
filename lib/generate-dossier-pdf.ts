@@ -210,8 +210,8 @@ function wrapPdfLines(text: string, maxWidth: number, font: import("pdf-lib").PD
   return lines.length ? lines : [""];
 }
 
-/** Opacidad del sello VERIFICADO en portada (marca de agua, mitad derecha). */
-const COVER_SEAL_WATERMARK_OPACITY = 0.38;
+/** Opacidad del sello VERIFICADO en portada (marca de agua). */
+const COVER_SEAL_WATERMARK_OPACITY = 0.5;
 
 function parseEquipmentItems(value: Prisma.JsonValue | null | undefined): EquipmentItem[] {
   if (value == null || value === undefined) return [];
@@ -293,7 +293,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const dossierReference =
     project.dossierReference?.trim() ||
     `EXP-${project.id.slice(-8).toUpperCase()}-${new Date(project.updatedAt).getFullYear()}`;
-  const rebtNumber = project.rebtCompanyNumber?.trim() || "PENDIENTE_VALIDACION_REBT";
+  const installerCard = (project.installerProfessionalCard ?? "").trim();
   const firstPhotoAt = project.photos[0]?.createdAt ?? null;
   const lastPhotoAt = project.photos[project.photos.length - 1]?.createdAt ?? null;
   const totalTimeLabel =
@@ -546,10 +546,10 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     kpy -= 12;
   }
 
-  // Sello VERIFICADO: mitad derecha de la portada, altura media — marca de agua (no esquina inferior).
+  // Sello VERIFICADO: esquina inferior derecha — marca de agua discreta.
   const sealR = 24;
-  const sealCX = 532;
-  const sealCY = 421;
+  const sealCX = 526;
+  const sealCY = 69;
   const sealOp = COVER_SEAL_WATERMARK_OPACITY;
   coverPage.drawCircle({
     x: sealCX,
@@ -640,7 +640,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     { x: 36, y: 606, size: 10, font },
   );
   summaryPage.drawText(`Estado: ${project.estado}`, { x: 36, y: 590, size: 10, font });
-  summaryPage.drawText(`Nº Empresa Instaladora Autorizada (REBT): ${rebtNumber}`, {
+  summaryPage.drawText(`Carné profesional instalador: ${installerCard || "—"}`, {
     x: 36,
     y: 574,
     size: 9.5,
