@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Camera, CheckCircle, Sun, Wifi, WifiOff } from "lucide-react";
 import Image from "next/image";
@@ -76,6 +76,77 @@ type DraftState = {
   };
   prlSubmitted: boolean;
 };
+
+function applyScanToTraceability(
+  prev: DraftState["traceability"],
+  target: ScanTarget,
+  text: string,
+): DraftState["traceability"] {
+  const decodedText = text.trim();
+  if (target.kind === "field") {
+    return { ...prev, [target.field]: decodedText };
+  }
+  if (target.kind === "panel") {
+    return {
+      ...prev,
+      panelItems: prev.panelItems.map((item, index) =>
+        index === target.index ? { ...item, serial: decodedText } : item,
+      ),
+    };
+  }
+  if (target.kind === "inverter") {
+    return {
+      ...prev,
+      inverterItems: prev.inverterItems.map((item, index) =>
+        index === target.index ? { ...item, serial: decodedText } : item,
+      ),
+    };
+  }
+  return {
+    ...prev,
+    batteryItems: prev.batteryItems.map((item, index) =>
+      index === target.index ? { ...item, serial: decodedText } : item,
+    ),
+  };
+}
+
+function cameraFriendlyError(error: unknown): string {
+  if (error && typeof error === "object" && "name" in error) {
+    const name = String((error as { name: string }).name);
+    if (name === "NotAllowedError") {
+      return "Permiso de cámara denegado. Permite el acceso en Ajustes del navegador o del sistema y vuelve a intentarlo.";
+    }
+    if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+      return "No se detectó ninguna cámara. Comprueba que el dispositivo tenga cámara o conecta una cámara USB.";
+    }
+    if (name === "NotReadableError" || name === "TrackStartError") {
+      return "La cámara está en uso por otra aplicación. Ciérrala e inténtalo de nuevo.";
+    }
+    if (name === "OverconstrainedError") {
+      return "No se pudo usar la cámara trasera. Prueba “Foto (código o texto)” o otro navegador.";
+    }
+  }
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("permission") || msg.includes("denied")) {
+      return "Permiso de cámara denegado. Permite el acceso en ajustes y vuelve a intentarlo.";
+    }
+    return `No se pudo usar la cámara: ${error.message}`;
+  }
+  return "No se pudo abrir la cámara. Revisa permisos e inténtalo de nuevo.";
+}
+
+/** Elige el fragmento más plausible de un OCR para un S/N alfanumérico. */
+function normalizeOcrSerial(raw: string): string {
+  const flat = raw.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim();
+  if (!flat) return "";
+  const tokens = flat
+    .split(/[\s|]+/)
+    .map((t) => t.replace(/[^A-Za-z0-9.\-_/]/g, ""))
+    .filter((t) => t.length >= 4);
+  if (tokens.length === 0) return "";
+  return tokens.sort((a, b) => b.length - a.length)[0] ?? "";
+}
 
 const emptyLists = (): Record<PhotoPhase, string[]> => ({
   ANTES: [],
@@ -367,8 +438,18 @@ export function EjecucionObra({ projectId }: Props) {
   const [prlSubmitted, setPrlSubmitted] = useState(false);
   const [scanTarget, setScanTarget] = useState<ScanTarget | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanCameraPhase, setScanCameraPhase] = useState<"idle" | "starting" | "ready" | "error">(
+    "idle",
+  );
+  const [scanPhotoBusy, setScanPhotoBusy] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerElementId = "luxops-qr-reader";
+  const scanTargetRef = useRef<ScanTarget | null>(null);
+  const scanDecodeHandledRef = useRef(false);
+  const scanPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const scanIds = useId().replace(/:/g, "");
+  const liveScannerElementId = `luxops-live-${scanIds}`;
+  const fileScannerElementId = `luxops-file-${scanIds}`;
+  scanTargetRef.current = scanTarget;
   const [isHydrated, setIsHydrated] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeNotice, setFinalizeNotice] = useState<string | null>(null);
@@ -661,76 +742,235 @@ export function EjecucionObra({ projectId }: Props) {
     });
   }
 
-  useEffect(() => {
-    if (!scanTarget) return;
-    let mountedActive = true;
-    let scannerInstance: Html5Qrcode | null = null;
-    async function startScanner() {
+  async function stopLiveScannerInstance() {
+    const cur = scannerRef.current;
+    scannerRef.current = null;
+    if (!cur) return;
+    try {
+      if (cur.isScanning) await cur.stop();
+    } catch {
+      /* ignore */
+    }
+    try {
+      cur.clear();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function handleSerialPhotoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const target = scanTargetRef.current;
+    if (!file || !target) return;
+    setScanPhotoBusy(true);
+    setScanError(null);
+    try {
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+      const formatsToSupport = [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.DATA_MATRIX,
+      ];
+      const fileScanner = new Html5Qrcode(fileScannerElementId, {
+        verbose: false,
+        formatsToSupport,
+        useBarCodeDetectorIfSupported: true,
+      });
+      let barcodeText = "";
       try {
-        const { Html5Qrcode } = await import("html5-qrcode");
-        if (!mountedActive) return;
-        scannerInstance = new Html5Qrcode(scannerElementId);
+        barcodeText = (await fileScanner.scanFile(file, false)).trim();
+      } catch {
+        barcodeText = "";
+      }
+      try {
+        fileScanner.clear();
+      } catch {
+        /* ignore */
+      }
+      if (barcodeText) {
+        if (scanTargetRef.current !== target) return;
+        await stopLiveScannerInstance();
+        try {
+          navigator.vibrate?.(60);
+        } catch {
+          /* ignore */
+        }
+        setTraceability((prev) => applyScanToTraceability(prev, target, barcodeText));
+        setScanTarget(null);
+        return;
+      }
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("eng");
+      await worker.setParameters({
+        tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_/ ",
+      });
+      const {
+        data: { text },
+      } = await worker.recognize(file);
+      await worker.terminate();
+      if (scanTargetRef.current !== target) return;
+      const ocrSerial = normalizeOcrSerial(text);
+      if (!ocrSerial) {
+        setScanError(
+          "No se detectó código ni texto claro. Usa más luz, encuadra el S/N o escríbelo a mano.",
+        );
+        return;
+      }
+      await stopLiveScannerInstance();
+      try {
+        navigator.vibrate?.(60);
+      } catch {
+        /* ignore */
+      }
+      setTraceability((prev) => applyScanToTraceability(prev, target, ocrSerial));
+      setScanTarget(null);
+    } catch (err) {
+      setScanError(cameraFriendlyError(err));
+    } finally {
+      setScanPhotoBusy(false);
+    }
+  }
+
+  function closeSerialScanModal() {
+    setScanError(null);
+    setScanCameraPhase("idle");
+    setScanTarget(null);
+  }
+
+  useLayoutEffect(() => {
+    if (!scanTarget) {
+      setScanCameraPhase("idle");
+      scanDecodeHandledRef.current = false;
+      return;
+    }
+
+    scanDecodeHandledRef.current = false;
+    setScanCameraPhase("starting");
+    setScanError(null);
+
+    let cancelled = false;
+
+    const onDecodeSuccess = async (decodedText: string) => {
+      if (scanDecodeHandledRef.current) return;
+      const text = decodedText.trim();
+      if (!text) return;
+      const target = scanTargetRef.current;
+      if (!target) return;
+      scanDecodeHandledRef.current = true;
+      const inst = scannerRef.current;
+      scannerRef.current = null;
+      try {
+        if (inst?.isScanning) await inst.stop();
+      } catch {
+        /* ignore */
+      }
+      try {
+        inst?.clear();
+      } catch {
+        /* ignore */
+      }
+      try {
+        navigator.vibrate?.(60);
+      } catch {
+        /* ignore */
+      }
+      setTraceability((prev) => applyScanToTraceability(prev, target, text));
+      setScanTarget(null);
+    };
+
+    async function startLiveScanner() {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      if (cancelled) return;
+
+      const el = document.getElementById(liveScannerElementId);
+      if (!el) {
+        setScanError("No se pudo preparar el visor de cámara.");
+        setScanCameraPhase("error");
+        return;
+      }
+
+      try {
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+        if (cancelled) return;
+
+        const formatsToSupport = [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+        ];
+
+        const scannerInstance = new Html5Qrcode(liveScannerElementId, {
+          verbose: false,
+          formatsToSupport,
+          useBarCodeDetectorIfSupported: true,
+        });
         scannerRef.current = scannerInstance;
+
         await scannerInstance.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            setTraceability((prev) => {
-              if (!scanTarget) return prev;
-              if (scanTarget.kind === "field") {
-                return { ...prev, [scanTarget.field]: decodedText };
-              }
-              if (scanTarget.kind === "panel") {
-                return {
-                  ...prev,
-                  panelItems: prev.panelItems.map((item, index) =>
-                    index === scanTarget.index ? { ...item, serial: decodedText } : item,
-                  ),
-                };
-              }
-              if (scanTarget.kind === "inverter") {
-                return {
-                  ...prev,
-                  inverterItems: prev.inverterItems.map((item, index) =>
-                    index === scanTarget.index ? { ...item, serial: decodedText } : item,
-                  ),
-                };
-              }
-              return {
-                ...prev,
-                batteryItems: prev.batteryItems.map((item, index) =>
-                  index === scanTarget.index ? { ...item, serial: decodedText } : item,
-                ),
-              };
-            });
-            setScanTarget(null);
+          { facingMode: { ideal: "environment" } },
+          {
+            fps: 8,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+              const size = Math.max(140, Math.floor(minEdge * 0.72));
+              return { width: size, height: size };
+            },
           },
+          onDecodeSuccess,
           () => {},
         );
+
+        if (!cancelled) setScanCameraPhase("ready");
       } catch (error) {
-        setScanError(
-          error instanceof Error
-            ? `No se pudo iniciar el escaner: ${error.message}`
-            : "No se pudo iniciar el escaner.",
-        );
-        setScanTarget(null);
+        if (cancelled) return;
+        setScanError(cameraFriendlyError(error));
+        setScanCameraPhase("error");
       }
     }
-    startScanner();
+
+    void startLiveScanner();
+
     return () => {
-      mountedActive = false;
+      cancelled = true;
       const current = scannerRef.current;
       scannerRef.current = null;
       if (current) {
-        current
-          .stop()
-          .catch(() => null)
-          .finally(() => {
+        if (current.isScanning) {
+          current
+            .stop()
+            .catch(() => null)
+            .finally(() => {
+              try {
+                current.clear();
+              } catch {
+                /* ignore */
+              }
+            });
+        } else {
+          try {
             current.clear();
-          });
+          } catch {
+            /* ignore */
+          }
+        }
       }
     };
-  }, [scanTarget]);
+  }, [scanTarget, liveScannerElementId]);
 
   async function saveTraceabilityAndContinue() {
     const missingCritical =
@@ -1933,23 +2173,88 @@ export function EjecucionObra({ projectId }: Props) {
         Limpiar cache local de esta obra (debug)
       </button>
       {scanTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-xl bg-slate-950 p-4">
-            <p className="mb-2 text-sm font-bold text-white">Escanea código QR o barras</p>
-            <div id={scannerElementId} className="overflow-hidden rounded-lg bg-black" />
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                className="rounded-lg border border-white/30 px-3 py-2 text-xs font-bold text-white"
-                onClick={() => setScanTarget(null)}
-              >
-                Cerrar
-              </button>
-            </div>
+        <div
+          className="fixed inset-0 z-[100] flex flex-col bg-black"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="luxops-scan-title"
+        >
+          <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <p id="luxops-scan-title" className="text-sm font-bold text-white">
+              Escanear número de serie
+            </p>
+            <button
+              type="button"
+              onClick={closeSerialScanModal}
+              className="rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-xs font-bold text-white"
+            >
+              Cancelar
+            </button>
           </div>
+
+          {scanError ? (
+            <div className="mx-4 mb-2 shrink-0 rounded-lg border border-red-400/40 bg-red-950/90 px-3 py-2 text-xs text-red-100">
+              {scanError}
+            </div>
+          ) : null}
+
+          {scanCameraPhase === "starting" ? (
+            <p className="absolute left-0 right-0 top-28 z-20 text-center text-sm text-white/90">
+              Iniciando cámara…
+            </p>
+          ) : null}
+
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            <div
+              id={liveScannerElementId}
+              className="relative min-h-[55vh] w-full flex-1 bg-black [&_video]:h-full [&_video]:min-h-[50vh] [&_video]:w-full [&_video]:object-cover"
+            />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
+              <div
+                className="relative aspect-square w-[min(78vw,20rem)] rounded-md border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"
+                aria-hidden
+              />
+            </div>
+            <p className="pointer-events-none absolute bottom-28 left-0 right-0 px-6 text-center text-[11px] leading-snug text-white/85">
+              Coloca el código de barras, QR o el texto del S/N dentro del recuadro
+            </p>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap gap-2 border-t border-white/15 bg-black/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <button
+              type="button"
+              disabled={scanPhotoBusy}
+              onClick={() => scanPhotoInputRef.current?.click()}
+              className="min-h-11 flex-1 rounded-lg border border-emerald-400/50 bg-emerald-600/30 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              {scanPhotoBusy ? "Procesando…" : "Foto (código o texto)"}
+            </button>
+            <button
+              type="button"
+              disabled={scanPhotoBusy}
+              onClick={closeSerialScanModal}
+              className="min-h-11 rounded-lg border border-white/30 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <div
+            id={fileScannerElementId}
+            className="pointer-events-none fixed left-0 top-0 h-px w-px overflow-hidden opacity-0"
+            aria-hidden
+          />
+          <input
+            ref={scanPhotoInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleSerialPhotoFileChange}
+          />
         </div>
       ) : null}
-      {scanError ? (
+      {scanError && !scanTarget ? (
         <p className={`text-xs ${sunMode ? "text-red-700" : "text-red-300"}`}>{scanError}</p>
       ) : null}
     </section>
