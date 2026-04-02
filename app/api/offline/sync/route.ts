@@ -29,7 +29,7 @@ const prlAckSchema = baseSchema.extend({
 
 const photoSchema = baseSchema.extend({
   kind: z.literal("photo"),
-  tipo: z.enum(["ANTES", "DURANTE", "DESPUES"]),
+  tipo: z.enum(["ANTES", "DURANTE", "DESPUES", "ESQUEMA_UNIFILAR"]),
   imageDataUrl: z.string().startsWith("data:image/"),
   latitude: z.number(),
   longitude: z.number(),
@@ -389,10 +389,12 @@ export async function POST(request: Request) {
         const hasAntes = requiredTypes.some((p) => p.tipo === "ANTES");
         const hasDurante = requiredTypes.some((p) => p.tipo === "DURANTE");
         const hasDespues = requiredTypes.some((p) => p.tipo === "DESPUES");
-        if (!hasAntes || !hasDurante || !hasDespues) {
+        const hasUnifilar = requiredTypes.some((p) => p.tipo === "ESQUEMA_UNIFILAR");
+        if (!hasAntes || !hasDurante || !hasDespues || !hasUnifilar) {
           rejected.push({
             id: operation.id,
-            reason: "Faltan fotos obligatorias ANTES/DURANTE/DESPUES",
+            reason:
+              "Faltan evidencias obligatorias: ANTES, DURANTE, DESPUES y esquema unifilar (CIE/REBT)",
           });
           continue;
         }

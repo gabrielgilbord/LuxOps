@@ -35,7 +35,7 @@ type EstadoProyecto =
   | "FINALIZADO"
   | "SUBVENCION_TRAMITADA";
 
-type TipoFoto = "ANTES" | "DURANTE" | "DESPUES";
+type TipoFoto = "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR";
 
 async function main() {
   await prisma.photo.deleteMany();
@@ -58,6 +58,10 @@ async function main() {
       photos: [
         { url: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1600&q=80", tipo: "ANTES" as TipoFoto },
         { url: "https://images.unsplash.com/photo-1497440001374-f26997328c1b?auto=format&fit=crop&w=1600&q=80", tipo: "DURANTE" as TipoFoto },
+        {
+          url: "https://images.unsplash.com/photo-1581092160562-40aa08f7880a?auto=format&fit=crop&w=1600&q=80",
+          tipo: "ESQUEMA_UNIFILAR" as TipoFoto,
+        },
       ],
     },
     {
@@ -79,6 +83,10 @@ async function main() {
       photos: [
         { url: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1600&q=80", tipo: "ANTES" as TipoFoto },
         { url: "https://images.unsplash.com/photo-1438109491414-7198515b166b?auto=format&fit=crop&w=1600&q=80", tipo: "DESPUES" as TipoFoto },
+        {
+          url: "https://images.unsplash.com/photo-1581092160562-40aa08f7880a?auto=format&fit=crop&w=1600&q=80",
+          tipo: "ESQUEMA_UNIFILAR" as TipoFoto,
+        },
       ],
     },
     {

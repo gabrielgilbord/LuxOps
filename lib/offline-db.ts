@@ -32,7 +32,7 @@ export type OfflineOperation =
       id: string;
       kind: "photo";
       projectId: string;
-      tipo: "ANTES" | "DURANTE" | "DESPUES";
+      tipo: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR";
       imageDataUrl: string;
       latitude?: number;
       longitude?: number;
@@ -108,7 +108,7 @@ export type OfflineOperationPayload =
     }
   | {
       kind: "photo";
-      tipo: "ANTES" | "DURANTE" | "DESPUES";
+      tipo: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR";
       imageDataUrl: string;
       latitude?: number;
       longitude?: number;

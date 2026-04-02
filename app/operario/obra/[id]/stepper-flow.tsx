@@ -16,7 +16,7 @@ type Props = {
 
 const TOTAL_STEPS = 7;
 
-type PhotoPhase = "ANTES" | "DURANTE" | "DESPUES";
+type PhotoPhase = "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR";
 type EquipmentField = "vatimetroSerial";
 type StructureMounting = "" | "COPLANAR" | "INCLINACION" | "LASTRADA";
 type EquipmentItem = {
@@ -152,6 +152,7 @@ const emptyLists = (): Record<PhotoPhase, string[]> => ({
   ANTES: [],
   DURANTE: [],
   DESPUES: [],
+  ESQUEMA_UNIFILAR: [],
 });
 
 function emptyEquipmentItem(): EquipmentItem {
@@ -276,19 +277,23 @@ function readDraft(projectId: string): DraftState | null {
         parsed.version === 4 ||
         parsed.version === 5 ||
         parsed.version === 6 ||
-        parsed.version === 7) &&
+        parsed.version === 7 ||
+        parsed.version === 8) &&
       parsed.photoLists &&
       parsed.traceability
     ) {
       const prlBox = (parsed as Record<string, unknown>).prl as Record<string, unknown> | undefined;
+      const pl = parsed.photoLists as Record<string, unknown>;
       return {
-        version: 7,
-        step: parsed.version === 7 ? rawStep : migratedStep,
+        version: 8,
+        step:
+          parsed.version === 7 || parsed.version === 8 ? rawStep : migratedStep,
         checklist: parsed.checklist as boolean[],
         photoLists: {
-          ANTES: Array.isArray(parsed.photoLists.ANTES) ? parsed.photoLists.ANTES : [],
-          DURANTE: Array.isArray(parsed.photoLists.DURANTE) ? parsed.photoLists.DURANTE : [],
-          DESPUES: Array.isArray(parsed.photoLists.DESPUES) ? parsed.photoLists.DESPUES : [],
+          ANTES: Array.isArray(pl.ANTES) ? pl.ANTES : [],
+          DURANTE: Array.isArray(pl.DURANTE) ? pl.DURANTE : [],
+          DESPUES: Array.isArray(pl.DESPUES) ? pl.DESPUES : [],
+          ESQUEMA_UNIFILAR: Array.isArray(pl.ESQUEMA_UNIFILAR) ? pl.ESQUEMA_UNIFILAR : [],
         },
         traceability: {
           inverterSerial: String(parsedTraceability.inverterSerial ?? ""),
@@ -345,7 +350,7 @@ function readDraft(projectId: string): DraftState | null {
     if (legacy.photoPreview?.DESPUES) lists.DESPUES = [legacy.photoPreview.DESPUES];
 
     return {
-      version: 7,
+      version: 8,
       step: typeof legacy.step === "number" ? legacy.step : 1,
       checklist: legacy.checklist,
       photoLists: lists,
@@ -480,7 +485,8 @@ export function EjecucionObra({ projectId }: Props) {
   const hasAntes = photoLists.ANTES.length > 0;
   const hasDurante = photoLists.DURANTE.length > 0;
   const hasDespues = photoLists.DESPUES.length > 0;
-  const photosComplete = hasAntes && hasDurante && hasDespues;
+  const hasUnifilar = photoLists.ESQUEMA_UNIFILAR.length > 0;
+  const photosComplete = hasAntes && hasDurante && hasDespues && hasUnifilar;
   const photoProtocolComplete =
     traceability.photoProtocolNameplates &&
     traceability.photoProtocolDistributionBoard &&
@@ -507,7 +513,7 @@ export function EjecucionObra({ projectId }: Props) {
         : step === 3
           ? checklistComplete
           : step === 4
-            ? hasDurante && hasDespues && photoProtocolComplete
+            ? hasDurante && hasDespues && hasUnifilar && photoProtocolComplete
             : step === 5
               ? true
               : step === 6
@@ -554,6 +560,7 @@ export function EjecucionObra({ projectId }: Props) {
         ANTES: [...(draft?.photoLists?.ANTES ?? [])],
         DURANTE: [...(draft?.photoLists?.DURANTE ?? [])],
         DESPUES: [...(draft?.photoLists?.DESPUES ?? [])],
+        ESQUEMA_UNIFILAR: [...(draft?.photoLists?.ESQUEMA_UNIFILAR ?? [])],
       };
       let maxProgress = baseChecklist.filter(Boolean).length;
 
@@ -669,7 +676,7 @@ export function EjecucionObra({ projectId }: Props) {
   useEffect(() => {
     if (!isHydrated) return;
     const draft: DraftState = {
-      version: 7,
+      version: 8,
       step,
       checklist,
       photoLists,
@@ -1327,10 +1334,10 @@ export function EjecucionObra({ projectId }: Props) {
       {step === 4 ? (
         <div className={cardClass}>
           <h2 className={`text-lg font-bold ${sunMode ? "text-neutral-950" : "text-white"}`}>
-            Paso 4: Evidencias DURANTE y DESPUES
+            Paso 4: Evidencias DURANTE, DESPUES y esquema unifilar
           </h2>
           <p className={`mt-1 text-xs ${labelCls}`}>
-            Minimo 1 foto en DURANTE y 1 en DESPUES. Sin limite maximo.
+            Minimo 1 foto en DURANTE y 1 en DESPUES. Esquema unifilar obligatorio para CIE / REBT.
           </p>
           <PhotoPhaseBlock
             title="Durante la instalacion"
@@ -1341,6 +1348,11 @@ export function EjecucionObra({ projectId }: Props) {
             title="Despues / acabado"
             tipo="DESPUES"
             helper="Resultado final y detalles de cierre."
+          />
+          <PhotoPhaseBlock
+            title="Esquema unifilar"
+            tipo="ESQUEMA_UNIFILAR"
+            helper="Saca una foto del esquema unifilar de la instalacion (obligatorio para el CIE)."
           />
           <div className={`mt-4 space-y-2 rounded-xl border border-dashed p-3 ${sunMode ? "border-neutral-800 bg-neutral-50" : "border-slate-500/50"}`}>
             <p className={`text-sm font-bold ${sunMode ? "text-neutral-950" : "text-white"}`}>

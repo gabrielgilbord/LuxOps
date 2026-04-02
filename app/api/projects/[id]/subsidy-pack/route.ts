@@ -19,6 +19,7 @@ function extensionFromPath(path: string) {
 function folderForTipo(tipo: string) {
   if (tipo === "ANTES") return "Antes";
   if (tipo === "DURANTE") return "Durante";
+  if (tipo === "ESQUEMA_UNIFILAR") return "Esquema_unifilar";
   return "Despues";
 }
 

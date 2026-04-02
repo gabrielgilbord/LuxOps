@@ -21,9 +21,10 @@ type ProjectPageProps = {
   params: Promise<{ id: string }>;
 };
 
-function photoTypeLabel(type: "ANTES" | "DURANTE" | "DESPUES"): string {
+function photoTypeLabel(type: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR"): string {
   if (type === "ANTES") return "Antes";
   if (type === "DURANTE") return "Durante";
+  if (type === "ESQUEMA_UNIFILAR") return "Esquema unifilar";
   return "Despues";
 }
 

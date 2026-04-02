@@ -822,6 +822,10 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   }
   const rowH = 18;
   const headers = ["Equipo", "Marca", "Modelo", "Pot. / cap.", "Nº serie"];
+  const invHeaderFill = rgb(0.92, 0.925, 0.93);
+  const invHeaderBorder = rgb(0.72, 0.74, 0.78);
+  const invCellBorder = rgb(0.82, 0.84, 0.88);
+  const invBorderW = 0.35;
   let xPos = tableX;
   for (let ci = 0; ci < headers.length; ci += 1) {
     summaryPage.drawRectangle({
@@ -829,15 +833,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       y: tableYTop - rowH,
       width: colW[ci],
       height: rowH,
-      color: rgb(0.97, 0.97, 0.97),
-      borderColor: rgb(0.86, 0.86, 0.88),
-      borderWidth: 0.6,
+      color: invHeaderFill,
+      borderColor: invHeaderBorder,
+      borderWidth: invBorderW,
     });
-    summaryPage.drawText(headers[ci], { x: xPos + 4, y: tableYTop - 12, size: 7.8, font: bold });
+    summaryPage.drawText(headers[ci], { x: xPos + 5, y: tableYTop - 12, size: 7.8, font: bold });
     xPos += colW[ci];
   }
   for (let ri = 0; ri < tableRows.length; ri += 1) {
     const yTop = tableYTop - rowH * (ri + 1);
+    const rowFill = ri % 2 === 0 ? rgb(1, 1, 1) : rgb(0.992, 0.993, 0.996);
     let x = tableX;
     for (let ci = 0; ci < 5; ci += 1) {
       summaryPage.drawRectangle({
@@ -845,15 +850,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
         y: yTop - rowH,
         width: colW[ci],
         height: rowH,
-        borderColor: rgb(0.9, 0.9, 0.92),
-        borderWidth: 0.4,
+        color: rowFill,
+        borderColor: invCellBorder,
+        borderWidth: invBorderW,
       });
       summaryPage.drawText(String(tableRows[ri][ci]), {
-        x: x + 4,
+        x: x + 5,
         y: yTop - 12,
         size: 7.6,
         font,
-        maxWidth: colW[ci] - 8,
+        maxWidth: colW[ci] - 10,
       });
       x += colW[ci];
     }
@@ -1386,8 +1392,10 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const minPhotoY = 52;
   let photoIndex = 0;
   const photoList = project.photos;
+  const evidencePhotoList = photoList.filter((p) => p.tipo !== "ESQUEMA_UNIFILAR");
+  const unifilarPhotoList = photoList.filter((p) => p.tipo === "ESQUEMA_UNIFILAR");
 
-  while (photoIndex < photoList.length) {
+  while (photoIndex < evidencePhotoList.length) {
     const photoPage = pdf.addPage([595, 842]);
     photoPage.drawText("EVIDENCIAS DE CAMPO", {
       x: 24,
@@ -1406,8 +1414,8 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     let yTop = 752;
     let drawnOnPage = false;
 
-    while (photoIndex < photoList.length) {
-      const remaining = photoList.length - photoIndex;
+    while (photoIndex < evidencePhotoList.length) {
+      const remaining = evidencePhotoList.length - photoIndex;
       const rowSize = remaining >= 2 ? 2 : 1;
       if (rowSize === 1 && drawnOnPage) {
         break;
@@ -1417,7 +1425,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       }
 
       for (let slot = 0; slot < rowSize; slot += 1) {
-        const photo = photoList[photoIndex + slot];
+        const photo = evidencePhotoList[photoIndex + slot];
         const col = slot;
         const x = startX + col * (cellW + 24);
         const yTopCell = yTop;
@@ -1476,6 +1484,59 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       yTop -= cellBlock;
       drawnOnPage = true;
     }
+  }
+
+  for (let ui = 0; ui < unifilarPhotoList.length; ui += 1) {
+    const photo = unifilarPhotoList[ui];
+    const annexPage = pdf.addPage([595, 842]);
+    annexPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
+    const annexTitlePrefix =
+      unifilarPhotoList.length > 1
+        ? `ANEXO I (${ui + 1}/${unifilarPhotoList.length}):`
+        : "ANEXO I:";
+    annexPage.drawText(annexTitlePrefix, {
+      x: 40,
+      y: 808,
+      size: 11,
+      font: bold,
+      color: rgb(0.12, 0.12, 0.14),
+    });
+    annexPage.drawText("ESQUEMA UNIFILAR DE LA INSTALACIÓN", {
+      x: 40,
+      y: 790,
+      size: 13,
+      font: bold,
+      color: rgb(0.05, 0.05, 0.08),
+    });
+    const img = await embedAutoImage(pdf, photo.url, photo.storagePath);
+    const margin = 40;
+    const maxW = 595 - margin * 2;
+    const maxH = 698;
+    if (img) {
+      const ratio = Math.min(maxW / img.width, maxH / img.height);
+      const w = img.width * ratio;
+      const h = img.height * ratio;
+      const topY = 772;
+      annexPage.drawImage(img, {
+        x: (595 - w) / 2,
+        y: topY - h,
+        width: w,
+        height: h,
+      });
+    } else {
+      annexPage.drawText("Imagen no disponible.", { x: 40, y: 420, size: 11, font });
+    }
+    annexPage.drawText(
+      `GPS ${photo.latitude?.toFixed(6) ?? "-"}, ${photo.longitude?.toFixed(6) ?? "-"}`,
+      { x: 40, y: 44, size: 8, font, color: rgb(0.35, 0.35, 0.35) },
+    );
+    annexPage.drawText(`Registro ${new Date(photo.createdAt).toLocaleString("es-ES")}`, {
+      x: 40,
+      y: 32,
+      size: 8,
+      font,
+      color: rgb(0.35, 0.35, 0.35),
+    });
   }
 
   const legalBoxBg = rgb(0.985, 0.985, 0.985);

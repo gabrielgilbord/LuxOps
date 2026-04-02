@@ -25,6 +25,8 @@ enum TipoFoto {
   ANTES
   DURANTE
   DESPUES
+  /// Esquema unifilar (obligatorio CIE / REBT)
+  ESQUEMA_UNIFILAR
 }
 
 enum UserRole {

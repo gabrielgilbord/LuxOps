@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "TipoFoto" ADD VALUE 'ESQUEMA_UNIFILAR';
