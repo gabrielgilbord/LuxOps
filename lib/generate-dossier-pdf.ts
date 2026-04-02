@@ -546,50 +546,52 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     kpy -= 12;
   }
 
-  // Sello VERIFICADO: esquina inferior derecha — marca de agua discreta.
-  const sealR = 24;
-  const sealCX = 526;
-  const sealCY = 69;
+  // Sello VERIFICADO: centro vertical, mitad derecha de la portada — marca de agua (más grande).
+  const pageH = 842;
+  const pageW = 595;
+  const sealR = 36;
+  const sealCX = (pageW * 3) / 4 + 8;
+  const sealCY = pageH / 2;
   const sealOp = COVER_SEAL_WATERMARK_OPACITY;
   coverPage.drawCircle({
     x: sealCX,
     y: sealCY,
-    size: sealR + 9,
+    size: sealR + 14,
     color: rgb(0.94, 0.97, 0.96),
     borderColor: rgb(0.06, 0.45, 0.32),
-    borderWidth: 1.8,
+    borderWidth: 2.4,
     opacity: sealOp,
     borderOpacity: sealOp,
   });
   coverPage.drawCircle({
     x: sealCX,
     y: sealCY,
-    size: sealR + 1,
+    size: sealR + 2,
     borderColor: rgb(0.06, 0.45, 0.32),
-    borderWidth: 1.2,
+    borderWidth: 1.6,
     opacity: sealOp,
     borderOpacity: sealOp,
   });
   coverPage.drawText("VERIFICADO", {
-    x: sealCX - bold.widthOfTextAtSize("VERIFICADO", 6.8) / 2,
-    y: sealCY + sealR * 0.28,
-    size: 6.8,
+    x: sealCX - bold.widthOfTextAtSize("VERIFICADO", 9.8) / 2,
+    y: sealCY + sealR * 0.3,
+    size: 9.8,
     font: bold,
     color: rgb(0.05, 0.38, 0.28),
     opacity: sealOp,
   });
   coverPage.drawText("LuxOps", {
-    x: sealCX - bold.widthOfTextAtSize("LuxOps", 6.2) / 2,
-    y: sealCY - 2,
-    size: 6.2,
+    x: sealCX - bold.widthOfTextAtSize("LuxOps", 9) / 2,
+    y: sealCY - 3,
+    size: 9,
     font: bold,
     color: rgb(0.05, 0.38, 0.28),
     opacity: sealOp,
   });
   coverPage.drawText("CONTROL", {
-    x: sealCX - bold.widthOfTextAtSize("CONTROL", 5.9) / 2,
-    y: sealCY - sealR * 0.42,
-    size: 5.9,
+    x: sealCX - bold.widthOfTextAtSize("CONTROL", 8.4) / 2,
+    y: sealCY - sealR * 0.44,
+    size: 8.4,
     font: bold,
     color: rgb(0.05, 0.38, 0.28),
     opacity: sealOp,
