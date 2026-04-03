@@ -9,7 +9,9 @@ import {
   ClipboardList,
   FileText,
   FolderX,
+  HardHat,
   HelpCircle,
+  Scale,
   ShieldCheck,
   TriangleAlert,
   UserRoundCog,
@@ -381,6 +383,110 @@ export function LandingPage() {
           </Link>
         </div>
       </section>
+
+      <section
+        id="autoridad"
+        aria-labelledby="autoridad-titulo"
+        className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6"
+      >
+        <div className="rounded-3xl border border-white/15 bg-slate-800/50 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-10 lg:p-12">
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="flex flex-col items-center justify-center lg:items-start">
+              <div
+                className="relative flex h-44 w-44 items-center justify-center rounded-3xl border border-yellow-300/40 bg-gradient-to-br from-yellow-300/25 via-yellow-400/15 to-transparent shadow-[0_0_48px_-8px_rgba(250,204,21,0.45)] sm:h-52 sm:w-52"
+                aria-hidden
+              >
+                <HardHat
+                  className="h-24 w-24 text-yellow-300 drop-shadow-[0_0_12px_rgba(250,204,21,0.65)] sm:h-28 sm:w-28"
+                  strokeWidth={1.25}
+                />
+                <div className="pointer-events-none absolute -right-1 -top-1 flex h-12 w-12 items-center justify-center rounded-full border border-yellow-300/50 bg-slate-900/60 backdrop-blur-sm">
+                  <Scale className="h-6 w-6 text-yellow-300" strokeWidth={1.5} />
+                </div>
+              </div>
+              <p className="mt-6 max-w-sm text-center text-xs font-medium leading-relaxed text-slate-400 lg:text-left">
+                Tu éxito en la legalización es nuestra prioridad. Habla de ingeniero a instalador.
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/90">
+                Autoridad y respaldo
+              </p>
+              <h2
+                id="autoridad-titulo"
+                className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl"
+              >
+                Ingeniería Real
+                <br />
+                detrás de cada Dossier
+              </h2>
+              <p className="mt-3 text-base font-medium text-yellow-200/95 sm:text-lg">
+                No es solo software. Es el rigor de un Ingeniero Superior a tu servicio.
+              </p>
+              <p className="mt-5 text-sm leading-relaxed text-slate-200/90">
+                Detrás de LuxOps hay un perfil de{" "}
+                <span className="font-semibold text-white">Ingeniero Superior</span>, con formación de
+                Grado y Máster en Ingeniería. Ese criterio técnico se traduce en dossiers y flujos pensados
+                para la obra real, la administración y la tranquilidad de tu cliente.
+              </p>
+              <ul className="mt-6 space-y-4">
+                {[
+                  {
+                    title: "Revisión técnica",
+                    desc: "Posibilidad de revisión de proyectos complejos cuando la instalación lo exige.",
+                  },
+                  {
+                    title: "Asistencia normativa",
+                    desc: "Soporte orientado al REBT y a la legalización de instalaciones de autoconsumo.",
+                  },
+                  {
+                    title: "Garantía de firma",
+                    desc: "Los documentos se diseñan siguiendo estándares alineados con la práctica colegial y el rigor de ingeniería.",
+                  },
+                ].map((item) => (
+                  <li
+                    key={item.title}
+                    className="flex gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
+                  >
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-yellow-300" />
+                    <div>
+                      <p className="text-sm font-bold text-white">{item.title}</p>
+                      <p className="mt-1 text-sm text-slate-300/95">{item.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/support"
+                className="mt-8 inline-flex w-full items-center justify-center rounded-xl border border-yellow-300/50 bg-yellow-400/15 px-6 py-3.5 text-sm font-bold text-yellow-200 shadow-lg shadow-yellow-400/10 transition hover:-translate-y-0.5 hover:bg-yellow-400/25 hover:text-yellow-100 sm:w-auto"
+              >
+                Consultar Soporte Técnico
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 bg-slate-950/90 py-10 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-4 px-4 text-center sm:px-6">
+          <p className="text-xs font-semibold tracking-wide text-yellow-200/90">
+            Supervisado por Ingeniería Colegiada
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
+            <Link href="/support" className="transition hover:text-yellow-200">
+              Soporte
+            </Link>
+            <Link href="/login" className="transition hover:text-yellow-200">
+              Login
+            </Link>
+            <Link href="/register" className="transition hover:text-yellow-200">
+              Registro
+            </Link>
+          </div>
+          <p className="text-xs text-slate-500">© {new Date().getFullYear()} LuxOps. Todos los derechos reservados.</p>
+        </div>
+      </footer>
     </main>
   );
 }
