@@ -4,12 +4,35 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { estimateAnnualYieldKwh, sumPanelPeakWpW } from "@/lib/pv-yield-estimate";
 import { downloadStorageBytes } from "@/lib/storage";
+import { modalityLabel } from "@/lib/self-consumption-modality";
 
 export const dossierProjectInclude = {
   photos: { orderBy: { createdAt: "asc" as const } },
   signatures: { orderBy: { createdAt: "desc" as const }, take: 1 },
-  organization: { select: { name: true, logoUrl: true, logoPath: true, brandColor: true } },
+  organization: {
+    select: {
+      name: true,
+      logoUrl: true,
+      logoPath: true,
+      brandColor: true,
+      rebtCompanyNumber: true,
+    },
+  },
 } satisfies Prisma.ProjectInclude;
+
+/** Errores de negocio al generar dossier (faltan datos legales obligatorios). */
+export class DossierGenerationError extends Error {
+  constructor(
+    message: string,
+    public code:
+      | "MISSING_REBT"
+      | "MISSING_MODALITY"
+      | "MISSING_CABLE_SECTIONS",
+  ) {
+    super(message);
+    this.name = "DossierGenerationError";
+  }
+}
 
 export type DossierProject = Prisma.ProjectGetPayload<{ include: typeof dossierProjectInclude }>;
 type EquipmentItem = {
@@ -278,7 +301,40 @@ function equipmentSpecCell(kind: "panel" | "inverter" | "battery", item: Equipme
   return item.capacityKwh ? `${item.capacityKwh} kWh` : "—";
 }
 
+const PRODUCTION_ESTIMATE_DISCLAIMER =
+  "Estimación de producción basada en rendimiento específico anual (1420 kWh/kWp).";
+
+const CABLE_SECTIONS_REBT_NOTE =
+  "Secciones calculadas para garantizar una caída de tensión inferior a los límites establecidos en la ITC-BT-19 e ITC-BT-07 del REBT.";
+
 export async function generateDossierPdfBuffer(project: DossierProject): Promise<Buffer> {
+  const orgRebt = (project.organization.rebtCompanyNumber ?? "").trim();
+  const projRebt = (project.rebtCompanyNumber ?? "").trim();
+  const rebtEmpresaNum = projRebt || orgRebt;
+  const cableDcMm2 = (project.cableDcSectionMm2 ?? "").trim();
+  const cableAcMm2 = (project.cableAcSectionMm2 ?? "").trim();
+
+  if (!rebtEmpresaNum) {
+    throw new DossierGenerationError(
+      "Falta el Nº de empresa instaladora autorizada (REBT) en Ajustes → organización o como anulación en el expediente.",
+      "MISSING_REBT",
+    );
+  }
+  if (!project.selfConsumptionModality) {
+    throw new DossierGenerationError(
+      "Falta la modalidad de autoconsumo (RD 244/2019).",
+      "MISSING_MODALITY",
+    );
+  }
+  if (!cableDcMm2 || !cableAcMm2) {
+    throw new DossierGenerationError(
+      "Faltan las secciones de cable DC y/o AC (mm²).",
+      "MISSING_CABLE_SECTIONS",
+    );
+  }
+
+  const modalityLabelPdf = modalityLabel(project.selfConsumptionModality);
+
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -293,11 +349,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const dossierReference =
     project.dossierReference?.trim() ||
     `EXP-${project.id.slice(-8).toUpperCase()}-${new Date(project.updatedAt).getFullYear()}`;
-  const rebtEmpresaNum = (project.rebtCompanyNumber ?? "").trim();
   const installerCard = (project.installerProfessionalCard ?? "").trim();
-  const selfConsumptionMode = (project.selfConsumptionMode ?? "").trim();
-  const cableDcMm2 = (project.cableDcSectionMm2 ?? "").trim();
-  const cableAcMm2 = (project.cableAcSectionMm2 ?? "").trim();
   const firstPhotoAt = project.photos[0]?.createdAt ?? null;
   const lastPhotoAt = project.photos[project.photos.length - 1]?.createdAt ?? null;
   const totalTimeLabel =
@@ -640,9 +692,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   summaryPage.drawRectangle({
     x: 24,
-    y: 458,
+    y: 422,
     width: 547,
-    height: 256,
+    height: 292,
     color: rgb(0.97, 0.97, 0.97),
     borderColor: rgb(0.9, 0.9, 0.9),
     borderWidth: 0.5,
@@ -665,18 +717,15 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     { x: 36, y: 606, size: 10, font },
   );
   summaryPage.drawText(`Estado: ${project.estado}`, { x: 36, y: 590, size: 10, font });
-  summaryPage.drawText(
-    pdfLibSafeText(`Modalidad de autoconsumo: ${selfConsumptionMode || "—"}`),
-    {
-      x: 36,
-      y: 574,
-      size: 9,
-      font,
-      maxWidth: 500,
-      lineHeight: 11,
-    },
-  );
-  summaryPage.drawText(pdfLibSafeText(`Nº empresa instaladora autorizada (REBT): ${rebtEmpresaNum || "—"}`), {
+  summaryPage.drawText(pdfLibSafeText(`Modalidad de autoconsumo: ${modalityLabelPdf}`), {
+    x: 36,
+    y: 574,
+    size: 9,
+    font,
+    maxWidth: 500,
+    lineHeight: 11,
+  });
+  summaryPage.drawText(pdfLibSafeText(`Nº empresa instaladora autorizada (REBT): ${rebtEmpresaNum}`), {
     x: 36,
     y: 556,
     size: 9.5,
@@ -699,14 +748,32 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     font: bold,
     color: rgb(0.2, 0.2, 0.25),
   });
-  summaryPage.drawText(
-    pdfLibSafeText(`Sección de cable DC (mm²): ${cableDcMm2 || "—"}`),
-    { x: 36, y: 502, size: 9, font, maxWidth: 500 },
-  );
-  summaryPage.drawText(
-    pdfLibSafeText(`Sección de cable AC (mm²): ${cableAcMm2 || "—"}`),
-    { x: 36, y: 484, size: 9, font, maxWidth: 500 },
-  );
+  summaryPage.drawText(pdfLibSafeText(`Sección de cable DC (mm²): ${cableDcMm2}`), {
+    x: 36,
+    y: 502,
+    size: 9,
+    font,
+    maxWidth: 500,
+  });
+  summaryPage.drawText(pdfLibSafeText(`Sección de cable AC (mm²): ${cableAcMm2}`), {
+    x: 36,
+    y: 484,
+    size: 9,
+    font,
+    maxWidth: 500,
+  });
+  let cableNoteY = 468;
+  for (const ln of wrapPdfLines(pdfLibSafeText(CABLE_SECTIONS_REBT_NOTE), 500, italic, 7.2)) {
+    summaryPage.drawText(ln, {
+      x: 36,
+      y: cableNoteY,
+      size: 7.2,
+      font: italic,
+      color: rgb(0.28, 0.32, 0.36),
+      maxWidth: 500,
+    });
+    cableNoteY -= 9;
+  }
 
   if (project.organization.logoUrl || project.organization.logoPath) {
     const image = await embedAutoImage(
@@ -748,16 +815,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     });
   }
 
-  summaryPage.drawText("INVENTARIO DE EQUIPOS CERTIFICADOS", { x: 24, y: 448, size: 12, font: bold });
+  summaryPage.drawText("INVENTARIO DE EQUIPOS CERTIFICADOS", { x: 24, y: 412, size: 12, font: bold });
   summaryPage.drawText("Tabla de trazabilidad de activos", {
     x: 24,
-    y: 434,
+    y: 398,
     size: 8.5,
     font,
     color: rgb(0.38, 0.38, 0.42),
   });
   const tableX = 24;
-  const tableYTop = 420;
+  const tableYTop = 384;
   const colW = [102, 92, 92, 78, 175];
   const panelItemsFromDb = parseEquipmentItems(project.equipmentPanelItems);
   const batteryItemsFromDb = parseEquipmentItems(project.equipmentBatteryItems);
@@ -1118,7 +1185,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       },
     );
   }
-  summaryPage.drawText("Cálculo estimado mediante metodología PVGIS.", {
+  summaryPage.drawText(PRODUCTION_ESTIMATE_DISCLAIMER, {
     x: 30,
     y: traceY - (annualYieldKwh != null ? 58 : 42),
     size: 7.8,
@@ -1130,8 +1197,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   traceY -= energyBoxH + 14;
   summaryPage.drawText("Evidencias fotográficas", { x: 24, y: traceY, size: 12, font: bold });
   traceY -= 16;
+  const fieldEvidenceCount = project.photos.filter((p) => p.tipo !== "ANEXO_PVGIS").length;
   summaryPage.drawText(
-    `${project.photos.length} evidencias registradas con geolocalización y marca de tiempo.`,
+    `${fieldEvidenceCount} evidencias registradas con geolocalización y marca de tiempo.`,
     { x: 24, y: traceY, size: 9, font, color: rgb(0.35, 0.35, 0.35) },
   );
 
@@ -1282,9 +1350,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       "Configuración de strings",
       (project.stringConfiguration ?? "").trim() || "—",
     ],
-    ["Modalidad de autoconsumo", selfConsumptionMode || "—"],
-    ["Sección de cable DC (mm²)", cableDcMm2 || "—"],
-    ["Sección de cable AC (mm²)", cableAcMm2 || "—"],
+    ["Modalidad de autoconsumo", modalityLabelPdf],
+    ["Sección de cable DC (mm²)", cableDcMm2],
+    ["Sección de cable AC (mm²)", cableAcMm2],
     ["Tensión circuito abierto Voc (V)", dec(project.electricVocVolts)],
     ["Corriente cortocircuito Isc (A)", dec(project.electricIscAmps)],
     ["Resistencia de puesta a tierra (ohm)", dec(project.earthResistanceOhms)],
@@ -1342,6 +1410,28 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       maxWidth: c2 - 12,
     });
     cy -= lh;
+  }
+  cy -= 6;
+  ensureCertVerticalSpace(48);
+  certPage.drawText("Justificación secciones de cable (ITC-BT-19 / ITC-BT-07)", {
+    x: 40,
+    y: cy,
+    size: 8,
+    font: bold,
+    color: slateText,
+  });
+  cy -= 12;
+  for (const ln of wrapPdfLines(pdfLibSafeText(CABLE_SECTIONS_REBT_NOTE), 510, inter, 7.5)) {
+    ensureCertVerticalSpace(14);
+    certPage.drawText(ln, {
+      x: 40,
+      y: cy,
+      size: 7.5,
+      font: inter,
+      color: rgb(0.32, 0.34, 0.38),
+      maxWidth: 510,
+    });
+    cy -= 11;
   }
   cy -= 8;
   ensureCertVerticalSpace(PAGE_BREAK_MIN_SPACE);
@@ -1418,18 +1508,19 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       font: bold,
       color: solarYellow,
     });
-    certPage.drawText("Cálculo estimado mediante metodología PVGIS.", {
+    certPage.drawText(PRODUCTION_ESTIMATE_DISCLAIMER, {
       x: 48,
       y: cy - 42,
       size: 7.5,
       font: italic,
       color: rgb(0.38, 0.4, 0.42),
+      maxWidth: 460,
     });
     cy -= 58;
   } else {
     ensureCertVerticalSpace(28);
     cy -= 8;
-    certPage.drawText("Cálculo estimado mediante metodología PVGIS.", {
+    certPage.drawText(PRODUCTION_ESTIMATE_DISCLAIMER, {
       x: 40,
       y: cy,
       size: 7.8,
@@ -1476,7 +1567,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const minPhotoY = 52;
   let photoIndex = 0;
   const photoList = project.photos;
-  const evidencePhotoList = photoList.filter((p) => p.tipo !== "ESQUEMA_UNIFILAR");
+  const evidencePhotoList = photoList.filter(
+    (p) => p.tipo !== "ESQUEMA_UNIFILAR" && p.tipo !== "ANEXO_PVGIS",
+  );
   const unifilarPhotoList = photoList.filter((p) => p.tipo === "ESQUEMA_UNIFILAR");
 
   while (photoIndex < evidencePhotoList.length) {
@@ -1683,6 +1776,69 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       });
       annexPlaceholderY -= 13;
     }
+  }
+
+  const pvgisPhotos = photoList.filter((p) => p.tipo === "ANEXO_PVGIS");
+  for (let pi = 0; pi < pvgisPhotos.length; pi += 1) {
+    const photo = pvgisPhotos[pi];
+    const bytes = await imageToBytes(photo.url, photo.storagePath ?? null);
+    const isPdf =
+      bytes &&
+      bytes.length > 5 &&
+      bytes[0] === 0x25 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x44 &&
+      bytes[3] === 0x46;
+    const cover = pdf.addPage([595, 842]);
+    cover.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
+    const pvgisTitle =
+      pvgisPhotos.length > 1
+        ? `ANEXO II (${pi + 1}/${pvgisPhotos.length}): INFORME DE PRODUCCIÓN (DOCUMENTO APORTADO)`
+        : "ANEXO II: INFORME DE PRODUCCIÓN (DOCUMENTO APORTADO)";
+    cover.drawText(pvgisTitle, {
+      x: 40,
+      y: 808,
+      size: 11,
+      font: bold,
+      color: rgb(0.12, 0.12, 0.14),
+      maxWidth: 510,
+    });
+    cover.drawText("Documento opcional aportado por el operario (p. ej. informe PVGIS oficial).", {
+      x: 40,
+      y: 786,
+      size: 8.5,
+      font: inter,
+      color: rgb(0.38, 0.38, 0.42),
+      maxWidth: 510,
+    });
+    const regGps =
+      photo.latitude != null && photo.longitude != null
+        ? `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}`
+        : "—";
+    cover.drawText(`Registro ${new Date(photo.createdAt).toLocaleString("es-ES")} · GPS ${regGps}`, {
+      x: 40,
+      y: 768,
+      size: 7.5,
+      font: inter,
+      color: rgb(0.42, 0.42, 0.45),
+    });
+    if (isPdf && bytes) {
+      try {
+        const srcDoc = await PDFDocument.load(bytes);
+        const indices = srcDoc.getPageIndices();
+        for (const idx of indices) {
+          const [copied] = await pdf.copyPages(srcDoc, [idx]);
+          pdf.addPage(copied);
+        }
+        continue;
+      } catch {
+        /* mostrar aviso en portada */
+      }
+    }
+    cover.drawText(
+      "No se pudo incrustar el archivo como PDF. Consúltelo en LuxOps o suba un PDF válido.",
+      { x: 40, y: 400, size: 10, font: inter, color: rgb(0.55, 0.35, 0.28), maxWidth: 500 },
+    );
   }
 
   const legalBoxBg = rgb(0.985, 0.985, 0.985);

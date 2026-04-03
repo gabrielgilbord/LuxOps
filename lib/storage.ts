@@ -1,12 +1,14 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function extensionFromDataUrl(dataUrl: string) {
+  if (dataUrl.startsWith("data:application/pdf")) return "pdf";
   if (dataUrl.startsWith("data:image/png")) return "png";
   if (dataUrl.startsWith("data:image/webp")) return "webp";
   return "jpg";
 }
 
 function contentTypeFromExt(ext: string) {
+  if (ext === "pdf") return "application/pdf";
   if (ext === "png") return "image/png";
   if (ext === "webp") return "image/webp";
   return "image/jpeg";

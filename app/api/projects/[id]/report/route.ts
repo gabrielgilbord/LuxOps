@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDbUser } from "@/lib/authz";
-import { dossierProjectInclude, generateDossierPdfBuffer } from "@/lib/generate-dossier-pdf";
+import {
+  DossierGenerationError,
+  dossierProjectInclude,
+  generateDossierPdfBuffer,
+} from "@/lib/generate-dossier-pdf";
 
 export async function GET(
   _request: Request,
@@ -27,7 +31,15 @@ export async function GET(
 
   if (!project) return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
 
-  const buffer = await generateDossierPdfBuffer(project);
+  let buffer: Buffer;
+  try {
+    buffer = await generateDossierPdfBuffer(project);
+  } catch (e) {
+    if (e instanceof DossierGenerationError) {
+      return NextResponse.json({ error: e.message, code: e.code }, { status: 400 });
+    }
+    throw e;
+  }
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

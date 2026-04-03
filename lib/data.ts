@@ -1,3 +1,4 @@
+import type { SelfConsumptionModality } from "@prisma/client";
 import { EstadoProyecto, TipoFoto } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDbUser, requireSubscribedUser } from "@/lib/authz";
@@ -24,7 +25,8 @@ export type ProjectDetail = DashboardProject & {
   technicalMemory?: string | null;
   reviewedByOfficeTech?: boolean;
   rebtCompanyNumber?: string | null;
-  selfConsumptionMode?: string | null;
+  organizationRebtCompanyNumber?: string | null;
+  selfConsumptionModality?: SelfConsumptionModality | null;
   cableDcSectionMm2?: string | null;
   cableAcSectionMm2?: string | null;
   dossierReference?: string | null;
@@ -157,6 +159,7 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       include: {
         photos: { orderBy: { createdAt: "desc" } },
         signatures: { orderBy: { createdAt: "desc" } },
+        organization: { select: { rebtCompanyNumber: true } },
       },
     });
 
@@ -226,7 +229,8 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       technicalMemory: project.technicalMemory,
       reviewedByOfficeTech: project.reviewedByOfficeTech,
       rebtCompanyNumber: project.rebtCompanyNumber,
-      selfConsumptionMode: project.selfConsumptionMode,
+      organizationRebtCompanyNumber: project.organization.rebtCompanyNumber,
+      selfConsumptionModality: project.selfConsumptionModality,
       cableDcSectionMm2: project.cableDcSectionMm2,
       cableAcSectionMm2: project.cableAcSectionMm2,
       dossierReference: project.dossierReference,

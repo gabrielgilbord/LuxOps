@@ -27,6 +27,15 @@ enum TipoFoto {
   DESPUES
   /// Esquema unifilar (obligatorio CIE / REBT)
   ESQUEMA_UNIFILAR
+  /// Informe PVGIS u otro PDF de producción estimada (opcional)
+  ANEXO_PVGIS
+}
+
+/// Modalidades autoconsumo RD 244/2019
+enum SelfConsumptionModality {
+  SIN_EXCEDENTES
+  CON_EXCEDENTES_ACOGIDO_COMPENSACION
+  CON_EXCEDENTES_NO_ACOGIDO_COMPENSACION
 }
 
 enum UserRole {
@@ -75,6 +84,8 @@ model Organization {
   stripeCheckoutSessionId String? @unique
   subscriptionStatus    String?
   planPriceCents        Int?
+  /** Nº empresa instaladora autorizada (REBT) — obligatorio en perfil de organización */
+  rebtCompanyNumber     String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   users                 User[]
@@ -133,9 +144,9 @@ model Project {
   progreso         Int            @default(0)
   operarioNombre   String
   operarioInitials String
+  /** Anulación opcional del Nº REBT de la organización para este expediente */
   rebtCompanyNumber String?
-  /** Modalidad de autoconsumo (RD 244/2019, ej. con excedentes a compensación) */
-  selfConsumptionMode String? @db.Text
+  selfConsumptionModality SelfConsumptionModality?
   /** Sección de conductor DC (mm²), memoria rápida */
   cableDcSectionMm2 String?
   /** Sección de conductor AC (mm²), memoria rápida */

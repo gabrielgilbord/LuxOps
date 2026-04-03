@@ -32,7 +32,7 @@ export type OfflineOperation =
       id: string;
       kind: "photo";
       projectId: string;
-      tipo: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR";
+      tipo: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR" | "ANEXO_PVGIS";
       imageDataUrl: string;
       latitude?: number;
       longitude?: number;
@@ -78,7 +78,10 @@ export type OfflineOperation =
       structureBrand?: string;
       structureMounting?: "" | "COPLANAR" | "INCLINACION" | "LASTRADA";
       stringConfiguration?: string;
-      selfConsumptionMode?: string;
+      selfConsumptionModality?:
+        | "SIN_EXCEDENTES"
+        | "CON_EXCEDENTES_ACOGIDO_COMPENSACION"
+        | "CON_EXCEDENTES_NO_ACOGIDO_COMPENSACION";
       cableDcSectionMm2?: string;
       cableAcSectionMm2?: string;
       electricVoc?: string;
@@ -111,7 +114,7 @@ export type OfflineOperationPayload =
     }
   | {
       kind: "photo";
-      tipo: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR";
+      tipo: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR" | "ANEXO_PVGIS";
       imageDataUrl: string;
       latitude?: number;
       longitude?: number;
@@ -145,7 +148,10 @@ export type OfflineOperationPayload =
       structureBrand?: string;
       structureMounting?: "" | "COPLANAR" | "INCLINACION" | "LASTRADA";
       stringConfiguration?: string;
-      selfConsumptionMode?: string;
+      selfConsumptionModality?:
+        | "SIN_EXCEDENTES"
+        | "CON_EXCEDENTES_ACOGIDO_COMPENSACION"
+        | "CON_EXCEDENTES_NO_ACOGIDO_COMPENSACION";
       cableDcSectionMm2?: string;
       cableAcSectionMm2?: string;
       electricVoc?: string;

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useActionState, useEffect, useState } from "react";
 import { updateCompanySettingsAction } from "@/app/actions/company";
 
-const initialState = { ok: false };
+const initialState = { ok: false, error: undefined as string | undefined };
 
 export function CompanySettingsForm({
   defaultName,
@@ -13,12 +13,14 @@ export function CompanySettingsForm({
   defaultTaxAddress,
   defaultLogoUrl,
   defaultBrandColor,
+  defaultRebtCompanyNumber,
 }: {
   defaultName: string;
   defaultTaxId: string;
   defaultTaxAddress: string;
   defaultLogoUrl: string;
   defaultBrandColor: string;
+  defaultRebtCompanyNumber: string;
 }) {
   const [logoPreview, setLogoPreview] = useState(defaultLogoUrl);
   const [state, formAction, pending] = useActionState(updateCompanySettingsAction, initialState);
@@ -47,6 +49,17 @@ export function CompanySettingsForm({
         placeholder="Dirección fiscal para informes PDF"
         rows={4}
         className="min-h-28 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-yellow-300/70"
+      />
+      <label className="text-xs font-semibold text-slate-300">
+        Nº empresa instaladora autorizada (REBT) — obligatorio
+      </label>
+      <input
+        name="rebtCompanyNumber"
+        defaultValue={defaultRebtCompanyNumber}
+        required
+        minLength={4}
+        placeholder="Ej. registro o código de empresa autorizada"
+        className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-yellow-300/70"
       />
       <div className="grid gap-1">
         <label className="text-xs text-slate-300">Color corporativo (PDF)</label>
@@ -101,6 +114,7 @@ export function CompanySettingsForm({
           "Guardar configuración"
         )}
       </button>
+      {state.error ? <p className="text-xs text-red-300">{state.error}</p> : null}
       {state.ok ? <p className="text-xs text-emerald-300">Configuración actualizada.</p> : null}
       {state.ok ? (
         <div className="fixed bottom-6 right-6 rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-4 py-2 text-xs font-semibold text-emerald-100 shadow-lg backdrop-blur">

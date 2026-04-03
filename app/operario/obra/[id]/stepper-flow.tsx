@@ -6,7 +6,12 @@ import { Camera, CheckCircle, Sun, Wifi, WifiOff } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Html5Qrcode } from "html5-qrcode";
-import { compressImageFile, useOfflineSync } from "@/hooks/use-offline-sync";
+import { compressImageFile, fileToEvidenceDataUrl, useOfflineSync } from "@/hooks/use-offline-sync";
+import {
+  isSelfConsumptionModality,
+  SELF_CONSUMPTION_MODALITY_LABEL,
+  SELF_CONSUMPTION_MODALITY_VALUES,
+} from "@/lib/self-consumption-modality";
 import { getPendingOperationsByProject } from "@/lib/offline-db";
 import { EquipmentCatalogAutocomplete } from "@/components/operario/equipment-catalog-autocomplete";
 
@@ -14,15 +19,23 @@ type Props = {
   projectId: string;
   /** Valores guardados por oficina (RD 244/2019 / REBT) para pre-rellenar en campo */
   serverLegalElectricHints?: {
-    selfConsumptionMode?: string | null;
+    selfConsumptionModality?: string | null;
     cableDcSectionMm2?: string | null;
     cableAcSectionMm2?: string | null;
+  };
+  /** Nº REBT efectivo = proyecto (anulación) o organización */
+  serverRebtContext?: {
+    projectRebtCompanyNumber?: string | null;
+    organizationRebtCompanyNumber?: string | null;
   };
 };
 
 const TOTAL_STEPS = 7;
 
-type PhotoPhase = "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR";
+const CABLE_SECTIONS_REBT_NOTE_UI =
+  "Secciones calculadas para garantizar una caída de tensión inferior a los límites establecidos en la ITC-BT-19 e ITC-BT-07 del REBT.";
+
+type PhotoPhase = "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR" | "ANEXO_PVGIS";
 type EquipmentField = "vatimetroSerial";
 type StructureMounting = "" | "COPLANAR" | "INCLINACION" | "LASTRADA";
 type EquipmentItem = {
@@ -58,7 +71,8 @@ type DraftState = {
     structureBrand: string;
     structureMounting: StructureMounting;
     stringConfiguration: string;
-    selfConsumptionMode: string;
+    /** Valor enum RD 244 o "" */
+    selfConsumptionModality: string;
     cableDcSectionMm2: string;
     cableAcSectionMm2: string;
     electricVoc: string;
@@ -162,7 +176,18 @@ const emptyLists = (): Record<PhotoPhase, string[]> => ({
   DURANTE: [],
   DESPUES: [],
   ESQUEMA_UNIFILAR: [],
+  ANEXO_PVGIS: [],
 });
+
+function migrateLegacySelfConsumptionModality(parsedTraceability: Record<string, unknown>): string {
+  const direct = String(parsedTraceability.selfConsumptionModality ?? "").trim();
+  if (isSelfConsumptionModality(direct)) return direct;
+  const legacy = String(parsedTraceability.selfConsumptionMode ?? "").toLowerCase();
+  if (legacy.includes("sin excedente")) return "SIN_EXCEDENTES";
+  if (legacy.includes("no acogido")) return "CON_EXCEDENTES_NO_ACOGIDO_COMPENSACION";
+  if (legacy.trim()) return "CON_EXCEDENTES_ACOGIDO_COMPENSACION";
+  return "";
+}
 
 function emptyEquipmentItem(): EquipmentItem {
   return { brand: "", model: "", serial: "", peakWp: "", nominalKw: "", capacityKwh: "" };
@@ -287,22 +312,26 @@ function readDraft(projectId: string): DraftState | null {
         parsed.version === 5 ||
         parsed.version === 6 ||
         parsed.version === 7 ||
-        parsed.version === 8) &&
+        parsed.version === 8 ||
+        parsed.version === 9) &&
       parsed.photoLists &&
       parsed.traceability
     ) {
       const prlBox = (parsed as Record<string, unknown>).prl as Record<string, unknown> | undefined;
       const pl = parsed.photoLists as Record<string, unknown>;
       return {
-        version: 8,
+        version: 9,
         step:
-          parsed.version === 7 || parsed.version === 8 ? rawStep : migratedStep,
+          parsed.version === 7 || parsed.version === 8 || parsed.version === 9
+            ? rawStep
+            : migratedStep,
         checklist: parsed.checklist as boolean[],
         photoLists: {
           ANTES: Array.isArray(pl.ANTES) ? pl.ANTES : [],
           DURANTE: Array.isArray(pl.DURANTE) ? pl.DURANTE : [],
           DESPUES: Array.isArray(pl.DESPUES) ? pl.DESPUES : [],
           ESQUEMA_UNIFILAR: Array.isArray(pl.ESQUEMA_UNIFILAR) ? pl.ESQUEMA_UNIFILAR : [],
+          ANEXO_PVGIS: Array.isArray(pl.ANEXO_PVGIS) ? pl.ANEXO_PVGIS : [],
         },
         traceability: {
           inverterSerial: String(parsedTraceability.inverterSerial ?? ""),
@@ -319,7 +348,9 @@ function readDraft(projectId: string): DraftState | null {
           structureBrand: String(parsedTraceability.structureBrand ?? ""),
           structureMounting,
           stringConfiguration: String(parsedTraceability.stringConfiguration ?? ""),
-          selfConsumptionMode: String(parsedTraceability.selfConsumptionMode ?? ""),
+          selfConsumptionModality: migrateLegacySelfConsumptionModality(
+            parsedTraceability as Record<string, unknown>,
+          ),
           cableDcSectionMm2: String(parsedTraceability.cableDcSectionMm2 ?? ""),
           cableAcSectionMm2: String(parsedTraceability.cableAcSectionMm2 ?? ""),
           electricVoc: String(parsedTraceability.electricVoc ?? ""),
@@ -362,7 +393,7 @@ function readDraft(projectId: string): DraftState | null {
     if (legacy.photoPreview?.DESPUES) lists.DESPUES = [legacy.photoPreview.DESPUES];
 
     return {
-      version: 8,
+      version: 9,
       step: typeof legacy.step === "number" ? legacy.step : 1,
       checklist: legacy.checklist,
       photoLists: lists,
@@ -380,7 +411,7 @@ function readDraft(projectId: string): DraftState | null {
         structureBrand: "",
         structureMounting: "",
         stringConfiguration: "",
-        selfConsumptionMode: "",
+        selfConsumptionModality: "",
         cableDcSectionMm2: "",
         cableAcSectionMm2: "",
         electricVoc: "",
@@ -412,7 +443,7 @@ function readDraft(projectId: string): DraftState | null {
   }
 }
 
-export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
+export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtContext }: Props) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [sunMode, setSunMode] = useState(false);
@@ -433,7 +464,10 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
     structureBrand: "",
     structureMounting: "" as StructureMounting,
     stringConfiguration: "",
-    selfConsumptionMode: serverLegalElectricHints?.selfConsumptionMode?.trim() ?? "",
+    selfConsumptionModality: (() => {
+      const h = serverLegalElectricHints?.selfConsumptionModality?.trim() ?? "";
+      return isSelfConsumptionModality(h) ? h : "";
+    })(),
     cableDcSectionMm2: serverLegalElectricHints?.cableDcSectionMm2?.trim() ?? "",
     cableAcSectionMm2: serverLegalElectricHints?.cableAcSectionMm2?.trim() ?? "",
     electricVoc: "",
@@ -515,13 +549,29 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
     prl.collectiveProtection &&
     prl.roofTransitOk &&
     prl.ppeInUse;
+
+  const effectiveRebtCompanyNumber = useMemo(() => {
+    const p = (serverRebtContext?.projectRebtCompanyNumber ?? "").trim();
+    const o = (serverRebtContext?.organizationRebtCompanyNumber ?? "").trim();
+    return p || o;
+  }, [serverRebtContext?.projectRebtCompanyNumber, serverRebtContext?.organizationRebtCompanyNumber]);
+
+  const traceabilityForPdfReady =
+    isSelfConsumptionModality(traceability.selfConsumptionModality) &&
+    traceability.cableDcSectionMm2.trim().length > 0 &&
+    traceability.cableAcSectionMm2.trim().length > 0 &&
+    traceability.electricVoc.trim().length > 0 &&
+    traceability.electricIsc.trim().length > 0 &&
+    traceability.earthResistance.trim().length > 0;
+
   const canFinalizeSignature =
     prlSubmitted &&
     checklistComplete &&
     photosComplete &&
     photoProtocolComplete &&
     installerCard.trim().length > 0 &&
-    clientTrainingAck;
+    clientTrainingAck &&
+    effectiveRebtCompanyNumber.length >= 4;
 
   const canGoNext =
     step === 1
@@ -535,7 +585,7 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
             : step === 5
               ? true
               : step === 6
-                ? true
+                ? traceabilityForPdfReady
                 : true;
 
   useEffect(() => {
@@ -563,10 +613,12 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
         const dt = draft.traceability;
         setTraceability({
           ...dt,
-          selfConsumptionMode:
-            (dt.selfConsumptionMode ?? "").trim() ||
-            serverLegalElectricHints?.selfConsumptionMode?.trim() ||
-            "",
+          selfConsumptionModality: (() => {
+            const d = (dt.selfConsumptionModality ?? "").trim();
+            if (isSelfConsumptionModality(d)) return d;
+            const h = serverLegalElectricHints?.selfConsumptionModality?.trim() ?? "";
+            return isSelfConsumptionModality(h) ? h : "";
+          })(),
           cableDcSectionMm2:
             (dt.cableDcSectionMm2 ?? "").trim() ||
             serverLegalElectricHints?.cableDcSectionMm2?.trim() ||
@@ -594,6 +646,7 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
         DURANTE: [...(draft?.photoLists?.DURANTE ?? [])],
         DESPUES: [...(draft?.photoLists?.DESPUES ?? [])],
         ESQUEMA_UNIFILAR: [...(draft?.photoLists?.ESQUEMA_UNIFILAR ?? [])],
+        ANEXO_PVGIS: [...(draft?.photoLists?.ANEXO_PVGIS ?? [])],
       };
       let maxProgress = baseChecklist.filter(Boolean).length;
 
@@ -657,9 +710,12 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
             structureBrand: String(opT.structureBrand ?? ""),
             structureMounting: structureMountingHydrate,
             stringConfiguration: String(opT.stringConfiguration ?? ""),
-            selfConsumptionMode: String(
-              opT.selfConsumptionMode ?? serverLegalElectricHints?.selfConsumptionMode ?? "",
-            ),
+            selfConsumptionModality: (() => {
+              const op = String(opT.selfConsumptionModality ?? "").trim();
+              if (isSelfConsumptionModality(op)) return op;
+              const h = serverLegalElectricHints?.selfConsumptionModality?.trim() ?? "";
+              return isSelfConsumptionModality(h) ? h : "";
+            })(),
             cableDcSectionMm2: String(
               opT.cableDcSectionMm2 ?? serverLegalElectricHints?.cableDcSectionMm2 ?? "",
             ),
@@ -713,12 +769,12 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
     return () => {
       active = false;
     };
-  }, [projectId, serverLegalElectricHints]);
+  }, [projectId, serverLegalElectricHints, serverRebtContext]);
 
   useEffect(() => {
     if (!isHydrated) return;
     const draft: DraftState = {
-      version: 8,
+      version: 9,
       step,
       checklist,
       photoLists,
@@ -761,9 +817,14 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
   }
 
   async function uploadPhoto(file: File, tipo: PhotoPhase) {
-    const imageDataUrl = await compressImageFile(file);
+    const imageDataUrl =
+      tipo === "ANEXO_PVGIS" ? await fileToEvidenceDataUrl(file) : await compressImageFile(file);
     const coords = await getCoords();
-    if (typeof coords.latitude !== "number" || typeof coords.longitude !== "number") {
+    const isPvgisAnnex = tipo === "ANEXO_PVGIS";
+    if (
+      !isPvgisAnnex &&
+      (typeof coords.latitude !== "number" || typeof coords.longitude !== "number")
+    ) {
       window.alert("No se pudo obtener GPS. Activa ubicación para registrar la evidencia.");
       return;
     }
@@ -1022,6 +1083,14 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
   }, [scanTarget, liveScannerElementId]);
 
   async function saveTraceabilityAndContinue() {
+    if (!isSelfConsumptionModality(traceability.selfConsumptionModality)) {
+      setFinalizeNotice("Selecciona la modalidad de autoconsumo (RD 244/2019) antes de continuar.");
+      return;
+    }
+    if (!traceability.cableDcSectionMm2.trim() || !traceability.cableAcSectionMm2.trim()) {
+      setFinalizeNotice("Indica las secciones de cable DC y AC (mm²) para el dossier PDF.");
+      return;
+    }
     const missingCritical =
       !traceability.electricVoc.trim() || !traceability.electricIsc.trim() || !traceability.earthResistance.trim();
     if (missingCritical) {
@@ -1084,7 +1153,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
           ? traceability.structureMounting
           : undefined,
       stringConfiguration: traceability.stringConfiguration.trim(),
-      selfConsumptionMode: traceability.selfConsumptionMode.trim() || undefined,
+      selfConsumptionModality: isSelfConsumptionModality(traceability.selfConsumptionModality)
+        ? traceability.selfConsumptionModality
+        : undefined,
       cableDcSectionMm2: traceability.cableDcSectionMm2.trim() || undefined,
       cableAcSectionMm2: traceability.cableAcSectionMm2.trim() || undefined,
       electricVoc: traceability.electricVoc.trim() || undefined,
@@ -1185,12 +1256,20 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
     title,
     tipo,
     helper,
+    fileInputAccept = "image/*",
+    useEnvironmentCapture = true,
+    addButtonLabel,
   }: {
     title: string;
     tipo: PhotoPhase;
     helper: string;
+    fileInputAccept?: string;
+    useEnvironmentCapture?: boolean;
+    addButtonLabel?: string;
   }) {
     const list = photoLists[tipo];
+    const isPdfDataUrl = (src: string) =>
+      /^data:application\/pdf/i.test(src) || src.includes("application/pdf");
     return (
       <div className="mt-4 space-y-2">
         <p className={`text-sm font-bold ${sunMode ? "text-neutral-950" : "text-white"}`}>{title}</p>
@@ -1201,14 +1280,29 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
               key={`${tipo}-${idx}`}
               className={`overflow-hidden rounded-lg border-2 ${sunMode ? "border-neutral-800" : "border-white/10"}`}
             >
-              <Image
-                src={src}
-                alt={`${tipo} ${idx + 1}`}
-                width={400}
-                height={260}
-                unoptimized
-                className="h-28 w-full object-cover"
-              />
+              {isPdfDataUrl(src) ? (
+                <div
+                  className={`flex min-h-28 flex-col justify-center gap-1 px-3 py-2 text-xs ${sunMode ? "bg-neutral-100 text-neutral-900" : "bg-slate-800 text-slate-200"}`}
+                >
+                  <span className="font-bold">PDF anexo {idx + 1}</span>
+                  <a
+                    href={src}
+                    download={`anexo-pvgis-${idx + 1}.pdf`}
+                    className={`font-semibold underline ${sunMode ? "text-neutral-950" : "text-yellow-200"}`}
+                  >
+                    Abrir / descargar
+                  </a>
+                </div>
+              ) : (
+                <Image
+                  src={src}
+                  alt={`${tipo} ${idx + 1}`}
+                  width={400}
+                  height={260}
+                  unoptimized
+                  className="h-28 w-full object-cover"
+                />
+              )}
             </div>
           ))}
         </div>
@@ -1217,11 +1311,12 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
             className={`inline-flex min-h-14 flex-1 cursor-pointer items-center justify-center rounded-xl border-2 px-4 text-sm font-extrabold shadow-md ${sunMode ? "border-neutral-950 bg-neutral-950 text-white ring-1 ring-neutral-900" : "border-transparent bg-yellow-400 text-yellow-950"}`}
           >
             <Camera className="mr-2 h-5 w-5" />
-            {list.length === 0 ? `Anadir foto ${tipo}` : "Anadir otra foto"}
+            {addButtonLabel ??
+              (list.length === 0 ? `Anadir foto ${tipo}` : "Anadir otra foto")}
             <input
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept={fileInputAccept}
+              {...(useEnvironmentCapture ? { capture: "environment" as const } : {})}
               className="hidden"
               onChange={async (e) => {
                 const input = e.currentTarget;
@@ -1398,6 +1493,18 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
             title="Esquema unifilar"
             tipo="ESQUEMA_UNIFILAR"
             helper="Saca una foto del esquema unifilar de la instalacion (obligatorio para el CIE)."
+          />
+          <PhotoPhaseBlock
+            title="Anexo informe PVGIS (opcional)"
+            tipo="ANEXO_PVGIS"
+            helper="Si dispones del PDF o captura oficial del simulador PVGIS, adjúntalo aquí. Se incorporará al dossier como anexo. No requiere GPS."
+            fileInputAccept="image/*,application/pdf,.pdf"
+            useEnvironmentCapture={false}
+            addButtonLabel={
+              photoLists.ANEXO_PVGIS.length === 0
+                ? "Añadir PDF o imagen PVGIS"
+                : "Añadir otro anexo"
+            }
           />
           <div className={`mt-4 space-y-2 rounded-xl border border-dashed p-3 ${sunMode ? "border-neutral-800 bg-neutral-50" : "border-slate-500/50"}`}>
             <p className={`text-sm font-bold ${sunMode ? "text-neutral-950" : "text-white"}`}>
@@ -1925,15 +2032,20 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
             <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
               <span className="max-sm:hidden">Modalidad de autoconsumo (RD 244/2019)</span>
               <span className="sm:hidden">Modalidad autoconsumo</span>
-              <textarea
-                className={`${inputCls} min-h-[4.5rem] text-xs`}
-                value={traceability.selfConsumptionMode}
+              <select
+                className={`${inputCls} mt-0`}
+                value={traceability.selfConsumptionModality}
                 onChange={(e) =>
-                  setTraceability((t) => ({ ...t, selfConsumptionMode: e.target.value }))
+                  setTraceability((t) => ({ ...t, selfConsumptionModality: e.target.value }))
                 }
-                placeholder="Ej.: Con excedentes acogido a compensación"
-                rows={3}
-              />
+              >
+                <option value="">Seleccionar…</option>
+                {SELF_CONSUMPTION_MODALITY_VALUES.map((v) => (
+                  <option key={v} value={v}>
+                    {SELF_CONSUMPTION_MODALITY_LABEL[v]}
+                  </option>
+                ))}
+              </select>
             </label>
             <div className="grid gap-2 sm:grid-cols-2">
               <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
@@ -1963,6 +2075,7 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
                 />
               </label>
             </div>
+            <p className={`text-[11px] leading-snug ${labelCls}`}>{CABLE_SECTIONS_REBT_NOTE_UI}</p>
             <div className="grid gap-2 sm:grid-cols-3">
               <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
                 <span className="max-sm:hidden">Voc circuito abierto (V)</span>
@@ -2173,6 +2286,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
             <p className={`mt-2 text-xs font-medium ${sunMode ? "text-neutral-800" : "text-yellow-200"}`}>
               Completa PRL, checklist, fotos, protocolo fotografico, datos de obra (pasos 5–6), carnet
               profesional y confirmacion de formacion antes de firmar.
+              {effectiveRebtCompanyNumber.length < 4
+                ? " Falta el Nº de empresa instaladora (REBT) en Ajustes de la organización o como anulación en el expediente (mín. 4 caracteres); sin él no se puede generar el dossier PDF defendible."
+                : ""}
             </p>
           ) : null}
         </div>

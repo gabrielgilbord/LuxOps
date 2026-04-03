@@ -7,13 +7,20 @@ import { createSignedStorageUrl, uploadDataUrlToStorage } from "@/lib/storage";
 import { getStripe } from "@/lib/stripe";
 
 export async function updateCompanySettingsAction(
-  _prevState: { ok?: boolean } | undefined,
+  _prevState: { ok?: boolean; error?: string } | undefined,
   formData: FormData,
 ) {
   const admin = await requireAdminUser();
   const companyName = String(formData.get("companyName") ?? "").trim();
   const taxId = String(formData.get("taxId") ?? "").trim();
   const taxAddress = String(formData.get("taxAddress") ?? "").trim();
+  const rebtCompanyNumber = String(formData.get("rebtCompanyNumber") ?? "").trim();
+  if (!rebtCompanyNumber || rebtCompanyNumber.length < 4) {
+    return {
+      ok: false,
+      error: "El Nº de empresa instaladora autorizada (REBT) es obligatorio (mínimo 4 caracteres).",
+    };
+  }
   const logoDataUrl = String(formData.get("logoDataUrl") ?? "").trim();
   const brandColorInput = String(formData.get("brandColor") ?? "").trim();
   const brandColor =
@@ -49,6 +56,7 @@ export async function updateCompanySettingsAction(
       ...(logoUrl ? { logoUrl } : {}),
       taxAddress: taxAddress || null,
       brandColor,
+      rebtCompanyNumber,
     },
   });
 
@@ -81,5 +89,5 @@ export async function updateCompanySettingsAction(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/company-settings");
-  return { ok: true };
+  return { ok: true, error: undefined };
 }

@@ -12,6 +12,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { saveProjectAdminMemoryAction, uploadAdminUnifilarPhotoAction } from "@/app/actions/projects";
 import type { ProjectDetail } from "@/lib/data";
+import {
+  SELF_CONSUMPTION_MODALITY_LABEL,
+  SELF_CONSUMPTION_MODALITY_VALUES,
+} from "@/lib/self-consumption-modality";
 
 const inputCls =
   "mt-1 h-10 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm text-slate-100 placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none ring-0 focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/25";
@@ -165,14 +169,19 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
               Legalización · RD 244/2019 (autoconsumo y cables)
             </p>
             <label className="block">
-              <span className={labelCls}>Modalidad de autoconsumo</span>
-              <Textarea
-                name="selfConsumptionMode"
-                defaultValue={project.selfConsumptionMode ?? ""}
-                className="mt-2 min-h-[5rem] resize-y rounded-xl border border-slate-600/80 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20"
-                placeholder="Ej.: Con excedentes acogido a compensación"
-                maxLength={2000}
-              />
+              <span className={labelCls}>Modalidad de autoconsumo (RD 244/2019)</span>
+              <select
+                name="selfConsumptionModality"
+                defaultValue={project.selfConsumptionModality ?? ""}
+                className={inputCls}
+              >
+                <option value="">— Seleccionar —</option>
+                {SELF_CONSUMPTION_MODALITY_VALUES.map((v) => (
+                  <option key={v} value={v}>
+                    {SELF_CONSUMPTION_MODALITY_LABEL[v]}
+                  </option>
+                ))}
+              </select>
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">

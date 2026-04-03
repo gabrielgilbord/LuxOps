@@ -30,6 +30,7 @@ export default async function SettingsPage({
       logoUrl: true,
       logoPath: true,
       brandColor: true,
+      rebtCompanyNumber: true,
       subscriptionStatus: true,
       planPriceCents: true,
       stripeCustomerId: true,
@@ -213,6 +214,7 @@ export default async function SettingsPage({
                 defaultTaxAddress={org?.taxAddress ?? ""}
                 defaultLogoUrl={previewLogoUrl}
                 defaultBrandColor={org?.brandColor ?? "#1F2937"}
+                defaultRebtCompanyNumber={org?.rebtCompanyNumber ?? ""}
               />
             </>
           ) : null}

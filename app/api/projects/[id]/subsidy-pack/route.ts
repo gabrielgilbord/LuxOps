@@ -2,7 +2,11 @@ import archiver from "archiver";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDbUser } from "@/lib/authz";
-import { dossierProjectInclude, generateDossierPdfBuffer } from "@/lib/generate-dossier-pdf";
+import {
+  DossierGenerationError,
+  dossierProjectInclude,
+  generateDossierPdfBuffer,
+} from "@/lib/generate-dossier-pdf";
 import { downloadStorageBytes } from "@/lib/storage";
 
 function safeFilenamePart(name: string) {
@@ -10,9 +14,10 @@ function safeFilenamePart(name: string) {
 }
 
 function extensionFromPath(path: string) {
-  const m = /\.(jpe?g|png|webp)$/i.exec(path);
+  const m = /\.(jpe?g|png|webp|pdf)$/i.exec(path);
   if (!m) return "jpg";
   const e = m[1].toLowerCase();
+  if (e === "pdf") return "pdf";
   return e === "jpeg" ? "jpg" : e;
 }
 
@@ -20,6 +25,7 @@ function folderForTipo(tipo: string) {
   if (tipo === "ANTES") return "Antes";
   if (tipo === "DURANTE") return "Durante";
   if (tipo === "ESQUEMA_UNIFILAR") return "Esquema_unifilar";
+  if (tipo === "ANEXO_PVGIS") return "Anexo_PVGIS";
   return "Despues";
 }
 
@@ -58,7 +64,15 @@ export async function GET(
   const archive = archiver("zip", { zlib: { level: 6 } });
   const bufferPromise = streamArchiveToBuffer(archive);
 
-  const pdfBuf = await generateDossierPdfBuffer(project);
+  let pdfBuf: Buffer;
+  try {
+    pdfBuf = await generateDossierPdfBuffer(project);
+  } catch (e) {
+    if (e instanceof DossierGenerationError) {
+      return NextResponse.json({ error: e.message, code: e.code }, { status: 400 });
+    }
+    throw e;
+  }
   const base = safeFilenamePart(project.cliente);
   archive.append(pdfBuf, { name: `${base}/Dossier_Ejecutivo_LuxOps.pdf` });
 

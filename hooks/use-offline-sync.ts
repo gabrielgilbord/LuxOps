@@ -161,7 +161,7 @@ export function useOfflineSync(projectId: string) {
             structureBrand: operation.structureBrand,
             structureMounting: operation.structureMounting,
             stringConfiguration: operation.stringConfiguration,
-            selfConsumptionMode: operation.selfConsumptionMode,
+            selfConsumptionModality: operation.selfConsumptionModality,
             cableDcSectionMm2: operation.cableDcSectionMm2,
             cableAcSectionMm2: operation.cableAcSectionMm2,
             electricVoc: operation.electricVoc,
@@ -235,4 +235,17 @@ export async function compressImageFile(file: File): Promise<string> {
   if (!ctx) throw new Error("No se pudo preparar compresion de imagen");
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/jpeg", 0.75);
+}
+
+/** Imagen comprimida o PDF en data URL (anexo PVGIS). */
+export async function fileToEvidenceDataUrl(file: File): Promise<string> {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error("No se pudo leer el PDF"));
+      reader.readAsDataURL(file);
+    });
+  }
+  return compressImageFile(file);
 }

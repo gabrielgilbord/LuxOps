@@ -14,6 +14,8 @@ import {
   sendProjectFinishedEmail,
 } from "@/lib/email";
 import { uploadDataUrlToStorage } from "@/lib/storage";
+import { isSelfConsumptionModality } from "@/lib/self-consumption-modality";
+import type { SelfConsumptionModality } from "@prisma/client";
 
 export async function getProjects() {
   try {
@@ -153,6 +155,11 @@ export async function createProjectAction(
     .map((chunk) => chunk[0]?.toUpperCase() ?? "")
     .join("");
 
+  const orgRow = await prisma.organization.findUnique({
+    where: { id: admin.organizationId },
+    select: { rebtCompanyNumber: true },
+  });
+
   try {
     await prisma.project.create({
       data: {
@@ -169,6 +176,7 @@ export async function createProjectAction(
         operarioInitials: initials || "OP",
         clienteNotificacionEmail: clienteNotificacionEmail || null,
         estimatedRevenue: estimatedRevenueRaw || null,
+        rebtCompanyNumber: orgRow?.rebtCompanyNumber ?? null,
       },
     });
   } catch (e) {
@@ -216,10 +224,10 @@ export async function saveProjectAdminMemoryAction(formData: FormData): Promise<
       .trim()
       .slice(0, 200) || null;
 
-  const selfConsumptionMode =
-    String(formData.get("selfConsumptionMode") ?? "")
-      .trim()
-      .slice(0, 2000) || null;
+  const rawModality = String(formData.get("selfConsumptionModality") ?? "").trim();
+  const selfConsumptionModality: SelfConsumptionModality | null = isSelfConsumptionModality(rawModality)
+    ? rawModality
+    : null;
   const cableDcSectionMm2 =
     String(formData.get("cableDcSectionMm2") ?? "").trim().slice(0, 32) || null;
   const cableAcSectionMm2 =
@@ -237,7 +245,7 @@ export async function saveProjectAdminMemoryAction(formData: FormData): Promise<
       technicalMemory: String(formData.get("technicalMemory") ?? "").trim() || null,
       reviewedByOfficeTech: String(formData.get("reviewedByOfficeTech") ?? "") === "on",
       rebtCompanyNumber: String(formData.get("rebtCompanyNumber") ?? "").trim() || null,
-      selfConsumptionMode,
+      selfConsumptionModality,
       cableDcSectionMm2,
       cableAcSectionMm2,
       dossierReference: String(formData.get("dossierReference") ?? "").trim() || null,

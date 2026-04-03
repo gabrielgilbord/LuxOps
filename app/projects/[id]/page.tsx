@@ -21,10 +21,13 @@ type ProjectPageProps = {
   params: Promise<{ id: string }>;
 };
 
-function photoTypeLabel(type: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR"): string {
+function photoTypeLabel(
+  type: "ANTES" | "DURANTE" | "DESPUES" | "ESQUEMA_UNIFILAR" | "ANEXO_PVGIS",
+): string {
   if (type === "ANTES") return "Antes";
   if (type === "DURANTE") return "Durante";
   if (type === "ESQUEMA_UNIFILAR") return "Esquema unifilar";
+  if (type === "ANEXO_PVGIS") return "Anexo PVGIS";
   return "Despues";
 }
 
@@ -126,7 +129,18 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
       <Card className={isAdmin ? "mb-4 border border-emerald-500/25 bg-slate-900/30" : "mb-4 border-accent/60"}>
         <CardContent className="pt-6">
-          <EjecucionObra projectId={project.id} />
+          <EjecucionObra
+            projectId={project.id}
+            serverLegalElectricHints={{
+              selfConsumptionModality: project.selfConsumptionModality,
+              cableDcSectionMm2: project.cableDcSectionMm2,
+              cableAcSectionMm2: project.cableAcSectionMm2,
+            }}
+            serverRebtContext={{
+              projectRebtCompanyNumber: project.rebtCompanyNumber,
+              organizationRebtCompanyNumber: project.organizationRebtCompanyNumber,
+            }}
+          />
         </CardContent>
       </Card>
 

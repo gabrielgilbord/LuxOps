@@ -24,9 +24,13 @@ export default async function MobileObraPage({ params }: Props) {
       <EjecucionObra
         projectId={project.id}
         serverLegalElectricHints={{
-          selfConsumptionMode: project.selfConsumptionMode,
+          selfConsumptionModality: project.selfConsumptionModality,
           cableDcSectionMm2: project.cableDcSectionMm2,
           cableAcSectionMm2: project.cableAcSectionMm2,
+        }}
+        serverRebtContext={{
+          projectRebtCompanyNumber: project.rebtCompanyNumber,
+          organizationRebtCompanyNumber: project.organizationRebtCompanyNumber,
         }}
       />
     </main>

@@ -29,10 +29,10 @@ const prlAckSchema = baseSchema.extend({
 
 const photoSchema = baseSchema.extend({
   kind: z.literal("photo"),
-  tipo: z.enum(["ANTES", "DURANTE", "DESPUES", "ESQUEMA_UNIFILAR"]),
-  imageDataUrl: z.string().startsWith("data:image/"),
-  latitude: z.number(),
-  longitude: z.number(),
+  tipo: z.enum(["ANTES", "DURANTE", "DESPUES", "ESQUEMA_UNIFILAR", "ANEXO_PVGIS"]),
+  imageDataUrl: z.string().min(40),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
 });
 
 const signatureSchema = baseSchema.extend({
@@ -101,7 +101,13 @@ const traceabilitySchema = baseSchema.extend({
   structureBrand: z.string().trim().max(120).optional(),
   structureMounting: z.enum(["COPLANAR", "INCLINACION", "LASTRADA"]).optional(),
   stringConfiguration: z.string().max(8000).optional(),
-  selfConsumptionMode: z.string().max(2000).optional(),
+  selfConsumptionModality: z
+    .enum([
+      "SIN_EXCEDENTES",
+      "CON_EXCEDENTES_ACOGIDO_COMPENSACION",
+      "CON_EXCEDENTES_NO_ACOGIDO_COMPENSACION",
+    ])
+    .optional(),
   cableDcSectionMm2: z.string().max(32).optional(),
   cableAcSectionMm2: z.string().max(32).optional(),
   electricVoc: z.string().max(32).optional(),
@@ -150,6 +156,15 @@ function parseDataUrlMeta(dataUrl: string) {
   const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,/.exec(dataUrl);
   if (!match) return null;
   const mime = match[1].toLowerCase();
+  const payload = dataUrl.slice(match[0].length);
+  const sizeBytes = Math.floor((payload.length * 3) / 4);
+  return { mime, sizeBytes };
+}
+
+function parseMediaDataUrlMeta(dataUrl: string) {
+  const match = /^data:([^;]+);base64,/.exec(dataUrl);
+  if (!match) return null;
+  const mime = match[1].toLowerCase().trim();
   const payload = dataUrl.slice(match[0].length);
   const sizeBytes = Math.floor((payload.length * 3) / 4);
   return { mime, sizeBytes };
@@ -219,25 +234,37 @@ export async function POST(request: Request) {
       }
 
       if (operation.kind === "photo") {
-        const meta = parseDataUrlMeta(operation.imageDataUrl);
+        const meta = parseMediaDataUrlMeta(operation.imageDataUrl);
         if (!meta) {
-          rejected.push({ id: operation.id, reason: "Formato de imagen inválido" });
+          rejected.push({ id: operation.id, reason: "Formato de archivo inválido" });
           continue;
         }
-        if (!["image/jpeg", "image/png", "image/webp"].includes(meta.mime)) {
-          rejected.push({ id: operation.id, reason: "Tipo MIME no permitido" });
-          continue;
-        }
-        if (meta.sizeBytes > 5 * 1024 * 1024) {
-          rejected.push({ id: operation.id, reason: "Imagen excede 5MB" });
-          continue;
-        }
-        if (
-          typeof operation.latitude !== "number" ||
-          typeof operation.longitude !== "number"
-        ) {
-          rejected.push({ id: operation.id, reason: "Coordenadas GPS requeridas" });
-          continue;
+        const isPvgis = operation.tipo === "ANEXO_PVGIS";
+        if (isPvgis) {
+          if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(meta.mime)) {
+            rejected.push({ id: operation.id, reason: "Anexo PVGIS: solo PDF o imagen" });
+            continue;
+          }
+          if (meta.sizeBytes > 12 * 1024 * 1024) {
+            rejected.push({ id: operation.id, reason: "Anexo supera 12MB" });
+            continue;
+          }
+        } else {
+          if (!["image/jpeg", "image/png", "image/webp"].includes(meta.mime)) {
+            rejected.push({ id: operation.id, reason: "Tipo MIME no permitido" });
+            continue;
+          }
+          if (meta.sizeBytes > 5 * 1024 * 1024) {
+            rejected.push({ id: operation.id, reason: "Imagen excede 5MB" });
+            continue;
+          }
+          if (
+            typeof operation.latitude !== "number" ||
+            typeof operation.longitude !== "number"
+          ) {
+            rejected.push({ id: operation.id, reason: "Coordenadas GPS requeridas" });
+            continue;
+          }
         }
         const uploaded = await uploadDataUrlToStorage({
           bucket: "luxops-assets",
@@ -250,8 +277,10 @@ export async function POST(request: Request) {
             tipo: operation.tipo,
             url: uploaded.path,
             storagePath: uploaded.path,
-            latitude: operation.latitude,
-            longitude: operation.longitude,
+            latitude:
+              typeof operation.latitude === "number" ? operation.latitude : null,
+            longitude:
+              typeof operation.longitude === "number" ? operation.longitude : null,
           },
         });
         successIds.push(operation.id);
@@ -339,7 +368,7 @@ export async function POST(request: Request) {
             structureBrand: (operation.structureBrand ?? "").trim() || null,
             structureMounting: operation.structureMounting ?? null,
             stringConfiguration: (operation.stringConfiguration ?? "").trim() || null,
-            selfConsumptionMode: (operation.selfConsumptionMode ?? "").trim() || null,
+            selfConsumptionModality: operation.selfConsumptionModality ?? null,
             cableDcSectionMm2: (operation.cableDcSectionMm2 ?? "").trim() || null,
             cableAcSectionMm2: (operation.cableAcSectionMm2 ?? "").trim() || null,
             electricVocVolts: toPrismaDecimal(operation.electricVoc),
