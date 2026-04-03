@@ -122,8 +122,14 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
               </div>
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
-              <PasswordInput id="password" name="password" required />
+              <Label htmlFor="password">Contraseña</Label>
+              <PasswordInput
+                id="password"
+                name="password"
+                required
+                variant="light"
+                autoComplete="new-password"
+              />
             </div>
             <button
               type="submit"

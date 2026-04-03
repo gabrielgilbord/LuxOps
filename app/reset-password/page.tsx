@@ -85,6 +85,8 @@ export default function ResetPasswordPage() {
             placeholder="Nueva contraseña (mínimo 8 caracteres)"
             required
             minLength={8}
+            variant="dark"
+            autoComplete="new-password"
           />
           <PasswordInput
             value={passwordConfirm}
@@ -92,6 +94,8 @@ export default function ResetPasswordPage() {
             placeholder="Repite la nueva contraseña"
             required
             minLength={8}
+            variant="dark"
+            autoComplete="new-password"
           />
           <button
             type="submit"

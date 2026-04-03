@@ -597,6 +597,25 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     opacity: sealOp,
   });
 
+  const adminDisclaimer = pdfLibSafeText(
+    "Nota para tramitacion administrativa y ayudas publicas: este dossier documenta la ejecucion de la instalacion y criterios habituales de trazabilidad (REBT, evidencias fotograficas, firmas y datos tecnicos). " +
+      "Cada convocatoria de subvenciones o creditos (estatal, autonomico o europeo) impone requisitos y plazos propios: el titular o la empresa instaladora debe contrastar este documento con las bases vigentes y la normativa aplicable en el momento de la solicitud. " +
+      "LuxOps facilita la documentacion; no sustituye asesoramiento juridico ni la resolucion de la administracion competente. " +
+      "Proteccion de datos: tratamiento conforme al Reglamento (UE) 2016/679 y la LOPDGDD, en la medida aplicable al encargado y al responsable del tratamiento.",
+  );
+  const adminLines = wrapPdfLines(adminDisclaimer, 531, font, 6.5).slice(0, 10);
+  let discY = 40;
+  for (const ln of adminLines) {
+    coverPage.drawText(ln, {
+      x: 32,
+      y: discY,
+      size: 6.5,
+      font,
+      color: rgb(0.4, 0.4, 0.43),
+    });
+    discY += 8;
+  }
+
   const summaryPage = pdf.addPage([595, 842]);
   summaryPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
   summaryPage.drawRectangle({ x: 24, y: 768, width: 547, height: 2, color: accent });

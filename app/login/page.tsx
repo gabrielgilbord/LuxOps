@@ -45,7 +45,7 @@ export default function LoginPage() {
             className="mt-6 space-y-4"
           >
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <div className="relative mt-1">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
@@ -58,8 +58,14 @@ export default function LoginPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
-              <PasswordInput id="password" name="password" required />
+              <Label htmlFor="password">Contraseña</Label>
+              <PasswordInput
+                id="password"
+                name="password"
+                required
+                variant="light"
+                autoComplete="current-password"
+              />
             </div>
 
             <label className="inline-flex items-center gap-2 text-sm text-slate-600">

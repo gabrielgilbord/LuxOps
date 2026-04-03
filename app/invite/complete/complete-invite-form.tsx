@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { completeOperarioInviteAction } from "@/app/actions/projects";
+import { PasswordInput } from "@/components/ui/password-input";
 
 type Props = {
   token?: string;
@@ -30,21 +31,21 @@ export function CompleteInviteForm({ token, inviteId, defaultName }: Props) {
         placeholder="Nombre completo"
         className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-yellow-300/70"
       />
-      <input
+      <PasswordInput
         name="password"
-        type="password"
         required
         minLength={8}
         placeholder="Crea una contraseña (mínimo 8 caracteres)"
-        className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-yellow-300/70"
+        variant="dark"
+        autoComplete="new-password"
       />
-      <input
+      <PasswordInput
         name="passwordConfirm"
-        type="password"
         required
         minLength={8}
         placeholder="Repite la contraseña"
-        className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-yellow-300/70"
+        variant="dark"
+        autoComplete="new-password"
       />
       <button
         type="submit"
