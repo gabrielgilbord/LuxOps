@@ -78,6 +78,9 @@ export type OfflineOperation =
       structureBrand?: string;
       structureMounting?: "" | "COPLANAR" | "INCLINACION" | "LASTRADA";
       stringConfiguration?: string;
+      selfConsumptionMode?: string;
+      cableDcSectionMm2?: string;
+      cableAcSectionMm2?: string;
       electricVoc?: string;
       electricIsc?: string;
       earthResistance?: string;
@@ -142,6 +145,9 @@ export type OfflineOperationPayload =
       structureBrand?: string;
       structureMounting?: "" | "COPLANAR" | "INCLINACION" | "LASTRADA";
       stringConfiguration?: string;
+      selfConsumptionMode?: string;
+      cableDcSectionMm2?: string;
+      cableAcSectionMm2?: string;
       electricVoc?: string;
       electricIsc?: string;
       earthResistance?: string;

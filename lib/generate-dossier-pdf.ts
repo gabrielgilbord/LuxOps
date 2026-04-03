@@ -135,11 +135,11 @@ function drawFooter(params: {
   const footH = 40;
   page.drawRectangle({ x: 24, y: 18, width: width - 48, height: footH, color: rgb(0.98, 0.98, 0.98) });
   page.drawText(
-    `Documento generado por LuxOps para ${companyName} · Pagina ${pageNumber}/${totalPages}`,
+    `Documento generado por LuxOps para ${companyName} · Página ${pageNumber}/${totalPages}`,
     { x: padX, y: 50, size: 8, font: italic, color: rgb(0.35, 0.35, 0.35) },
   );
   const audit =
-    `ID de Transaccion: ${projectId} · Integridad de datos verificada por LuxOps Blockchain-Ready System`;
+    `ID de transacción: ${projectId} · Integridad de datos verificada por LuxOps Blockchain-Ready System`;
   let lineY = 38;
   for (const line of wrapPdfLines(audit, innerW, italic, 5.2)) {
     page.drawText(line, {
@@ -293,7 +293,11 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const dossierReference =
     project.dossierReference?.trim() ||
     `EXP-${project.id.slice(-8).toUpperCase()}-${new Date(project.updatedAt).getFullYear()}`;
+  const rebtEmpresaNum = (project.rebtCompanyNumber ?? "").trim();
   const installerCard = (project.installerProfessionalCard ?? "").trim();
+  const selfConsumptionMode = (project.selfConsumptionMode ?? "").trim();
+  const cableDcMm2 = (project.cableDcSectionMm2 ?? "").trim();
+  const cableAcMm2 = (project.cableAcSectionMm2 ?? "").trim();
   const firstPhotoAt = project.photos[0]?.createdAt ?? null;
   const lastPhotoAt = project.photos[project.photos.length - 1]?.createdAt ?? null;
   const totalTimeLabel =
@@ -598,10 +602,10 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   });
 
   const adminDisclaimer = pdfLibSafeText(
-    "Nota para tramitacion administrativa y ayudas publicas: este dossier documenta la ejecucion de la instalacion y criterios habituales de trazabilidad (REBT, evidencias fotograficas, firmas y datos tecnicos). " +
-      "Cada convocatoria de subvenciones o creditos (estatal, autonomico o europeo) impone requisitos y plazos propios: el titular o la empresa instaladora debe contrastar este documento con las bases vigentes y la normativa aplicable en el momento de la solicitud. " +
-      "LuxOps facilita la documentacion; no sustituye asesoramiento juridico ni la resolucion de la administracion competente. " +
-      "Proteccion de datos: tratamiento conforme al Reglamento (UE) 2016/679 y la LOPDGDD, en la medida aplicable al encargado y al responsable del tratamiento.",
+    "Nota para tramitación administrativa y ayudas públicas: este dossier documenta la ejecución de la instalación y criterios habituales de trazabilidad (REBT, evidencias fotográficas, firmas y datos técnicos). " +
+      "Cada convocatoria de subvenciones o créditos (estatal, autonómico o europeo) impone requisitos y plazos propios: el titular o la empresa instaladora debe contrastar este documento con las bases vigentes y la normativa aplicable en el momento de la solicitud. " +
+      "LuxOps facilita la documentación; no sustituye asesoramiento jurídico ni la resolución de la administración competente. " +
+      "Protección de datos: tratamiento conforme al Reglamento (UE) 2016/679 y la LOPDGDD, en la medida aplicable al encargado y al responsable del tratamiento.",
   );
   const adminLines = wrapPdfLines(adminDisclaimer, 531, font, 6.5).slice(0, 10);
   let discY = 40;
@@ -626,7 +630,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     color: rgb(0, 0, 0),
     font: bold,
   });
-  summaryPage.drawText("Dossier tecnico de ejecucion", {
+  summaryPage.drawText("Dossier técnico de ejecución", {
     x: 24,
     y: 748,
     size: 10,
@@ -636,9 +640,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   summaryPage.drawRectangle({
     x: 24,
-    y: 516,
+    y: 458,
     width: 547,
-    height: 198,
+    height: 256,
     color: rgb(0.97, 0.97, 0.97),
     borderColor: rgb(0.9, 0.9, 0.9),
     borderWidth: 0.5,
@@ -655,32 +659,54 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   summaryPage.drawText(`CUPS: ${cupsHead}`, { x: 36, y: 666, size: 9.5, font: bold });
   summaryPage.drawText(`Ref. catastral: ${catHead}`, { x: 36, y: 652, size: 9, font });
   summaryPage.drawText(`Titular (DNI/CIF): ${ownerHead}`, { x: 36, y: 638, size: 9, font });
-  summaryPage.drawText(`Direccion: ${project.direccion}`, { x: 36, y: 622, size: 10, font });
+  summaryPage.drawText(`Dirección: ${project.direccion}`, { x: 36, y: 622, size: 10, font });
   summaryPage.drawText(
-    `Fecha finalizacion: ${new Date(project.updatedAt).toLocaleString("es-ES")}`,
+    `Fecha de finalización: ${new Date(project.updatedAt).toLocaleString("es-ES")}`,
     { x: 36, y: 606, size: 10, font },
   );
   summaryPage.drawText(`Estado: ${project.estado}`, { x: 36, y: 590, size: 10, font });
   summaryPage.drawText(
-    pdfLibSafeText(
-      `Nº Empresa Instaladora Autorizada (REBT): ${installerCard || "—"}`,
-    ),
+    pdfLibSafeText(`Modalidad de autoconsumo: ${selfConsumptionMode || "—"}`),
     {
       x: 36,
       y: 574,
-      size: 9.5,
-      font: bold,
+      size: 9,
+      font,
       maxWidth: 500,
       lineHeight: 11,
     },
   );
-  summaryPage.drawText(`Referencia de Expediente: ${dossierReference}`, {
+  summaryPage.drawText(pdfLibSafeText(`Nº empresa instaladora autorizada (REBT): ${rebtEmpresaNum || "—"}`), {
     x: 36,
-    y: 532,
+    y: 556,
+    size: 9.5,
+    font: bold,
+    maxWidth: 500,
+    lineHeight: 11,
+  });
+  summaryPage.drawText(pdfLibSafeText(`Carné profesional del instalador: ${installerCard || "—"}`), {
+    x: 36,
+    y: 538,
+    size: 9,
+    font,
+    maxWidth: 500,
+    lineHeight: 11,
+  });
+  summaryPage.drawText(`Referencia de expediente: ${dossierReference}`, {
+    x: 36,
+    y: 520,
     size: 9.5,
     font: bold,
     color: rgb(0.2, 0.2, 0.25),
   });
+  summaryPage.drawText(
+    pdfLibSafeText(`Sección de cable DC (mm²): ${cableDcMm2 || "—"}`),
+    { x: 36, y: 502, size: 9, font, maxWidth: 500 },
+  );
+  summaryPage.drawText(
+    pdfLibSafeText(`Sección de cable AC (mm²): ${cableAcMm2 || "—"}`),
+    { x: 36, y: 484, size: 9, font, maxWidth: 500 },
+  );
 
   if (project.organization.logoUrl || project.organization.logoPath) {
     const image = await embedAutoImage(
@@ -722,16 +748,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     });
   }
 
-  summaryPage.drawText("INVENTARIO DE EQUIPOS CERTIFICADOS", { x: 24, y: 502, size: 12, font: bold });
+  summaryPage.drawText("INVENTARIO DE EQUIPOS CERTIFICADOS", { x: 24, y: 448, size: 12, font: bold });
   summaryPage.drawText("Tabla de trazabilidad de activos", {
     x: 24,
-    y: 488,
+    y: 434,
     size: 8.5,
     font,
     color: rgb(0.38, 0.38, 0.42),
   });
   const tableX = 24;
-  const tableYTop = 474;
+  const tableYTop = 420;
   const colW = [102, 92, 92, 78, 175];
   const panelItemsFromDb = parseEquipmentItems(project.equipmentPanelItems);
   const batteryItemsFromDb = parseEquipmentItems(project.equipmentBatteryItems);
@@ -895,7 +921,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   const tableBottomY = tableYTop - rowH * (tableRows.length + 1);
   const traceStartY = Math.max(250, tableBottomY - 20);
-  summaryPage.drawText("Trazabilidad y garantias", { x: 24, y: traceStartY, size: 11, font: bold });
+  summaryPage.drawText("Trazabilidad y garantías", { x: 24, y: traceStartY, size: 11, font: bold });
   let traceY = traceStartY - 16;
   const serialRows: [string, string | null][] = [
     [
@@ -905,12 +931,12 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
         : project.equipmentInverterSerial,
     ],
     [
-      "Baterias (N/S)",
+      "Baterías (N/S)",
       normalizedBatteryItems.length > 0
         ? normalizedBatteryItems.map((item) => item.serial).filter(Boolean).join(", ")
         : project.equipmentBatterySerial,
     ],
-    ["Vatimetro (N/S)", project.equipmentVatimetroSerial],
+    ["Vatímetro (N/S)", project.equipmentVatimetroSerial],
   ];
   for (const [label, val] of serialRows) {
     const text = (val ?? "").trim();
@@ -924,7 +950,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     traceY -= 13;
   }
   traceY -= 4;
-  summaryPage.drawText("Observaciones tecnicas / notas de garantia", {
+  summaryPage.drawText("Observaciones técnicas / notas de garantía", {
     x: 24,
     y: traceY,
     size: 9,
@@ -947,7 +973,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       traceY -= 11;
     }
     if (noteLines.length > maxNoteLines) {
-      summaryPage.drawText("(Continuacion en registro digital de obra.)", {
+      summaryPage.drawText("(Continuación en registro digital de obra.)", {
         x: 24,
         y: traceY,
         size: 8,
@@ -1002,7 +1028,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     }
     traceY -= 6;
     const legal =
-      "Lo anterior queda constancia para tramites de garantia y subvenciones. Condiciones no reflejadas en la documentacion previa acordada o en el presente acta no podran imputarse a la empresa instaladora con caracter retroactivo tras la firma de recepcion por el cliente.";
+      "Lo anterior queda constancia para trámites de garantía y subvenciones. Condiciones no reflejadas en la documentación previa acordada o en el presente acta no podrán imputarse a la empresa instaladora con carácter retroactivo tras la firma de recepción por el cliente.";
     for (const ln of wrapPdfLines(legal, 520, italic, 8)) {
       summaryPage.drawText(ln, {
         x: 24,
@@ -1015,7 +1041,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     }
   } else {
     for (const ln of wrapPdfLines(
-      "El operario no registro incidencias adicionales en campo (tejas rotas previas, sombras no previstas, etc.).",
+      "El operario no registró incidencias adicionales en campo (tejas rotas previas, sombras no previstas, etc.).",
       520,
       italic,
       9,
@@ -1058,7 +1084,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   }
 
   traceY -= 8;
-  const energyBoxH = annualYieldKwh != null ? 56 : 40;
+  const energyBoxH = annualYieldKwh != null ? 72 : 54;
   summaryPage.drawRectangle({
     x: 24,
     y: traceY - energyBoxH,
@@ -1076,12 +1102,12 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     color: slateText,
   });
   summaryPage.drawText(
-    `Potencia Pico Total: ${project.peakPowerKwp?.toString() ?? "—"} kWp · Potencia Nominal Inversor: ${project.inverterPowerKwn?.toString() ?? "—"} kWn · Capacidad Almacenamiento: ${project.storageCapacityKwh?.toString() ?? "—"} kWh`,
+    `Potencia pico total: ${project.peakPowerKwp?.toString() ?? "—"} kWp · Potencia nominal inversor: ${project.inverterPowerKwn?.toString() ?? "—"} kWn · Capacidad almacenamiento: ${project.storageCapacityKwh?.toString() ?? "—"} kWh`,
     { x: 30, y: traceY - 26, size: 8.5, font, maxWidth: 530, color: slateText },
   );
   if (annualYieldKwh != null) {
     summaryPage.drawText(
-      `Rendimiento Energético Estimado post-ejecución: ${annualYieldKwh.toLocaleString("es-ES")} kWh/año`,
+      `Rendimiento energético estimado posinstalación: ${annualYieldKwh.toLocaleString("es-ES")} kWh/año`,
       {
         x: 30,
         y: traceY - 44,
@@ -1092,12 +1118,20 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       },
     );
   }
+  summaryPage.drawText("Cálculo estimado mediante metodología PVGIS.", {
+    x: 30,
+    y: traceY - (annualYieldKwh != null ? 58 : 42),
+    size: 7.8,
+    font: italic,
+    maxWidth: 520,
+    color: rgb(0.38, 0.4, 0.42),
+  });
 
   traceY -= energyBoxH + 14;
-  summaryPage.drawText("Evidencias fotograficas", { x: 24, y: traceY, size: 12, font: bold });
+  summaryPage.drawText("Evidencias fotográficas", { x: 24, y: traceY, size: 12, font: bold });
   traceY -= 16;
   summaryPage.drawText(
-    `${project.photos.length} evidencias registradas con geolocalizacion y timestamp.`,
+    `${project.photos.length} evidencias registradas con geolocalización y marca de tiempo.`,
     { x: 24, y: traceY, size: 9, font, color: rgb(0.35, 0.35, 0.35) },
   );
 
@@ -1248,6 +1282,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       "Configuración de strings",
       (project.stringConfiguration ?? "").trim() || "—",
     ],
+    ["Modalidad de autoconsumo", selfConsumptionMode || "—"],
+    ["Sección de cable DC (mm²)", cableDcMm2 || "—"],
+    ["Sección de cable AC (mm²)", cableAcMm2 || "—"],
     ["Tensión circuito abierto Voc (V)", dec(project.electricVocVolts)],
     ["Corriente cortocircuito Isc (A)", dec(project.electricIscAmps)],
     ["Resistencia de puesta a tierra (ohm)", dec(project.earthResistanceOhms)],
@@ -1256,7 +1293,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     ["SPD — marca", (project.spdBrand ?? "").trim() || "—"],
     ["SPD — modelo", (project.spdModel ?? "").trim() || "—"],
     ["Azimut (grados)", dec(project.panelAzimuthDegrees)],
-    ["Inclinacion modulo (grados)", dec(project.panelTiltDegrees)],
+    ["Inclinación módulo (grados)", dec(project.panelTiltDegrees)],
   ];
   const c1 = 200;
   const c2 = 315;
@@ -1356,18 +1393,18 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     cy -= lh;
   }
   if (annualYieldKwh != null) {
-    ensureCertVerticalSpace(56);
+    ensureCertVerticalSpace(68);
     cy -= 10;
     certPage.drawRectangle({
       x: 40,
-      y: cy - 38,
+      y: cy - 50,
       width: 515,
-      height: 38,
+      height: 50,
       color: rgb(0.9725, 0.9804, 0.9882),
       borderColor: slateBorder,
       borderWidth: 0.5,
     });
-    certPage.drawText("Rendimiento Energético Estimado post-ejecución:", {
+    certPage.drawText("Rendimiento energético estimado posinstalación:", {
       x: 48,
       y: cy - 16,
       size: 8,
@@ -1381,7 +1418,26 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       font: bold,
       color: solarYellow,
     });
-    cy -= 46;
+    certPage.drawText("Cálculo estimado mediante metodología PVGIS.", {
+      x: 48,
+      y: cy - 42,
+      size: 7.5,
+      font: italic,
+      color: rgb(0.38, 0.4, 0.42),
+    });
+    cy -= 58;
+  } else {
+    ensureCertVerticalSpace(28);
+    cy -= 8;
+    certPage.drawText("Cálculo estimado mediante metodología PVGIS.", {
+      x: 40,
+      y: cy,
+      size: 7.8,
+      font: italic,
+      color: rgb(0.38, 0.4, 0.42),
+      maxWidth: 510,
+    });
+    cy -= 20;
   }
   ensureCertVerticalSpace(130);
   cy -= 12;
@@ -1431,7 +1487,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       size: 14,
       font: bold,
     });
-    photoPage.drawText("Grid 2x2 · GPS y hora por evidencia · paginacion dinamica", {
+    photoPage.drawText("Grid 2x2 · GPS y hora por evidencia · paginación dinámica", {
       x: 24,
       y: 792,
       size: 9,
@@ -1552,10 +1608,26 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
         height: h,
       });
     } else {
-      annexPage.drawText("Imagen no disponible.", { x: 40, y: 420, size: 11, font });
+      annexPage.drawRectangle({
+        x: margin,
+        y: 100,
+        width: maxW,
+        height: 620,
+        borderColor: rgb(0.82, 0.82, 0.85),
+        borderWidth: 1,
+        color: rgb(0.97, 0.97, 0.98),
+      });
+      annexPage.drawText("Espacio para esquema unifilar — imagen no disponible en almacenamiento.", {
+        x: margin + 16,
+        y: 400,
+        size: 10,
+        font: inter,
+        color: rgb(0.42, 0.42, 0.45),
+        maxWidth: maxW - 32,
+      });
     }
     annexPage.drawText(
-      `GPS ${photo.latitude?.toFixed(6) ?? "-"}, ${photo.longitude?.toFixed(6) ?? "-"}`,
+      `GPS ${photo.latitude != null && photo.longitude != null ? `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}` : "— (carga desde oficina)"}`,
       { x: 40, y: 44, size: 8, font, color: rgb(0.35, 0.35, 0.35) },
     );
     annexPage.drawText(`Registro ${new Date(photo.createdAt).toLocaleString("es-ES")}`, {
@@ -1565,6 +1637,52 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       font,
       color: rgb(0.35, 0.35, 0.35),
     });
+  }
+
+  if (unifilarPhotoList.length === 0) {
+    const annexPage = pdf.addPage([595, 842]);
+    annexPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
+    annexPage.drawText("ANEXO I:", {
+      x: 40,
+      y: 808,
+      size: 11,
+      font: bold,
+      color: rgb(0.12, 0.12, 0.14),
+    });
+    annexPage.drawText("ESQUEMA UNIFILAR DE LA INSTALACIÓN", {
+      x: 40,
+      y: 790,
+      size: 13,
+      font: bold,
+      color: rgb(0.05, 0.05, 0.08),
+    });
+    annexPage.drawRectangle({
+      x: 40,
+      y: 100,
+      width: 515,
+      height: 620,
+      borderColor: rgb(0.78, 0.78, 0.82),
+      borderWidth: 1.2,
+      color: rgb(0.98, 0.98, 0.99),
+    });
+    let annexPlaceholderY = 400;
+    for (const ln of wrapPdfLines(
+      pdfLibSafeText(
+        "Espacio reservado para la representación gráfica del esquema unifilar conforme a RD 244/2019 y REBT. Incorpore la imagen desde la app (operario) o desde la oficina técnica (administrador).",
+      ),
+      470,
+      inter,
+      10,
+    )) {
+      annexPage.drawText(ln, {
+        x: 56,
+        y: annexPlaceholderY,
+        size: 10,
+        font: inter,
+        color: rgb(0.38, 0.38, 0.42),
+      });
+      annexPlaceholderY -= 13;
+    }
   }
 
   const legalBoxBg = rgb(0.985, 0.985, 0.985);

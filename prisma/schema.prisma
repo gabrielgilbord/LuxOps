@@ -134,6 +134,12 @@ model Project {
   operarioNombre   String
   operarioInitials String
   rebtCompanyNumber String?
+  /** Modalidad de autoconsumo (RD 244/2019, ej. con excedentes a compensación) */
+  selfConsumptionMode String? @db.Text
+  /** Sección de conductor DC (mm²), memoria rápida */
+  cableDcSectionMm2 String?
+  /** Sección de conductor AC (mm²), memoria rápida */
+  cableAcSectionMm2 String?
   dossierReference  String?
   technicalMemory   String?
   reviewedByOfficeTech Boolean    @default(false)

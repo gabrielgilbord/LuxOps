@@ -6,10 +6,11 @@ import {
   FileStack,
   FileText,
   Hash,
+  ImagePlus,
   Shield,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { saveProjectAdminMemoryAction } from "@/app/actions/projects";
+import { saveProjectAdminMemoryAction, uploadAdminUnifilarPhotoAction } from "@/app/actions/projects";
 import type { ProjectDetail } from "@/lib/data";
 
 const inputCls =
@@ -159,6 +160,74 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
               Revisado por oficina técnica
             </span>
           </label>
+          <div className="mt-5 grid gap-4 border-t border-slate-800 pt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Legalización · RD 244/2019 (autoconsumo y cables)
+            </p>
+            <label className="block">
+              <span className={labelCls}>Modalidad de autoconsumo</span>
+              <Textarea
+                name="selfConsumptionMode"
+                defaultValue={project.selfConsumptionMode ?? ""}
+                className="mt-2 min-h-[5rem] resize-y rounded-xl border border-slate-600/80 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20"
+                placeholder="Ej.: Con excedentes acogido a compensación"
+                maxLength={2000}
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className={labelCls}>Sección de cable DC (mm²)</span>
+                <input
+                  name="cableDcSectionMm2"
+                  defaultValue={project.cableDcSectionMm2 ?? ""}
+                  className={inputCls}
+                  placeholder="Ej.: 6"
+                  maxLength={32}
+                />
+              </label>
+              <label className="block">
+                <span className={labelCls}>Sección de cable AC (mm²)</span>
+                <input
+                  name="cableAcSectionMm2"
+                  defaultValue={project.cableAcSectionMm2 ?? ""}
+                  className={inputCls}
+                  placeholder="Ej.: 10"
+                  maxLength={32}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className={sectionShell}>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <ImagePlus className="h-4 w-4 text-cyan-400" />
+            <h3 className="text-sm font-bold text-slate-100">Anexo unifilar</h3>
+          </div>
+          <p className="mb-3 text-xs text-slate-400">
+            Sube aquí el esquema unifilar si el operario no lo ha aportado en campo. Se añadirá como
+            evidencia <span className="font-mono text-slate-300">ESQUEMA_UNIFILAR</span> en el PDF.
+          </p>
+          <form action={uploadAdminUnifilarPhotoAction} encType="multipart/form-data">
+            <input type="hidden" name="projectId" value={project.id} />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="block min-w-0 flex-1">
+                <span className={labelCls}>Imagen (JPEG, PNG o WebP, máx. 5 MB)</span>
+                <input
+                  type="file"
+                  name="unifilarFile"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="mt-2 block w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-cyan-500"
+                />
+              </label>
+              <button
+                type="submit"
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-cyan-600 px-4 text-xs font-bold text-white shadow hover:bg-cyan-500"
+              >
+                Subir unifilar
+              </button>
+            </div>
+          </form>
         </div>
 
         <div className={sectionShell}>

@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ suggestions });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      return NextResponse.json({ error: "Parametros invalidos" }, { status: 400 });
+      return NextResponse.json({ error: "Parámetros inválidos" }, { status: 400 });
     }
     console.error(e);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });

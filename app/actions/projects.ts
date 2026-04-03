@@ -13,6 +13,7 @@ import {
   sendOperarioResetEmail,
   sendProjectFinishedEmail,
 } from "@/lib/email";
+import { uploadDataUrlToStorage } from "@/lib/storage";
 
 export async function getProjects() {
   try {
@@ -57,7 +58,7 @@ export async function getOrganizationOperarios() {
 export async function resendProjectDossierEmailAction(formData: FormData): Promise<void> {
   const admin = await requireAdminUser();
   const projectId = String(formData.get("projectId") ?? "").trim();
-  if (!projectId) throw new Error("Proyecto invalido.");
+  if (!projectId) throw new Error("Proyecto inválido.");
 
   const project = await prisma.project.findFirst({
     where: {
@@ -186,7 +187,7 @@ export async function createProjectAction(
 export async function saveProjectAdminMemoryAction(formData: FormData): Promise<void> {
   const admin = await requireAdminUser();
   const projectId = String(formData.get("projectId") ?? "").trim();
-  if (!projectId) throw new Error("Proyecto invalido.");
+  if (!projectId) throw new Error("Proyecto inválido.");
 
   const parseNullableDecimal = (key: string) => {
     const raw = String(formData.get(key) ?? "").trim().replace(",", ".");
@@ -215,6 +216,15 @@ export async function saveProjectAdminMemoryAction(formData: FormData): Promise<
       .trim()
       .slice(0, 200) || null;
 
+  const selfConsumptionMode =
+    String(formData.get("selfConsumptionMode") ?? "")
+      .trim()
+      .slice(0, 2000) || null;
+  const cableDcSectionMm2 =
+    String(formData.get("cableDcSectionMm2") ?? "").trim().slice(0, 32) || null;
+  const cableAcSectionMm2 =
+    String(formData.get("cableAcSectionMm2") ?? "").trim().slice(0, 32) || null;
+
   const project = await prisma.project.findFirst({
     where: { id: projectId, organizationId: admin.organizationId },
     select: { id: true },
@@ -227,6 +237,9 @@ export async function saveProjectAdminMemoryAction(formData: FormData): Promise<
       technicalMemory: String(formData.get("technicalMemory") ?? "").trim() || null,
       reviewedByOfficeTech: String(formData.get("reviewedByOfficeTech") ?? "") === "on",
       rebtCompanyNumber: String(formData.get("rebtCompanyNumber") ?? "").trim() || null,
+      selfConsumptionMode,
+      cableDcSectionMm2,
+      cableAcSectionMm2,
       dossierReference: String(formData.get("dossierReference") ?? "").trim() || null,
       equipmentInverterSerial: String(formData.get("equipmentInverterSerial") ?? "").trim() || null,
       equipmentBatterySerial: String(formData.get("equipmentBatterySerial") ?? "").trim() || null,
@@ -254,7 +267,7 @@ export async function saveProjectAdminMemoryAction(formData: FormData): Promise<
 export async function reassignUnassignedProjectAction(formData: FormData): Promise<void> {
   const admin = await requireAdminUser();
   const projectId = String(formData.get("projectId") ?? "").trim();
-  if (!projectId) throw new Error("Proyecto invalido.");
+  if (!projectId) throw new Error("Proyecto inválido.");
 
   const project = await prisma.project.findFirst({
     where: { id: projectId, organizationId: admin.organizationId },
@@ -311,7 +324,7 @@ export async function inviteOperarioAction(
     select: { id: true },
   });
   if (existingPending) {
-    return { error: "Ya existe una invitacion pendiente para este email." };
+    return { error: "Ya existe una invitación pendiente para este email." };
   }
 
   const token = crypto.randomBytes(24).toString("hex");
@@ -579,7 +592,7 @@ export async function completeOperarioInviteAction(
   let authUserId = user?.id ?? null;
 
   if (user && user.email?.toLowerCase() !== invite.email.toLowerCase()) {
-    return { error: "El email autenticado no coincide con la invitacion." };
+    return { error: "El email autenticado no coincide con la invitación." };
   }
 
   if (!authUserId) {
@@ -726,4 +739,52 @@ export async function sendOperarioPasswordResetAction(formData: FormData) {
   redirect(
     `/dashboard/team?resetStatus=error&resetMessage=${encodeURIComponent(message || "No se pudo enviar reset")}&resetLink=${encodeURIComponent(outputLink)}`,
   );
+}
+
+export async function uploadAdminUnifilarPhotoAction(formData: FormData): Promise<void> {
+  const admin = await requireAdminUser();
+  const projectId = String(formData.get("projectId") ?? "").trim();
+  if (!projectId) throw new Error("Proyecto no válido.");
+
+  const file = formData.get("unifilarFile");
+  if (!(file instanceof File)) throw new Error("Selecciona un archivo de imagen.");
+
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, organizationId: admin.organizationId },
+    select: { id: true },
+  });
+  if (!project) throw new Error("Proyecto no encontrado.");
+
+  if (file.size === 0) throw new Error("El archivo está vacío.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("La imagen no puede superar 5 MB.");
+
+  const mime = file.type;
+  if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) {
+    throw new Error("Formato no permitido. Usa JPEG, PNG o WebP.");
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const dataUrl = `data:${mime};base64,${bytes.toString("base64")}`;
+
+  const photoId = crypto.randomUUID();
+  const uploaded = await uploadDataUrlToStorage({
+    bucket: "luxops-assets",
+    path: `organizations/${admin.organizationId}/projects/${projectId}/photos/${photoId}`,
+    dataUrl,
+  });
+
+  await prisma.photo.create({
+    data: {
+      projectId,
+      tipo: "ESQUEMA_UNIFILAR",
+      url: uploaded.path,
+      storagePath: uploaded.path,
+      latitude: null,
+      longitude: null,
+    },
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/mobile-dashboard");
 }

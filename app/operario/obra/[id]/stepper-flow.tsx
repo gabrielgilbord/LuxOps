@@ -12,6 +12,12 @@ import { EquipmentCatalogAutocomplete } from "@/components/operario/equipment-ca
 
 type Props = {
   projectId: string;
+  /** Valores guardados por oficina (RD 244/2019 / REBT) para pre-rellenar en campo */
+  serverLegalElectricHints?: {
+    selfConsumptionMode?: string | null;
+    cableDcSectionMm2?: string | null;
+    cableAcSectionMm2?: string | null;
+  };
 };
 
 const TOTAL_STEPS = 7;
@@ -52,6 +58,9 @@ type DraftState = {
     structureBrand: string;
     structureMounting: StructureMounting;
     stringConfiguration: string;
+    selfConsumptionMode: string;
+    cableDcSectionMm2: string;
+    cableAcSectionMm2: string;
     electricVoc: string;
     electricIsc: string;
     earthResistance: string;
@@ -310,6 +319,9 @@ function readDraft(projectId: string): DraftState | null {
           structureBrand: String(parsedTraceability.structureBrand ?? ""),
           structureMounting,
           stringConfiguration: String(parsedTraceability.stringConfiguration ?? ""),
+          selfConsumptionMode: String(parsedTraceability.selfConsumptionMode ?? ""),
+          cableDcSectionMm2: String(parsedTraceability.cableDcSectionMm2 ?? ""),
+          cableAcSectionMm2: String(parsedTraceability.cableAcSectionMm2 ?? ""),
           electricVoc: String(parsedTraceability.electricVoc ?? ""),
           electricIsc: String(parsedTraceability.electricIsc ?? ""),
           earthResistance: String(parsedTraceability.earthResistance ?? ""),
@@ -368,6 +380,9 @@ function readDraft(projectId: string): DraftState | null {
         structureBrand: "",
         structureMounting: "",
         stringConfiguration: "",
+        selfConsumptionMode: "",
+        cableDcSectionMm2: "",
+        cableAcSectionMm2: "",
         electricVoc: "",
         electricIsc: "",
         earthResistance: "",
@@ -397,7 +412,7 @@ function readDraft(projectId: string): DraftState | null {
   }
 }
 
-export function EjecucionObra({ projectId }: Props) {
+export function EjecucionObra({ projectId, serverLegalElectricHints }: Props) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [sunMode, setSunMode] = useState(false);
@@ -418,6 +433,9 @@ export function EjecucionObra({ projectId }: Props) {
     structureBrand: "",
     structureMounting: "" as StructureMounting,
     stringConfiguration: "",
+    selfConsumptionMode: serverLegalElectricHints?.selfConsumptionMode?.trim() ?? "",
+    cableDcSectionMm2: serverLegalElectricHints?.cableDcSectionMm2?.trim() ?? "",
+    cableAcSectionMm2: serverLegalElectricHints?.cableAcSectionMm2?.trim() ?? "",
     electricVoc: "",
     electricIsc: "",
     earthResistance: "",
@@ -542,7 +560,22 @@ export function EjecucionObra({ projectId }: Props) {
         setStep(Math.min(TOTAL_STEPS, Math.max(1, draft.step)));
         setChecklist(draft.checklist);
         setPhotoLists(draft.photoLists);
-        setTraceability(draft.traceability);
+        const dt = draft.traceability;
+        setTraceability({
+          ...dt,
+          selfConsumptionMode:
+            (dt.selfConsumptionMode ?? "").trim() ||
+            serverLegalElectricHints?.selfConsumptionMode?.trim() ||
+            "",
+          cableDcSectionMm2:
+            (dt.cableDcSectionMm2 ?? "").trim() ||
+            serverLegalElectricHints?.cableDcSectionMm2?.trim() ||
+            "",
+          cableAcSectionMm2:
+            (dt.cableAcSectionMm2 ?? "").trim() ||
+            serverLegalElectricHints?.cableAcSectionMm2?.trim() ||
+            "",
+        });
         setInstallerCard(draft.installerCard);
         setClientTrainingAck(draft.clientTrainingAck);
         setPrl(draft.prl);
@@ -624,6 +657,15 @@ export function EjecucionObra({ projectId }: Props) {
             structureBrand: String(opT.structureBrand ?? ""),
             structureMounting: structureMountingHydrate,
             stringConfiguration: String(opT.stringConfiguration ?? ""),
+            selfConsumptionMode: String(
+              opT.selfConsumptionMode ?? serverLegalElectricHints?.selfConsumptionMode ?? "",
+            ),
+            cableDcSectionMm2: String(
+              opT.cableDcSectionMm2 ?? serverLegalElectricHints?.cableDcSectionMm2 ?? "",
+            ),
+            cableAcSectionMm2: String(
+              opT.cableAcSectionMm2 ?? serverLegalElectricHints?.cableAcSectionMm2 ?? "",
+            ),
             electricVoc: String(opT.electricVoc ?? ""),
             electricIsc: String(opT.electricIsc ?? ""),
             earthResistance: String(opT.earthResistance ?? ""),
@@ -671,7 +713,7 @@ export function EjecucionObra({ projectId }: Props) {
     return () => {
       active = false;
     };
-  }, [projectId]);
+  }, [projectId, serverLegalElectricHints]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -1042,6 +1084,9 @@ export function EjecucionObra({ projectId }: Props) {
           ? traceability.structureMounting
           : undefined,
       stringConfiguration: traceability.stringConfiguration.trim(),
+      selfConsumptionMode: traceability.selfConsumptionMode.trim() || undefined,
+      cableDcSectionMm2: traceability.cableDcSectionMm2.trim() || undefined,
+      cableAcSectionMm2: traceability.cableAcSectionMm2.trim() || undefined,
       electricVoc: traceability.electricVoc.trim() || undefined,
       electricIsc: traceability.electricIsc.trim() || undefined,
       earthResistance: traceability.earthResistance.trim() || undefined,
@@ -1402,11 +1447,11 @@ export function EjecucionObra({ projectId }: Props) {
       {step === 5 ? (
         <div className={cardClass}>
           <h2 className={`text-lg font-bold ${sunMode ? "text-neutral-950" : "text-white"}`}>
-            Paso 5: Materiales y garantias
+            Paso 5: Materiales y garantías
           </h2>
           <p className={`mt-1 text-xs ${labelCls}`}>
-            Trazabilidad de equipos criticos y notas que protejan a tu empresa. Marca y modelo tienen
-            sugerencias compartidas (sin numeros de serie). Puedes escanear el lector (modo teclado)
+            Trazabilidad de equipos críticos y notas que protejan a tu empresa. Marca y modelo tienen
+            sugerencias compartidas (sin números de serie). Puedes escanear el lector (modo teclado)
             en cada campo de serie.
           </p>
           <div className="mt-3 grid gap-3">
@@ -1415,7 +1460,7 @@ export function EjecucionObra({ projectId }: Props) {
                 Inversores (uno por equipo)
               </p>
               <p className={`mt-1 hidden text-[11px] sm:block ${labelCls}`}>
-                Marca, modelo y numero de serie por inversor. Nuevo inversor hereda marca y modelo del
+                Marca, modelo y número de serie por inversor. Nuevo inversor hereda marca y modelo del
                 primero.
               </p>
               <p className={`mt-1 text-[11px] sm:hidden ${labelCls}`}>
@@ -1526,7 +1571,7 @@ export function EjecucionObra({ projectId }: Props) {
                   }))
                 }
               >
-                [+] Anadir Inversor
+                [+] Añadir inversor
               </button>
             </div>
             <div className="rounded-xl border border-dashed border-slate-500/50 p-3">
@@ -1534,7 +1579,7 @@ export function EjecucionObra({ projectId }: Props) {
                 Paneles (uno por equipo)
               </p>
               <p className={`mt-1 hidden text-[11px] sm:block ${labelCls}`}>
-                Anade un campo por cada panel instalado. Ideal para escaner de codigo de barras.
+                Añade un campo por cada panel instalado. Ideal para escáner de código de barras.
               </p>
               <p className={`mt-1 text-[11px] sm:hidden ${labelCls}`}>
                 Un bloque por panel. S/N con escáner.
@@ -1792,7 +1837,7 @@ export function EjecucionObra({ projectId }: Props) {
                 >
                   <option value="">Tipo montaje…</option>
                   <option value="COPLANAR">Coplanar</option>
-                  <option value="INCLINACION">Inclinacion</option>
+                  <option value="INCLINACION">Inclinación</option>
                   <option value="LASTRADA">Lastrada</option>
                 </select>
               </div>
@@ -1824,14 +1869,14 @@ export function EjecucionObra({ projectId }: Props) {
               </div>
             </label>
             <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
-              Observaciones tecnicas / notas de garantia
+              Observaciones técnicas / notas de garantía
               <textarea
                 className={`${inputCls} min-h-28`}
                 value={traceability.warrantyNotes}
                 onChange={(e) =>
                   setTraceability((t) => ({ ...t, warrantyNotes: e.target.value }))
                 }
-                placeholder="Sustituciones, condiciones especiales acordadas, garantias de fabricante..."
+                placeholder="Sustituciones, condiciones especiales acordadas, garantías de fabricante…"
                 rows={5}
               />
             </label>
@@ -1848,7 +1893,7 @@ export function EjecucionObra({ projectId }: Props) {
               />
             </label>
             <p className={`text-xs ${labelCls}`}>
-              Lo que indiques aqui quedara como descargo documentado en el dossier PDF ante reclamaciones.
+              Lo que indiques aquí quedará como descargo documentado en el dossier PDF ante reclamaciones.
             </p>
           </div>
         </div>
@@ -1856,16 +1901,16 @@ export function EjecucionObra({ projectId }: Props) {
 
       {step === 6 ? (
         <div className={cardClass}>
-          <h2 className={`text-lg font-bold ${sunMode ? "text-neutral-950" : "text-white"}`}>
-            Paso 6: Validacion electrica
+            <h2 className={`text-lg font-bold ${sunMode ? "text-neutral-950" : "text-white"}`}>
+            Paso 6: Validación eléctrica
           </h2>
           <p className={`mt-1 text-xs ${labelCls}`}>
-            Mediciones y disposicion para memoria y legalizacion. Los datos se reflejan en el PDF de
-            certificacion tecnica.
+            Mediciones y disposición para memoria y legalización. Los datos se reflejan en el PDF de
+            certificación técnica.
           </p>
           <div className="mt-3 grid gap-3">
             <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
-              <span className="max-sm:hidden">Configuracion de strings (texto libre)</span>
+              <span className="max-sm:hidden">Configuración de strings (texto libre)</span>
               <span className="sm:hidden">Strings (texto)</span>
               <textarea
                 className={`${inputCls} min-h-24 font-mono text-xs`}
@@ -1877,6 +1922,47 @@ export function EjecucionObra({ projectId }: Props) {
                 rows={4}
               />
             </label>
+            <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
+              <span className="max-sm:hidden">Modalidad de autoconsumo (RD 244/2019)</span>
+              <span className="sm:hidden">Modalidad autoconsumo</span>
+              <textarea
+                className={`${inputCls} min-h-[4.5rem] text-xs`}
+                value={traceability.selfConsumptionMode}
+                onChange={(e) =>
+                  setTraceability((t) => ({ ...t, selfConsumptionMode: e.target.value }))
+                }
+                placeholder="Ej.: Con excedentes acogido a compensación"
+                rows={3}
+              />
+            </label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
+                Sección de cable DC (mm²)
+                <input
+                  className={`${inputCls} mt-0`}
+                  inputMode="decimal"
+                  value={traceability.cableDcSectionMm2}
+                  onChange={(e) =>
+                    setTraceability((t) => ({ ...t, cableDcSectionMm2: e.target.value }))
+                  }
+                  placeholder="Ej.: 6"
+                  autoComplete="off"
+                />
+              </label>
+              <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
+                Sección de cable AC (mm²)
+                <input
+                  className={`${inputCls} mt-0`}
+                  inputMode="decimal"
+                  value={traceability.cableAcSectionMm2}
+                  onChange={(e) =>
+                    setTraceability((t) => ({ ...t, cableAcSectionMm2: e.target.value }))
+                  }
+                  placeholder="Ej.: 10"
+                  autoComplete="off"
+                />
+              </label>
+            </div>
             <div className="grid gap-2 sm:grid-cols-3">
               <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
                 <span className="max-sm:hidden">Voc circuito abierto (V)</span>
@@ -1968,7 +2054,7 @@ export function EjecucionObra({ projectId }: Props) {
                 />
               </label>
               <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
-                <span className="max-sm:hidden">Inclinacion real modulo (grados)</span>
+                <span className="max-sm:hidden">Inclinación real módulo (grados)</span>
                 <span className="sm:hidden">Inclin. mód. (°)</span>
                 <input
                   className={`${inputCls} mt-0`}
@@ -2114,7 +2200,7 @@ export function EjecucionObra({ projectId }: Props) {
               if (!canGoNext) return;
               const coords = await getCoords();
               if (typeof coords.latitude !== "number" || typeof coords.longitude !== "number") {
-                window.alert("Activa la ubicacion GPS para registrar el protocolo PRL en el informe.");
+                window.alert("Activa la ubicación GPS para registrar el protocolo PRL en el informe.");
                 return;
               }
               await enqueue({

@@ -21,7 +21,14 @@ export default async function MobileObraPage({ params }: Props) {
         <h1 className="text-lg font-bold">{project.cliente}</h1>
         <p className="text-xs text-slate-300">{project.direccion}</p>
       </header>
-      <EjecucionObra projectId={project.id} />
+      <EjecucionObra
+        projectId={project.id}
+        serverLegalElectricHints={{
+          selfConsumptionMode: project.selfConsumptionMode,
+          cableDcSectionMm2: project.cableDcSectionMm2,
+          cableAcSectionMm2: project.cableAcSectionMm2,
+        }}
+      />
     </main>
   );
 }

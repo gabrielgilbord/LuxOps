@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+      return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
     }
     console.error(e);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });

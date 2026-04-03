@@ -44,7 +44,7 @@ export function TeamInviteForm() {
       ) : null}
       {state.inviteLink ? (
         <p className="text-xs text-slate-300 sm:col-span-3">
-          Enlace de invitacion:{" "}
+          Enlace de invitación:{" "}
           <a className="text-yellow-300 underline" href={state.inviteLink}>
             {state.inviteLink}
           </a>
