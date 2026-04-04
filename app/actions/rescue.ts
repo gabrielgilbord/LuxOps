@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPublicAppUrl } from "@/lib/public-app-url";
+import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
 import { getStripe } from "@/lib/stripe";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,7 +20,7 @@ export type RescueEligibilityResult =
   | { kind: "invalid_email" }
   | { kind: "not_paid" }
   | { kind: "unsubscribed" }
-  | { kind: "has_account_subscribed"; email: string }
+  | { kind: "has_account_subscribed"; email: string; needsOrgProfile: boolean }
   | { kind: "stripe_paid_no_app_account"; email: string; suggestedCompany: string | null };
 
 type PaidStripeInfo = {
@@ -63,12 +64,24 @@ export async function checkRescueEligibility(emailRaw: string): Promise<RescueEl
 
   const dbUser = await prisma.user.findUnique({
     where: { email },
-    include: { organization: true },
+    include: {
+      organization: {
+        select: {
+          isSubscribed: true,
+          rebtCompanyNumber: true,
+          taxAddress: true,
+        },
+      },
+    },
   });
 
   if (dbUser) {
     if (dbUser.organization.isSubscribed) {
-      return { kind: "has_account_subscribed", email };
+      const needsOrgProfile = isOrganizationProfileIncomplete({
+        rebtCompanyNumber: dbUser.organization.rebtCompanyNumber,
+        taxAddress: dbUser.organization.taxAddress,
+      });
+      return { kind: "has_account_subscribed", email, needsOrgProfile };
     }
     return { kind: "unsubscribed" };
   }
@@ -96,18 +109,32 @@ export async function sendRescueMagicLinkAction(
 
   const dbUser = await prisma.user.findUnique({
     where: { email },
-    include: { organization: true },
+    include: {
+      organization: {
+        select: {
+          isSubscribed: true,
+          rebtCompanyNumber: true,
+          taxAddress: true,
+        },
+      },
+    },
   });
   if (!dbUser?.organization.isSubscribed) {
     return { ok: false, error: "No hay cuenta activa con suscripción para ese correo." };
   }
+
+  const needsOrgProfile = isOrganizationProfileIncomplete({
+    rebtCompanyNumber: dbUser.organization.rebtCompanyNumber,
+    taxAddress: dbUser.organization.taxAddress,
+  });
+  const nextPath = needsOrgProfile ? "/onboarding?continue=1" : "/dashboard";
 
   const appUrl = getPublicAppUrl();
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+      emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`,
     },
   });
 
@@ -253,5 +280,5 @@ export async function completeRescueRegistration(
   if (!data.session) {
     redirect("/login?verify=1");
   }
-  redirect("/dashboard");
+  redirect("/onboarding?continue=1");
 }

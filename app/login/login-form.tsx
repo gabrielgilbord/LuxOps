@@ -26,16 +26,24 @@ function LoginSubmitButton() {
 type LoginFormProps = {
   showEmailVerificationNotice?: boolean;
   showAuthError?: boolean;
+  /** Ruta interna post-login (admin), ej. /onboarding?continue=1 */
+  nextPath?: string;
 };
 
 export function LoginForm({
   showEmailVerificationNotice = false,
   showAuthError = false,
+  nextPath,
 }: LoginFormProps) {
   const [state, formAction] = useActionState(loginAction, undefined);
+  const next =
+    nextPath?.trim().startsWith("/") && !nextPath.trim().startsWith("//")
+      ? nextPath.trim()
+      : "";
 
   return (
     <form action={formAction} className="mt-6 space-y-4">
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       {showEmailVerificationNotice ? (
         <p
           className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900"

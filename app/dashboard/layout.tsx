@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireAdminUserForDashboard } from "@/lib/authz";
 import { DashboardNavShell } from "@/app/dashboard/nav-shell";
 import { getOrgForDashboard } from "@/lib/cache/dashboard-queries";
 import { LuxOpsLogo } from "@/components/brand/luxops-logo";
+import { prisma } from "@/lib/prisma";
+import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
 
 export default async function DashboardLayout({
   children,
@@ -10,6 +13,24 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const admin = await requireAdminUserForDashboard();
+  const orgGate = await prisma.organization.findUnique({
+    where: { id: admin.organizationId },
+    select: {
+      isSubscribed: true,
+      rebtCompanyNumber: true,
+      taxAddress: true,
+    },
+  });
+  if (
+    orgGate?.isSubscribed &&
+    isOrganizationProfileIncomplete({
+      rebtCompanyNumber: orgGate.rebtCompanyNumber,
+      taxAddress: orgGate.taxAddress,
+    })
+  ) {
+    redirect("/onboarding?continue=1");
+  }
+
   const org = await getOrgForDashboard(admin.organizationId);
   const orgName = org?.name ?? "Organización";
   const userLabel = admin.name || admin.email || "AD";

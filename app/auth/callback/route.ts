@@ -13,7 +13,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const nextRaw = searchParams.get("next") ?? "/dashboard";
-  const next = nextRaw.startsWith("/") ? nextRaw : "/dashboard";
+  const next =
+    nextRaw.startsWith("/") && !nextRaw.startsWith("//") && !nextRaw.includes("://")
+      ? nextRaw
+      : "/dashboard";
   const base = getPublicAppUrl();
 
   if (code) {

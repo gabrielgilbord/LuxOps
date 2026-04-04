@@ -51,7 +51,7 @@ async function requireSubscribedOrganization(organizationId: string) {
     organization?.isSubscribed &&
     ["active", "trialing"].includes(organization.subscriptionStatus ?? "active");
 
-  if (!isActive) redirect("/register");
+  if (!isActive) redirect("/recuperar-acceso");
 }
 
 export async function requireAdminUser() {

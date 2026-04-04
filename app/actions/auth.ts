@@ -5,12 +5,21 @@ import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
 
+function safeInternalNextPath(raw: string): string | null {
+  const t = raw.trim();
+  if (!t.startsWith("/") || t.startsWith("//")) return null;
+  if (t.includes("://")) return null;
+  return t;
+}
+
 export async function loginAction(
   _prev: { error?: string } | undefined,
   formData: FormData,
 ): Promise<{ error?: string }> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  const nextRaw = String(formData.get("next") ?? "");
+  const nextAdmin = safeInternalNextPath(nextRaw) ?? "/dashboard";
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -34,7 +43,7 @@ export async function loginAction(
     }
   }
 
-  redirect("/dashboard");
+  redirect(nextAdmin);
 }
 
 export async function registerAction(

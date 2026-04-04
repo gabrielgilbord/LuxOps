@@ -102,7 +102,7 @@ export async function completeCheckoutOnboarding(formData: FormData) {
     redirect("/login?verify=1");
   }
 
-  redirect("/dashboard");
+  redirect("/onboarding?continue=1");
 }
 
 export async function openCustomerPortalAction(formData: FormData) {

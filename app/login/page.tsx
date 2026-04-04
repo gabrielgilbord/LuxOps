@@ -6,11 +6,11 @@ function LuxOpsLogo() {
 }
 
 type LoginPageProps = {
-  searchParams: Promise<{ verify?: string; error?: string }>;
+  searchParams: Promise<{ verify?: string; error?: string; next?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { verify, error } = await searchParams;
+  const { verify, error, next } = await searchParams;
   const showEmailVerificationNotice = verify === "1";
   const showAuthError = error === "auth";
 
@@ -42,6 +42,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <LoginForm
             showEmailVerificationNotice={showEmailVerificationNotice}
             showAuthError={showAuthError}
+            nextPath={next}
           />
         </div>
       </section>

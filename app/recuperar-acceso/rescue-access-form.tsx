@@ -13,9 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 
+const LOGIN_WITH_ONBOARDING_NEXT = `/login?next=${encodeURIComponent("/onboarding?continue=1")}`;
+
 type Step =
   | { name: "email" }
-  | { name: "existing"; email: string }
+  | { name: "existing"; email: string; needsOrgProfile: boolean }
   | { name: "register"; email: string; suggestedCompany: string | null }
   | { name: "message"; title: string; body: string; showLogin?: boolean };
 
@@ -52,7 +54,11 @@ export function RescueAccessForm() {
         });
         break;
       case "has_account_subscribed":
-        setStep({ name: "existing", email: result.email });
+        setStep({
+          name: "existing",
+          email: result.email,
+          needsOrgProfile: result.needsOrgProfile,
+        });
         break;
       case "stripe_paid_no_app_account":
         setCompanyName(result.suggestedCompany ?? "");
@@ -150,11 +156,22 @@ export function RescueAccessForm() {
   }
 
   if (step.name === "existing") {
+    const loginHref = step.needsOrgProfile ? LOGIN_WITH_ONBOARDING_NEXT : "/login";
     return (
       <div className="space-y-4">
         <p className="text-sm text-slate-600">
-          Ya tienes organización activa en LuxOps con <strong>{step.email}</strong>. Puedes entrar con
-          tu contraseña o pedir un enlace mágico al correo (sin pasar por Stripe).
+          {step.needsOrgProfile ? (
+            <>
+              Tu suscripción está activa con <strong>{step.email}</strong>, pero faltan datos fiscales de
+              la empresa (REBT y dirección). Entra con contraseña o enlace mágico: te llevamos al
+              onboarding para completarlos. <strong>No hace falta volver a pagar.</strong>
+            </>
+          ) : (
+            <>
+              Ya tienes organización activa en LuxOps con <strong>{step.email}</strong>. Puedes entrar
+              con tu contraseña o pedir un enlace mágico al correo (sin pasar por Stripe).
+            </>
+          )}
         </p>
         {formError ? (
           <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -164,6 +181,9 @@ export function RescueAccessForm() {
         {magicSent ? (
           <p className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
             Revisa tu bandeja (y spam): te hemos enviado un enlace para entrar.
+            {step.needsOrgProfile
+              ? " Al abrirlo irás al onboarding para completar REBT y dirección fiscal."
+              : null}
           </p>
         ) : null}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -177,7 +197,7 @@ export function RescueAccessForm() {
             Enviar enlace de acceso
           </button>
           <Link
-            href="/login"
+            href={loginHref}
             className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
           >
             Ir a Iniciar sesión

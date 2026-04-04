@@ -1,23 +1,26 @@
 import Link from "next/link";
 import { Building2, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { completeCheckoutOnboarding } from "@/app/actions/billing";
+import { OnboardingContinuePanel } from "@/app/onboarding/onboarding-continue-panel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
 
 type OnboardingPageProps = {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; continue?: string }>;
 };
 
 function LuxOpsLogo() {
-  return (
-    <BrandLogo darkBackground className="h-12 w-auto" />
-  );
+  return <BrandLogo darkBackground className="h-12 w-auto" />;
 }
 
 export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
-  const { session_id: sessionId } = await searchParams;
+  const { session_id: sessionId, continue: continueFlag } = await searchParams;
+
+  if (continueFlag === "1") {
+    return <OnboardingContinuePanel />;
+  }
 
   if (!sessionId) {
     return (
@@ -32,22 +35,31 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
               Configuramos tu organización en minutos
             </h2>
             <p className="mt-4 text-sm text-slate-200/85">
-              Vuelve al checkout para completar el proceso de activación.
+              Si ya pagaste pero no ves el enlace del checkout, recupera el acceso con tu correo.
             </p>
           </div>
         </section>
         <section className="flex items-center justify-center bg-slate-100/60 px-4 py-10">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-2xl shadow-slate-900/10">
-            <h1 className="text-2xl font-bold text-slate-950">Pago no detectado</h1>
+            <h1 className="text-2xl font-bold text-slate-950">Pago no detectado en esta página</h1>
             <p className="mt-2 text-sm text-slate-600">
-              Para crear tu organización primero completa el checkout.
+              Para el alta tras un pago nuevo, vuelve desde el enlace que te dio Stripe al finalizar.
+              Si ya pagaste y se cortó el registro, usa recuperar acceso (sin volver a pagar).
             </p>
-            <Link
-              href="/#precios"
-              className="mt-5 inline-flex rounded-lg bg-yellow-400 px-4 py-2 text-sm font-bold text-yellow-950 hover:bg-yellow-300"
-            >
-              Volver a Precios
-            </Link>
+            <div className="mt-5 flex flex-col gap-2">
+              <Link
+                href="/recuperar-acceso"
+                className="inline-flex justify-center rounded-lg bg-yellow-400 px-4 py-2.5 text-sm font-bold text-yellow-950 hover:bg-yellow-300"
+              >
+                Ya he pagado — recuperar acceso
+              </Link>
+              <Link
+                href="/#precios"
+                className="inline-flex justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                Ver precios e ir al checkout
+              </Link>
+            </div>
           </div>
         </section>
       </main>
