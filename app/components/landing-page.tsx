@@ -38,6 +38,13 @@ export function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const url = checkoutState?.checkoutUrl;
+    if (url?.startsWith("https://")) {
+      window.location.assign(url);
+    }
+  }, [checkoutState?.checkoutUrl]);
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-slate-950">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.18),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(251,191,36,0.16),transparent_30%)]" />

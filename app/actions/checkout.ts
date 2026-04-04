@@ -1,14 +1,15 @@
 "use server";
 
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
 
-export type CheckoutSessionActionState = { error?: string } | undefined;
+/** `checkoutUrl`: abrir en el cliente con `window.location.assign` (no usar `redirect()` a Stripe desde Server Action: CORS/preflight 403). */
+export type CheckoutSessionActionState =
+  | { error?: string; checkoutUrl?: string }
+  | undefined;
 
 function checkoutErrorMessage(err: unknown): string {
   if (err instanceof Stripe.errors.StripeInvalidRequestError) {
@@ -34,15 +35,14 @@ function checkoutErrorMessage(err: unknown): string {
 export async function createCheckoutSessionAction(
   _prev: CheckoutSessionActionState,
   _formData: FormData,
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; checkoutUrl?: string }> {
   try {
     const session = await createStripeCheckoutSession();
     if (!session.url) {
       return { error: "No se pudo obtener el enlace de pago." };
     }
-    redirect(session.url);
+    return { checkoutUrl: session.url };
   } catch (err) {
-    if (isRedirectError(err)) throw err;
     console.error("[checkout] createCheckoutSessionAction", err);
     return { error: checkoutErrorMessage(err) };
   }

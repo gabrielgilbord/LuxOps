@@ -1,12 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { CreditCard, Loader2 } from "lucide-react";
 import { createCheckoutSessionAction } from "@/app/actions/checkout";
 
 export function RegisterCheckoutButton({ disabled = false }: { disabled?: boolean }) {
   const [state, formAction, isPending] = useActionState(createCheckoutSessionAction, undefined);
   const isDisabled = disabled || isPending;
+
+  useEffect(() => {
+    const url = state?.checkoutUrl;
+    if (url?.startsWith("https://")) {
+      window.location.assign(url);
+    }
+  }, [state?.checkoutUrl]);
 
   return (
     <div className="space-y-2">

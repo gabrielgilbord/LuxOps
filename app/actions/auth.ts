@@ -1,6 +1,5 @@
 "use server";
 
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -38,16 +37,17 @@ export async function loginAction(
   redirect("/dashboard");
 }
 
-export async function registerAction(formData: FormData) {
+export async function registerAction(
+  formData: FormData,
+): Promise<{ error?: string; checkoutUrl?: string }> {
   void formData;
   try {
     const session = await createStripeCheckoutSession();
     if (!session.url) {
       return { error: "No se pudo iniciar el checkout de Stripe." };
     }
-    redirect(session.url);
+    return { checkoutUrl: session.url };
   } catch (e) {
-    if (isRedirectError(e)) throw e;
     console.error("[registerAction]", e);
     return { error: "No se pudo iniciar el pago. Revisa Stripe en el servidor." };
   }
