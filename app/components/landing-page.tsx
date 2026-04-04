@@ -16,7 +16,7 @@ import {
   TriangleAlert,
   UserRoundCog,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createCheckoutSessionAction } from "@/app/actions/checkout";
 import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
 
@@ -26,6 +26,10 @@ function LuxOpsLogo() {
 
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [checkoutState, checkoutFormAction, checkoutPending] = useActionState(
+    createCheckoutSessionAction,
+    undefined,
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -326,12 +330,18 @@ export function LandingPage() {
               </li>
             ))}
           </ul>
-          <form action={createCheckoutSessionAction}>
+          <form action={checkoutFormAction} className="mt-7">
+            {checkoutState?.error ? (
+              <p className="mb-3 rounded-lg border border-red-300/50 bg-red-950/40 px-3 py-2 text-left text-sm text-red-100">
+                {checkoutState.error}
+              </p>
+            ) : null}
             <button
               type="submit"
-              className="mt-7 inline-flex rounded-xl bg-white px-7 py-3 text-sm font-bold text-slate-900 shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-100"
+              disabled={checkoutPending}
+              className="inline-flex rounded-xl bg-white px-7 py-3 text-sm font-bold text-slate-900 shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-60"
             >
-              Activar LuxOps
+              {checkoutPending ? "Abriendo pago…" : "Activar LuxOps"}
             </button>
           </form>
         </div>

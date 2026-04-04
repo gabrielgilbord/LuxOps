@@ -1,15 +1,51 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
 
-export async function createCheckoutSessionAction() {
-  const session = await createStripeCheckoutSession();
-  if (!session.url) throw new Error("No se pudo iniciar Stripe Checkout");
-  redirect(session.url);
+export type CheckoutSessionActionState = { error?: string } | undefined;
+
+function checkoutErrorMessage(err: unknown): string {
+  if (err instanceof Stripe.errors.StripeInvalidRequestError) {
+    const code = err.code;
+    if (code === "resource_missing" || err.message.includes("No such price")) {
+      return "El precio de Stripe no existe o no coincide con el modo de la clave (test vs producción). Revisa STRIPE_PRICE_ID_MONTHLY y STRIPE_SECRET_KEY en Vercel.";
+    }
+    return "La pasarela de pago rechazó la solicitud. Comprueba la configuración de Stripe en el servidor.";
+  }
+  if (err instanceof Stripe.errors.StripeAuthenticationError) {
+    return "Clave de Stripe inválida o no configurada. Revisa STRIPE_SECRET_KEY en Vercel (entorno Production).";
+  }
+  if (err instanceof Error && err.message.includes("STRIPE_SECRET_KEY")) {
+    return "Falta STRIPE_SECRET_KEY en el servidor. Añádela en Vercel → Settings → Environment Variables (Production).";
+  }
+  return "No se pudo iniciar el pago. Inténtalo de nuevo o contacta con soporte.";
+}
+
+/**
+ * Usar con useActionState: (prev, formData) => …
+ * No lanzar errores a la red: en producción Next oculta el mensaje y solo ves digest / 500.
+ */
+export async function createCheckoutSessionAction(
+  _prev: CheckoutSessionActionState,
+  _formData: FormData,
+): Promise<{ error?: string }> {
+  try {
+    const session = await createStripeCheckoutSession();
+    if (!session.url) {
+      return { error: "No se pudo obtener el enlace de pago." };
+    }
+    redirect(session.url);
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    console.error("[checkout] createCheckoutSessionAction", err);
+    return { error: checkoutErrorMessage(err) };
+  }
 }
 
 /**
