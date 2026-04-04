@@ -1,8 +1,18 @@
 import { redirect } from "next/navigation";
+import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function getCurrentDbUser() {
+/** Usuario de sesión con `organizationId` (campos que usamos tras el login). */
+export type AuthenticatedDbUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: UserRole;
+  organizationId: string;
+};
+
+export async function getCurrentDbUser(): Promise<AuthenticatedDbUser | null> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -10,7 +20,7 @@ export async function getCurrentDbUser() {
 
   if (!user) return null;
 
-  return prisma.user.findUnique({
+  const row = await prisma.user.findUnique({
     where: { supabaseUserId: user.id },
     select: {
       id: true,
@@ -20,6 +30,9 @@ export async function getCurrentDbUser() {
       organizationId: true,
     },
   });
+
+  if (!row) return null;
+  return row;
 }
 
 export async function requireAuthenticatedUser() {
