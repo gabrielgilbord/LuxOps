@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
@@ -47,6 +49,10 @@
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.2.0",
+    "jsdom": "^26.0.0",
+    "vitest": "^3.0.5"
   }
 }

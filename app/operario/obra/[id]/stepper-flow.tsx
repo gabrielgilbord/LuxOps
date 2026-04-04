@@ -14,6 +14,10 @@ import {
 } from "@/lib/self-consumption-modality";
 import { getPendingOperationsByProject } from "@/lib/offline-db";
 import { EquipmentCatalogAutocomplete } from "@/components/operario/equipment-catalog-autocomplete";
+import {
+  effectiveRebtCompanyNumberFromContext,
+  isRebtLengthValidForDossierFinalize,
+} from "@/lib/rebt-finalize";
 
 type Props = {
   projectId: string;
@@ -561,11 +565,10 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
     prl.roofTransitOk &&
     prl.ppeInUse;
 
-  const effectiveRebtCompanyNumber = useMemo(() => {
-    const p = (serverRebtContext?.projectRebtCompanyNumber ?? "").trim();
-    const o = (serverRebtContext?.organizationRebtCompanyNumber ?? "").trim();
-    return p || o;
-  }, [serverRebtContext?.projectRebtCompanyNumber, serverRebtContext?.organizationRebtCompanyNumber]);
+  const effectiveRebtCompanyNumber = useMemo(
+    () => effectiveRebtCompanyNumberFromContext(serverRebtContext ?? {}),
+    [serverRebtContext?.projectRebtCompanyNumber, serverRebtContext?.organizationRebtCompanyNumber],
+  );
 
   const traceabilityForPdfReady =
     isSelfConsumptionModality(traceability.selfConsumptionModality) &&
@@ -582,7 +585,7 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
     photoProtocolComplete &&
     installerCard.trim().length > 0 &&
     clientTrainingAck &&
-    effectiveRebtCompanyNumber.length >= 4;
+    isRebtLengthValidForDossierFinalize(effectiveRebtCompanyNumber);
 
   const canGoNext =
     step === 1
@@ -2310,7 +2313,7 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
             <p className={`mt-2 text-xs font-medium ${sunMode ? "text-neutral-800" : "text-yellow-200"}`}>
               Completa PRL, checklist, fotos, protocolo fotografico, datos de obra (pasos 5–6), carnet
               profesional y confirmacion de formacion antes de firmar.
-              {effectiveRebtCompanyNumber.length < 4
+              {!isRebtLengthValidForDossierFinalize(effectiveRebtCompanyNumber)
                 ? " Falta el Nº de empresa instaladora (REBT) en Ajustes de la organización o como anulación en el expediente (mín. 4 caracteres); sin él no se puede generar el dossier PDF defendible."
                 : ""}
             </p>
