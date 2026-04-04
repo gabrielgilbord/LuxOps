@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDbUser } from "@/lib/authz";
+import type { DossierClientErrorBody } from "@/lib/dossier-api-response";
 import {
   DossierGenerationError,
   dossierProjectInclude,
@@ -36,7 +37,12 @@ export async function GET(
     buffer = await generateDossierPdfBuffer(project);
   } catch (e) {
     if (e instanceof DossierGenerationError) {
-      return NextResponse.json({ error: e.message, code: e.code }, { status: 400 });
+      const body: DossierClientErrorBody = {
+        dossierError: true,
+        missingFields: e.missingFields,
+        code: e.code,
+      };
+      return NextResponse.json(body, { status: 400 });
     }
     throw e;
   }

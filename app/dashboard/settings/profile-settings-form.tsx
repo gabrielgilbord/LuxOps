@@ -3,8 +3,10 @@
 import { useActionState } from "react";
 import { updateAdminProfileAction, updatePasswordAction } from "@/app/actions/account";
 
-const profileInitialState = {} as { ok?: boolean; error?: string };
-const passwordInitialState = {} as { ok?: boolean; error?: string };
+type FormFlash = { ok?: boolean; error?: string };
+
+const profileInitialState: FormFlash = {};
+const passwordInitialState: FormFlash = {};
 
 export function ProfileSettingsForm({
   defaultName,
@@ -13,13 +15,13 @@ export function ProfileSettingsForm({
   defaultName: string;
   email: string;
 }) {
-  const [profileState, profileAction, profilePending] = useActionState<any, FormData>(
-    async (_prevState: { ok?: boolean; error?: string }, formData: FormData) =>
+  const [profileState, profileAction, profilePending] = useActionState<FormFlash, FormData>(
+    async (_prevState: FormFlash | undefined, formData: FormData) =>
       updateAdminProfileAction(formData),
     profileInitialState,
   );
-  const [passState, passAction, passPending] = useActionState<any, FormData>(
-    async (_prevState: { ok?: boolean; error?: string }, formData: FormData) =>
+  const [passState, passAction, passPending] = useActionState<FormFlash, FormData>(
+    async (_prevState: FormFlash | undefined, formData: FormData) =>
       updatePasswordAction(formData),
     passwordInitialState,
   );

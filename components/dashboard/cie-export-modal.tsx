@@ -11,23 +11,22 @@ type Props = {
   onClose: () => void;
 };
 
-export function CieExportModal({ projectId, clienteLabel, open, onClose }: Props) {
+function CieExportModalBody({
+  projectId,
+  clienteLabel,
+  onClose,
+}: {
+  projectId: string;
+  clienteLabel: string;
+  onClose: () => void;
+}) {
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!open || !projectId) {
-      setText("");
-      setError(null);
-      setCopied(false);
-      return;
-    }
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setText("");
     fetch(`/api/projects/${projectId}/cie-export`)
       .then(async (r) => {
         const data = await r.json().catch(() => ({}));
@@ -49,7 +48,7 @@ export function CieExportModal({ projectId, clienteLabel, open, onClose }: Props
     return () => {
       cancelled = true;
     };
-  }, [open, projectId]);
+  }, [projectId]);
 
   const onCopy = useCallback(async () => {
     if (!text) return;
@@ -61,8 +60,6 @@ export function CieExportModal({ projectId, clienteLabel, open, onClose }: Props
       setError("No se pudo copiar al portapapeles");
     }
   }, [text]);
-
-  if (!open) return null;
 
   return (
     <div
@@ -133,9 +130,9 @@ export function CieExportModal({ projectId, clienteLabel, open, onClose }: Props
             {copied ? "Copiado" : "Copiar"}
           </Button>
           <a
-            href={projectId ? `/api/projects/${projectId}/cie-export?download=1` : "#"}
+            href={`/api/projects/${projectId}/cie-export?download=1`}
             className="inline-flex h-8 items-center justify-center rounded-lg border border-yellow-400/50 bg-gradient-to-r from-amber-400/25 via-yellow-400/20 to-amber-400/25 px-3 text-xs font-bold text-yellow-100 shadow-md ring-1 ring-yellow-400/25 hover:from-amber-400/35 hover:to-amber-400/30 disabled:pointer-events-none disabled:opacity-50"
-            {...(!projectId || loading || !text ? { "aria-disabled": true, onClick: (e) => e.preventDefault() } : {})}
+            {...(!loading && text ? {} : { "aria-disabled": true, onClick: (e) => e.preventDefault() })}
           >
             <Download className="mr-1.5 size-3.5" />
             Descargar .txt
@@ -143,5 +140,17 @@ export function CieExportModal({ projectId, clienteLabel, open, onClose }: Props
         </div>
       </div>
     </div>
+  );
+}
+
+export function CieExportModal({ projectId, clienteLabel, open, onClose }: Props) {
+  if (!open || !projectId) return null;
+  return (
+    <CieExportModalBody
+      key={projectId}
+      projectId={projectId}
+      clienteLabel={clienteLabel}
+      onClose={onClose}
+    />
   );
 }

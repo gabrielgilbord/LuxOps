@@ -125,6 +125,7 @@ export function EquipmentCatalogAutocomplete({
     <div ref={wrapRef} className="relative min-w-0">
       <input
         id={id}
+        role="combobox"
         className={inputClassName}
         value={value}
         autoComplete="off"
@@ -160,10 +161,11 @@ export function EquipmentCatalogAutocomplete({
             </li>
           ) : null}
           {suggestions.map((s) => (
-            <li key={s}>
+            <li key={s} role="presentation">
               <button
                 type="button"
                 role="option"
+                aria-selected={value === s}
                 className={`w-full px-3 py-2 text-left text-xs font-medium ${sunMode ? "text-neutral-900" : "text-slate-200"} ${itemHover}`}
                 onMouseDown={(e) => {
                   e.preventDefault();

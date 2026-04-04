@@ -9,6 +9,7 @@ import {
   resendProjectDossierEmailAction,
 } from "@/app/actions/projects";
 import { CieExportModal } from "@/components/dashboard/cie-export-modal";
+import { DossierDownloadButton } from "@/components/dossier/dossier-download-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -265,20 +266,22 @@ export function DashboardProjectsPanel({
                       {pack ? (
                         <div className="flex flex-col gap-2">
                           <div className="flex flex-wrap gap-2">
-                            <a
-                              href={`/api/projects/${project.id}/report`}
-                              className="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-slate-500/50 bg-slate-800 px-2 text-[11px] font-semibold text-slate-100"
+                            <DossierDownloadButton
+                              projectId={project.id}
+                              kind="pdf"
+                              className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-500/50 bg-slate-800 px-2 text-[11px] font-semibold text-slate-100 disabled:opacity-60"
                             >
-                              <FileText className="mr-1 h-3.5 w-3.5" />
+                              <FileText className="h-3.5 w-3.5 shrink-0" />
                               PDF
-                            </a>
-                            <a
-                              href={`/api/projects/${project.id}/subsidy-pack`}
-                              className="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-emerald-400/70 bg-emerald-600/40 px-2 text-[11px] font-bold text-emerald-50"
+                            </DossierDownloadButton>
+                            <DossierDownloadButton
+                              projectId={project.id}
+                              kind="zip"
+                              className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-400/70 bg-emerald-600/40 px-2 text-[11px] font-bold text-emerald-50 disabled:opacity-60"
                             >
-                              <Archive className="mr-1 h-3.5 w-3.5" />
+                              <Archive className="h-3.5 w-3.5 shrink-0" />
                               ZIP
-                            </a>
+                            </DossierDownloadButton>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <form action={resendProjectDossierEmailAction} className="flex-1 min-w-[44px]">
@@ -408,20 +411,22 @@ export function DashboardProjectsPanel({
                                 <span className="sr-only">Reenviar email dossier</span>
                               </button>
                             </form>
-                            <a
-                              href={`/api/projects/${project.id}/report`}
-                              className="inline-flex h-8 items-center rounded-lg border border-slate-500/50 bg-gradient-to-br from-slate-700 to-slate-900 px-2.5 text-xs font-semibold text-slate-100 shadow-sm ring-slate-500/30 hover:from-slate-600 hover:to-slate-800"
+                            <DossierDownloadButton
+                              projectId={project.id}
+                              kind="pdf"
+                              className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-slate-500/50 bg-gradient-to-br from-slate-700 to-slate-900 px-2.5 text-xs font-semibold text-slate-100 shadow-sm ring-slate-500/30 hover:from-slate-600 hover:to-slate-800 disabled:opacity-60"
                             >
-                              <FileText className="mr-1 h-3.5 w-3.5" />
+                              <FileText className="h-3.5 w-3.5 shrink-0" />
                               PDF
-                            </a>
-                            <a
-                              href={`/api/projects/${project.id}/subsidy-pack`}
-                              className="inline-flex h-8 items-center rounded-lg border border-emerald-400/70 bg-gradient-to-r from-emerald-600/50 via-teal-600/40 to-emerald-700/45 px-2.5 text-xs font-bold text-emerald-50 shadow-md shadow-emerald-900/25 ring-1 ring-emerald-300/40 hover:from-emerald-500/60 hover:via-teal-500/50"
+                            </DossierDownloadButton>
+                            <DossierDownloadButton
+                              projectId={project.id}
+                              kind="zip"
+                              className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-emerald-400/70 bg-gradient-to-r from-emerald-600/50 via-teal-600/40 to-emerald-700/45 px-2.5 text-xs font-bold text-emerald-50 shadow-md shadow-emerald-900/25 ring-1 ring-emerald-300/40 hover:from-emerald-500/60 hover:via-teal-500/50 disabled:opacity-60"
                             >
-                              <Archive className="mr-1 h-3.5 w-3.5" />
+                              <Archive className="h-3.5 w-3.5 shrink-0" />
                               ZIP subvención
-                            </a>
+                            </DossierDownloadButton>
                             <button
                               type="button"
                               title="Generar Datos para CIE (Boletín)"

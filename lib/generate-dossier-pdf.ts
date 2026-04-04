@@ -24,10 +24,9 @@ export const dossierProjectInclude = {
 export class DossierGenerationError extends Error {
   constructor(
     message: string,
-    public code:
-      | "MISSING_REBT"
-      | "MISSING_MODALITY"
-      | "MISSING_CABLE_SECTIONS",
+    /** Etiquetas legibles para mostrar al usuario (UI / API). */
+    public readonly missingFields: string[],
+    public readonly code: "INCOMPLETE_DOSSIER" = "INCOMPLETE_DOSSIER",
   ) {
     super(message);
     this.name = "DossierGenerationError";
@@ -152,11 +151,10 @@ function drawFooter(params: {
   pageNumber: number;
   totalPages: number;
   companyName: string;
-  font: import("pdf-lib").PDFFont;
   italic: import("pdf-lib").PDFFont;
   projectId: string;
 }) {
-  const { page, pageNumber, totalPages, companyName, font, italic, projectId } = params;
+  const { page, pageNumber, totalPages, companyName, italic, projectId } = params;
   const { width } = page.getSize();
   const padX = 28;
   const innerW = width - 56;
@@ -331,22 +329,25 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const cableDcMm2 = (project.cableDcSectionMm2 ?? "").trim();
   const cableAcMm2 = (project.cableAcSectionMm2 ?? "").trim();
 
+  const missingFields: string[] = [];
   if (!rebtEmpresaNum) {
-    throw new DossierGenerationError(
-      "Falta el Nº de empresa instaladora autorizada (REBT) en Ajustes → organización o como anulación en el expediente.",
-      "MISSING_REBT",
+    missingFields.push(
+      "Nº de empresa instaladora REBT (Ajustes → organización o anulación en expediente)",
     );
   }
   if (!project.selfConsumptionModality) {
-    throw new DossierGenerationError(
-      "Falta la modalidad de autoconsumo (RD 244/2019).",
-      "MISSING_MODALITY",
-    );
+    missingFields.push("Modalidad de autoconsumo (RD 244/2019)");
   }
-  if (!cableDcMm2 || !cableAcMm2) {
+  if (!cableDcMm2) {
+    missingFields.push("Sección de cable DC (mm²)");
+  }
+  if (!cableAcMm2) {
+    missingFields.push("Sección de cable AC (mm²)");
+  }
+  if (missingFields.length > 0) {
     throw new DossierGenerationError(
-      "Faltan las secciones de cable DC y/o AC (mm²).",
-      "MISSING_CABLE_SECTIONS",
+      "Faltan datos obligatorios para generar el dossier.",
+      missingFields,
     );
   }
 
@@ -865,7 +866,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     project.assetPanelBrand,
     project.assetPanelModel,
   );
-  let normalizedBatteryItems: EquipmentItem[] = mergeSerialsIntoItems(
+  const normalizedBatteryItems: EquipmentItem[] = mergeSerialsIntoItems(
     batteryItemsFromDb,
     batterySerials,
     project.assetBatteryBrand,
@@ -1182,7 +1183,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const energyLineStep = 13;
   const energyYieldBlock = annualYieldKwh != null ? 18 : 0;
   const energyDisclaimerH = energyDisclaimerLines.length * 9 + 6;
-  let energyBoxH = Math.max(
+  const energyBoxH = Math.max(
     102,
     energyInnerTitle + 3 * energyLineStep + energyYieldBlock + energyDisclaimerH + 16,
   );
@@ -2102,7 +2103,6 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       pageNumber: index + 1,
       totalPages: allPages.length,
       companyName,
-      font,
       italic,
       projectId: project.id,
     });

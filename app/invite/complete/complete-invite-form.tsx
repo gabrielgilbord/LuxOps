@@ -10,14 +10,14 @@ type Props = {
   defaultName: string;
 };
 
-const initialState: { error?: string; ok?: boolean } = {};
+type InviteState = { error?: string; ok?: boolean };
+
+const initialState: InviteState = {};
 
 export function CompleteInviteForm({ token, inviteId, defaultName }: Props) {
-  const [state, formAction, pending] = useActionState<any, FormData>(
-    async (
-      _prevState: { error?: string; ok?: boolean } | undefined,
-      formData: FormData,
-    ) => completeOperarioInviteAction(undefined, formData),
+  const [state, formAction, pending] = useActionState<InviteState, FormData>(
+    async (_prevState: InviteState | undefined, formData: FormData) =>
+      completeOperarioInviteAction(undefined, formData),
     initialState,
   );
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileCheck2, FileText, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, FileText, Image as ImageIcon } from "lucide-react";
+import { InformePdfButton } from "@/app/projects/[id]/informe/informe-pdf-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProjectById } from "@/lib/data";
@@ -50,13 +51,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
             Fotos incluidas: <span className="font-medium">{project.photosCount}</span>
           </p>
 
-          <a
-            href={`/api/projects/${project.id}/report`}
-            className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-slate-900 px-4 text-base font-medium text-white transition hover:bg-slate-800"
-          >
-            <FileCheck2 className="mr-2 h-5 w-5" />
-            Generar PDF profesional
-          </a>
+          <InformePdfButton projectId={project.id} />
           <p className="text-xs text-muted-foreground">
             Incluye resumen, fotos geolocalizadas y firma del cliente con branding de empresa.
           </p>

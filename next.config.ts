@@ -4,6 +4,10 @@ import runtimeCaching from "next-pwa/cache";
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  /** Incluye fuentes locales usadas por pdf-lib en serverless (dossier PDF). */
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./public/fonts/**/*"],
+  },
   images: {
     remotePatterns: [
       {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FileText, Sparkles } from "lucide-react";
 import { getProjects } from "@/app/actions/projects";
+import { ReportsProjectRows } from "@/app/dashboard/reports/reports-project-rows";
 import { requireAdminUserForDashboard } from "@/lib/authz";
 
 export const metadata = {
@@ -24,20 +25,7 @@ export default async function ReportsPage() {
           </Link>
         </div>
         <div className="grid gap-3">
-          {projects.map((project) => (
-            <div key={project.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3">
-              <div>
-                <p className="font-semibold">{project.cliente}</p>
-                <p className="text-xs text-slate-400">{project.direccion}</p>
-              </div>
-              <a
-                href={`/api/projects/${project.id}/report`}
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-yellow-400 px-4 text-sm font-bold text-yellow-950 hover:bg-yellow-300"
-              >
-                Descargar PDF
-              </a>
-            </div>
-          ))}
+          <ReportsProjectRows projects={projects} />
           {projects.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/60 px-4 py-10 text-center">
               <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300/30 to-sky-300/20">

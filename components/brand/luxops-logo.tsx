@@ -16,6 +16,7 @@ export function LuxOpsLogo({ darkBackground = false, invertColors = false, class
   const onDark = darkBackground ? "brightness-0 invert" : "";
   const dashInvert = !darkBackground && invertColors ? "invert" : "";
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- PNG estático + filtros CSS (invert/brightness)
     <img
       src="/luxops-logo.png"
       alt="LuxOps"
