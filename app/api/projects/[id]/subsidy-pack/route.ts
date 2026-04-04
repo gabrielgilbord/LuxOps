@@ -2,7 +2,7 @@ import archiver from "archiver";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDbUser } from "@/lib/authz";
-import type { DossierClientErrorBody } from "@/lib/dossier-api-response";
+import type { DossierClientErrorBody, DossierPdfGenerationFailedBody } from "@/lib/dossier-api-response";
 import {
   DossierGenerationError,
   dossierProjectInclude,
@@ -77,7 +77,13 @@ export async function GET(
       };
       return NextResponse.json(body, { status: 400 });
     }
-    throw e;
+    console.error("LuxOps subsidy-pack ZIP: PDF_GENERATION_FAILED", e);
+    const body: DossierPdfGenerationFailedBody = {
+      error:
+        "No se pudo generar el PDF del dossier para el ZIP. Inténtalo de nuevo en unos minutos; si persiste, contacta con soporte.",
+      code: "PDF_GENERATION_FAILED",
+    };
+    return NextResponse.json(body, { status: 500 });
   }
   const base = safeFilenamePart(project.cliente);
   archive.append(pdfBuf, { name: `${base}/Dossier_Ejecutivo_LuxOps.pdf` });

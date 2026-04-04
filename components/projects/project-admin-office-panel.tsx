@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition, type RefObject } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type RefObject,
+} from "react";
 import { useFormStatus } from "react-dom";
 import {
   BadgeCheck,
@@ -40,15 +47,32 @@ type PanelProps = {
 
 function OfficeSaveButton() {
   const { pending } = useFormStatus();
+  const [slowHint, setSlowHint] = useState(false);
+  useEffect(() => {
+    if (!pending) return;
+    const id = window.setTimeout(() => setSlowHint(true), 10_000);
+    return () => {
+      window.clearTimeout(id);
+      setSlowHint(false);
+    };
+  }, [pending]);
+
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:from-emerald-500 hover:to-teal-500 disabled:pointer-events-none disabled:opacity-60 sm:w-auto sm:min-w-[200px] sm:justify-self-start"
-    >
-      {pending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
-      {pending ? "Guardando..." : "Guardar cambios de oficina"}
-    </button>
+    <div className="flex flex-col items-stretch gap-1 sm:items-start">
+      <button
+        type="submit"
+        disabled={pending}
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:from-emerald-500 hover:to-teal-500 disabled:pointer-events-none disabled:opacity-60 sm:w-auto sm:min-w-[200px] sm:justify-self-start"
+      >
+        {pending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
+        {pending ? "Guardando..." : "Guardar cambios de oficina"}
+      </button>
+      {pending && slowHint ? (
+        <p className="text-xs text-slate-400" role="status">
+          La conexión parece lenta, espera un momento...
+        </p>
+      ) : null}
+    </div>
   );
 }
 

@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useState, type ReactNode } from "react";
-import { isDossierClientErrorBody } from "@/lib/dossier-api-response";
+import {
+  isDossierClientErrorBody,
+  isDossierPdfGenerationFailedBody,
+} from "@/lib/dossier-api-response";
 import { DossierErrorDialog } from "@/components/dossier/dossier-error-dialog";
 import { Loader2 } from "lucide-react";
 
@@ -57,6 +60,9 @@ async function downloadFromApi(projectId: string, kind: Kind): Promise<
     const data: unknown = await res.json().catch(() => null);
     if (isDossierClientErrorBody(data)) {
       return { ok: false, missingFields: data.missingFields };
+    }
+    if (isDossierPdfGenerationFailedBody(data)) {
+      return { ok: false, message: data.error };
     }
     if (data && typeof data === "object" && "error" in data) {
       const err = (data as { error?: unknown }).error;

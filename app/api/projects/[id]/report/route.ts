@@ -44,7 +44,15 @@ export async function GET(
       };
       return NextResponse.json(body, { status: 400 });
     }
-    throw e;
+    console.error("LuxOps dossier PDF: PDF_GENERATION_FAILED", e);
+    return NextResponse.json(
+      {
+        error:
+          "No se pudo generar el PDF del dossier. Inténtalo de nuevo en unos minutos; si persiste, contacta con soporte.",
+        code: "PDF_GENERATION_FAILED" as const,
+      },
+      { status: 500 },
+    );
   }
 
   return new NextResponse(new Uint8Array(buffer), {

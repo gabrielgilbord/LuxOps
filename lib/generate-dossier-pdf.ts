@@ -82,6 +82,34 @@ async function embedSwissSansFont(pdf: PDFDocument) {
   return pdf.embedFont(StandardFonts.Helvetica);
 }
 
+async function embedInterBoldFont(pdf: PDFDocument) {
+  try {
+    const local = join(process.cwd(), "public", "fonts", "Inter-Bold.ttf");
+    const bytes = await readFile(local);
+    if (bytes.byteLength > 1000) {
+      return pdf.embedFont(bytes, { subset: true });
+    }
+  } catch {
+    /* optional local font */
+  }
+  const urls = [
+    "https://raw.githubusercontent.com/rsms/inter/v4.0-beta.2/docs/font-files/Inter-Bold.ttf",
+    "https://github.com/googlefonts/inter/raw/refs/heads/main/fonts/ttf/Inter-Bold.ttf",
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) continue;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.byteLength < 1000) continue;
+      return pdf.embedFont(bytes, { subset: true });
+    } catch {
+      /* fallback below */
+    }
+  }
+  return pdf.embedFont(StandardFonts.HelveticaBold);
+}
+
 /**
  * Si Inter no carga, el fallback es Helvetica (WinAnsi) y no admite Ω, °, etc.
  */
@@ -355,7 +383,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const bold = await embedInterBoldFont(pdf);
   const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
   const inter = await embedSwissSansFont(pdf);
   const slateText = rgb(0.0588, 0.0902, 0.1647);

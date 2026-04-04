@@ -14,3 +14,15 @@ export function isDossierClientErrorBody(x: unknown): x is DossierClientErrorBod
     o.missingFields.every((f) => typeof f === "string")
   );
 }
+
+/** Error 500 al generar el PDF (no validación de datos). */
+export type DossierPdfGenerationFailedBody = {
+  error: string;
+  code: "PDF_GENERATION_FAILED";
+};
+
+export function isDossierPdfGenerationFailedBody(x: unknown): x is DossierPdfGenerationFailedBody {
+  if (typeof x !== "object" || x === null) return false;
+  const o = x as Record<string, unknown>;
+  return o.code === "PDF_GENERATION_FAILED" && typeof o.error === "string";
+}

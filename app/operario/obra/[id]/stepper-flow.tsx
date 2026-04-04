@@ -510,12 +510,23 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
   const [isHydrated, setIsHydrated] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeNotice, setFinalizeNotice] = useState<string | null>(null);
+  const [operarioToast, setOperarioToast] = useState<string | null>(null);
+  const operarioToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [signatureSent, setSignatureSent] = useState(false);
   const installerSignatureRef = useRef<SignatureCanvas | null>(null);
   const clientSignatureRef = useRef<SignatureCanvas | null>(null);
   const hydratedRef = useRef(false);
   const { isOnline, isSyncing, notice, pendingCount, enqueue, syncPending, clearLocalQueue } =
     useOfflineSync(projectId);
+
+  function showOperarioToast(message: string) {
+    if (operarioToastTimerRef.current) clearTimeout(operarioToastTimerRef.current);
+    setOperarioToast(message);
+    operarioToastTimerRef.current = setTimeout(() => {
+      setOperarioToast(null);
+      operarioToastTimerRef.current = null;
+    }, 7000);
+  }
 
   const [compactFields, setCompactFields] = useState(false);
   useEffect(() => {
@@ -825,7 +836,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
       !isPvgisAnnex &&
       (typeof coords.latitude !== "number" || typeof coords.longitude !== "number")
     ) {
-      window.alert("No se pudo obtener GPS. Activa ubicación para registrar la evidencia.");
+      showOperarioToast(
+        "No se pudo obtener GPS. Activa la ubicación del dispositivo para registrar la evidencia.",
+      );
       return;
     }
     await enqueue({
@@ -1190,7 +1203,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
     const clientSignatureDataUrl = clientSignatureRef.current.toDataURL("image/png");
     const coords = await getCoords();
     if (typeof coords.latitude !== "number" || typeof coords.longitude !== "number") {
-      window.alert("No se pudo obtener GPS para la firma. Activa ubicación e inténtalo de nuevo.");
+      setFinalizeNotice(
+        "No se pudo obtener GPS para la firma. Activa la ubicación e inténtalo de nuevo.",
+      );
       setIsFinalizing(false);
       return;
     }
@@ -1372,6 +1387,15 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
           className={`rounded-lg px-3 py-2 text-xs ${sunMode ? "border-2 border-neutral-800 bg-amber-50 font-semibold text-neutral-950" : "border border-yellow-300/40 bg-yellow-300/20 text-yellow-100"}`}
         >
           {notice}
+        </p>
+      ) : null}
+
+      {operarioToast ? (
+        <p
+          role="status"
+          className={`rounded-lg px-3 py-2 text-xs font-semibold shadow-md ${sunMode ? "border-2 border-red-700 bg-red-50 text-red-950" : "border border-red-400/50 bg-red-950/50 text-red-100"}`}
+        >
+          {operarioToast}
         </p>
       ) : null}
 
@@ -2316,7 +2340,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
               if (!canGoNext) return;
               const coords = await getCoords();
               if (typeof coords.latitude !== "number" || typeof coords.longitude !== "number") {
-                window.alert("Activa la ubicación GPS para registrar el protocolo PRL en el informe.");
+                showOperarioToast(
+                  "Activa la ubicación GPS para registrar el protocolo PRL en el informe.",
+                );
                 return;
               }
               await enqueue({

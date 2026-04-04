@@ -6,7 +6,11 @@ const nextConfig: NextConfig = {
   turbopack: {},
   /** Incluye fuentes locales usadas por pdf-lib en serverless (dossier PDF). */
   outputFileTracingIncludes: {
-    "/api/**/*": ["./public/fonts/**/*"],
+    "/api/**/*": [
+      "./public/fonts/**/*",
+      "./public/fonts/Inter-Regular.ttf",
+      "./public/fonts/Inter-Bold.ttf",
+    ],
   },
   images: {
     remotePatterns: [
