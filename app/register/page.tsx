@@ -65,6 +65,11 @@ export default function RegisterPage() {
           </div>
 
           <p className="mt-4 text-sm text-slate-600">
+            <Link href="/recuperar-acceso" className="font-medium text-amber-800 underline">
+              ¿Ya has pagado? Recuperar acceso
+            </Link>
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
             Ya tienes cuenta?{" "}
             <Link href="/login" className="font-medium text-slate-900 underline">
               Entrar

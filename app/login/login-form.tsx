@@ -88,6 +88,12 @@ export function LoginForm({
       <LoginSubmitButton />
 
       <p className="mt-4 text-sm text-slate-600">
+        ¿Pagaste y no terminaste el alta?{" "}
+        <Link href="/recuperar-acceso" className="font-medium text-amber-900 underline">
+          Recuperar acceso
+        </Link>
+      </p>
+      <p className="mt-2 text-sm text-slate-600">
         Aun no tienes cuenta?{" "}
         <Link href="/register" className="font-medium text-slate-900 underline">
           Crear cuenta
