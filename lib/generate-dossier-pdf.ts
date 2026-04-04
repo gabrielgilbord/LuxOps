@@ -50,6 +50,11 @@ const MOUNTING_LABEL: Record<string, string> = {
   LASTRADA: "Lastrada",
 };
 
+/** Origen abajo: nada de contenido debe quedar por debajo de esta Y (el pie se pinta al final ~18–70). */
+const PDF_FOOTER_CLEARANCE_Y = 82;
+/** Altura reservada para la franja de pie (rectángulo + textos). */
+const PDF_FOOTER_BAND_HEIGHT = 56;
+
 async function embedSwissSansFont(pdf: PDFDocument) {
   try {
     const local = join(process.cwd(), "public", "fonts", "Inter-Regular.ttf");
@@ -155,15 +160,27 @@ function drawFooter(params: {
   const { width } = page.getSize();
   const padX = 28;
   const innerW = width - 56;
-  const footH = 40;
-  page.drawRectangle({ x: 24, y: 18, width: width - 48, height: footH, color: rgb(0.98, 0.98, 0.98) });
+  const footBaseY = 16;
+  page.drawRectangle({
+    x: 24,
+    y: footBaseY,
+    width: width - 48,
+    height: PDF_FOOTER_BAND_HEIGHT,
+    color: rgb(0.98, 0.98, 0.98),
+  });
   page.drawText(
     `Documento generado por LuxOps para ${companyName} · Página ${pageNumber}/${totalPages}`,
-    { x: padX, y: 50, size: 8, font: italic, color: rgb(0.35, 0.35, 0.35) },
+    {
+      x: padX,
+      y: footBaseY + PDF_FOOTER_BAND_HEIGHT - 10,
+      size: 8,
+      font: italic,
+      color: rgb(0.35, 0.35, 0.35),
+    },
   );
   const audit =
     `ID de transacción: ${projectId} · Integridad de datos verificada por LuxOps Blockchain-Ready System`;
-  let lineY = 38;
+  let lineY = footBaseY + PDF_FOOTER_BAND_HEIGHT - 22;
   for (const line of wrapPdfLines(audit, innerW, italic, 5.2)) {
     page.drawText(line, {
       x: padX,
@@ -173,7 +190,7 @@ function drawFooter(params: {
       color: rgb(0.42, 0.42, 0.46),
     });
     lineY -= 7;
-    if (lineY < 22) break;
+    if (lineY < footBaseY + 6) break;
   }
 }
 
@@ -672,7 +689,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     discY += 8;
   }
 
-  const summaryPage = pdf.addPage([595, 842]);
+  let summaryPage = pdf.addPage([595, 842]);
   summaryPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
   summaryPage.drawRectangle({ x: 24, y: 768, width: 547, height: 2, color: accent });
   summaryPage.drawText("INFORME DE INSTALACION", {
@@ -1137,7 +1154,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     for (const ln of wrapPdfLines(memoryText, 520, font, 9)) {
       summaryPage.drawText(ln, { x: 24, y: traceY, size: 9, font, color: rgb(0.22, 0.22, 0.24) });
       traceY -= 11;
-      if (traceY < 120) break;
+      if (traceY < PDF_FOOTER_CLEARANCE_Y + 200) break;
     }
   } else {
     summaryPage.drawText("Sin memoria técnica adicional registrada por oficina.", {
@@ -1151,7 +1168,47 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   }
 
   traceY -= 8;
-  const energyBoxH = annualYieldKwh != null ? 72 : 54;
+
+  const kwpStr = project.peakPowerKwp != null ? String(Number(project.peakPowerKwp)) : "—";
+  const kwnStr = project.inverterPowerKwn != null ? String(Number(project.inverterPowerKwn)) : "—";
+  const kwhStr = project.storageCapacityKwh != null ? String(Number(project.storageCapacityKwh)) : "—";
+  const energyDisclaimerLines = wrapPdfLines(
+    pdfLibSafeText(PRODUCTION_ESTIMATE_DISCLAIMER),
+    520,
+    italic,
+    7.8,
+  );
+  const energyInnerTitle = 18;
+  const energyLineStep = 13;
+  const energyYieldBlock = annualYieldKwh != null ? 18 : 0;
+  const energyDisclaimerH = energyDisclaimerLines.length * 9 + 6;
+  let energyBoxH = Math.max(
+    102,
+    energyInnerTitle + 3 * energyLineStep + energyYieldBlock + energyDisclaimerH + 16,
+  );
+
+  const minTraceForEnergy = PDF_FOOTER_CLEARANCE_Y + energyBoxH + 56;
+  if (traceY < minTraceForEnergy) {
+    const cont = pdf.addPage([595, 842]);
+    cont.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
+    cont.drawText("INFORME DE INSTALACION", {
+      x: 24,
+      y: 818,
+      size: 14,
+      font: bold,
+      color: rgb(0, 0, 0),
+    });
+    cont.drawText("Continuacion del resumen (energia y evidencias)", {
+      x: 24,
+      y: 798,
+      size: 9,
+      font,
+      color: rgb(0.38, 0.38, 0.4),
+    });
+    summaryPage = cont;
+    traceY = 772;
+  }
+
   summaryPage.drawRectangle({
     x: 24,
     y: traceY - energyBoxH,
@@ -1168,31 +1225,60 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     font: bold,
     color: slateText,
   });
-  summaryPage.drawText(
-    `Potencia pico total: ${project.peakPowerKwp?.toString() ?? "—"} kWp · Potencia nominal inversor: ${project.inverterPowerKwn?.toString() ?? "—"} kWn · Capacidad almacenamiento: ${project.storageCapacityKwh?.toString() ?? "—"} kWh`,
-    { x: 30, y: traceY - 26, size: 8.5, font, maxWidth: 530, color: slateText },
-  );
+  let energyLineY = traceY - 28;
+  summaryPage.drawText(pdfLibSafeText(`Potencia pico total: ${kwpStr} kWp`), {
+    x: 30,
+    y: energyLineY,
+    size: 8.5,
+    font,
+    maxWidth: 520,
+    color: slateText,
+  });
+  energyLineY -= energyLineStep;
+  summaryPage.drawText(pdfLibSafeText(`Potencia nominal inversor: ${kwnStr} kWn`), {
+    x: 30,
+    y: energyLineY,
+    size: 8.5,
+    font,
+    maxWidth: 520,
+    color: slateText,
+  });
+  energyLineY -= energyLineStep;
+  summaryPage.drawText(pdfLibSafeText(`Capacidad almacenamiento: ${kwhStr} kWh`), {
+    x: 30,
+    y: energyLineY,
+    size: 8.5,
+    font,
+    maxWidth: 520,
+    color: slateText,
+  });
+  energyLineY -= energyLineStep;
   if (annualYieldKwh != null) {
     summaryPage.drawText(
       `Rendimiento energético estimado posinstalación: ${annualYieldKwh.toLocaleString("es-ES")} kWh/año`,
       {
         x: 30,
-        y: traceY - 44,
+        y: energyLineY,
         size: 9,
         font: bold,
         maxWidth: 520,
         color: solarYellow,
       },
     );
+    energyLineY -= 16;
   }
-  summaryPage.drawText(PRODUCTION_ESTIMATE_DISCLAIMER, {
-    x: 30,
-    y: traceY - (annualYieldKwh != null ? 58 : 42),
-    size: 7.8,
-    font: italic,
-    maxWidth: 520,
-    color: rgb(0.38, 0.4, 0.42),
-  });
+  energyLineY -= 4;
+  for (const dl of energyDisclaimerLines) {
+    summaryPage.drawText(dl, {
+      x: 30,
+      y: energyLineY,
+      size: 7.8,
+      font: italic,
+      maxWidth: 520,
+      color: rgb(0.38, 0.4, 0.42),
+    });
+    energyLineY -= 9;
+  }
 
   traceY -= energyBoxH + 14;
   summaryPage.drawText("Evidencias fotográficas", { x: 24, y: traceY, size: 12, font: bold });
@@ -1203,7 +1289,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     { x: 24, y: traceY, size: 9, font, color: rgb(0.35, 0.35, 0.35) },
   );
 
-  const CERT_BOTTOM_SAFE = 72;
+  const CERT_BOTTOM_SAFE = PDF_FOOTER_CLEARANCE_Y + 18;
   const PAGE_BREAK_MIN_SPACE = 150;
 
   const drawNewCertPage = (continuation: boolean): { page: PDFPage; cy: number } => {
@@ -1338,6 +1424,11 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   const dec = (v: { toString: () => string } | null | undefined) =>
     pdfLibSafeText(v != null && String(v).trim() !== "" ? v.toString() : "-");
+  /** Campos explícitos de BD (no reutilizar marca/modelo de batería del inventario). */
+  const measThermalBrand = pdfLibSafeText((project.thermalProtectionBrand ?? "").trim() || "—");
+  const measThermalModel = pdfLibSafeText((project.thermalProtectionModel ?? "").trim() || "—");
+  const measSpdBrand = pdfLibSafeText((project.spdBrand ?? "").trim() || "—");
+  const measSpdModel = pdfLibSafeText((project.spdModel ?? "").trim() || "—");
   const certRowsA: [string, string][] = [
     ["Estructura — marca", (project.structureBrand ?? "").trim() || "—"],
     [
@@ -1356,16 +1447,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     ["Tensión circuito abierto Voc (V)", dec(project.electricVocVolts)],
     ["Corriente cortocircuito Isc (A)", dec(project.electricIscAmps)],
     ["Resistencia de puesta a tierra (ohm)", dec(project.earthResistanceOhms)],
-    ["Protección térmica — marca", (project.thermalProtectionBrand ?? "").trim() || "—"],
-    ["Protección térmica — modelo", (project.thermalProtectionModel ?? "").trim() || "—"],
-    ["SPD — marca", (project.spdBrand ?? "").trim() || "—"],
-    ["SPD — modelo", (project.spdModel ?? "").trim() || "—"],
+    ["Protección térmica — marca", measThermalBrand],
+    ["Protección térmica — modelo", measThermalModel],
+    ["SPD — marca", measSpdBrand],
+    ["SPD — modelo", measSpdModel],
     ["Azimut (grados)", dec(project.panelAzimuthDegrees)],
     ["Inclinación módulo (grados)", dec(project.panelTiltDegrees)],
   ];
   const c1 = 200;
   const c2 = 315;
-  const lh = 20;
+  const lhBase = 20;
   ensureCertVerticalSpace(PAGE_BREAK_MIN_SPACE);
   certPage.drawText("Mediciones y protecciones", {
     x: 40,
@@ -1376,20 +1467,22 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   });
   cy -= 16;
   for (const [k, val] of certRowsA) {
-    ensureCertVerticalSpace(lh + 36);
+    const valLines = wrapPdfLines(pdfLibSafeText(val), c2 - 12, inter, 8);
+    const rowH = Math.max(lhBase, 16 + Math.max(0, valLines.length - 1) * 10);
+    ensureCertVerticalSpace(rowH + 36);
     certPage.drawRectangle({
       x: 40,
-      y: cy - lh + 14,
+      y: cy - rowH + 14,
       width: c1,
-      height: lh,
+      height: rowH,
       borderColor: slateBorder,
       borderWidth: 0.5,
     });
     certPage.drawRectangle({
       x: 40 + c1,
-      y: cy - lh + 14,
+      y: cy - rowH + 14,
       width: c2,
-      height: lh,
+      height: rowH,
       borderColor: slateBorder,
       borderWidth: 0.5,
     });
@@ -1399,17 +1492,21 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       size: 8,
       font: inter,
       color: slateText,
+      maxWidth: c1 - 12,
     });
-    const valLines = wrapPdfLines(pdfLibSafeText(val), c2 - 12, inter, 8);
-    certPage.drawText(valLines[0] ?? "-", {
-      x: 44 + c1,
-      y: cy - 4,
-      size: 8,
-      font: inter,
-      color: slateText,
-      maxWidth: c2 - 12,
-    });
-    cy -= lh;
+    let valY = cy - 4;
+    for (const vl of valLines.length > 0 ? valLines : ["-"]) {
+      certPage.drawText(vl, {
+        x: 44 + c1,
+        y: valY,
+        size: 8,
+        font: inter,
+        color: slateText,
+        maxWidth: c2 - 12,
+      });
+      valY -= 10;
+    }
+    cy -= rowH;
   }
   cy -= 6;
   ensureCertVerticalSpace(48);
@@ -1449,20 +1546,20 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     ["Puesta a tierra de estructura", project.photoProtocolStructureEarthing ? "Sí" : "No"],
   ];
   for (const [k, val] of protoRows) {
-    ensureCertVerticalSpace(lh + 36);
+    ensureCertVerticalSpace(lhBase + 36);
     certPage.drawRectangle({
       x: 40,
-      y: cy - lh + 14,
+      y: cy - lhBase + 14,
       width: c1,
-      height: lh,
+      height: lhBase,
       borderColor: slateBorder,
       borderWidth: 0.5,
     });
     certPage.drawRectangle({
       x: 40 + c1,
-      y: cy - lh + 14,
+      y: cy - lhBase + 14,
       width: c2,
-      height: lh,
+      height: lhBase,
       borderColor: slateBorder,
       borderWidth: 0.5,
     });
@@ -1480,7 +1577,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       font: inter,
       color: slateText,
     });
-    cy -= lh;
+    cy -= lhBase;
   }
   if (annualYieldKwh != null) {
     ensureCertVerticalSpace(68);
@@ -1688,15 +1785,18 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     const img = await embedAutoImage(pdf, photo.url, photo.storagePath);
     const margin = 40;
     const maxW = 595 - margin * 2;
-    const maxH = 698;
+    const topY = 772;
+    const annexMetaBand = 34;
+    const imageBandBottom = PDF_FOOTER_CLEARANCE_Y + annexMetaBand;
+    const maxH = Math.max(120, topY - imageBandBottom);
     if (img) {
       const ratio = Math.min(maxW / img.width, maxH / img.height);
       const w = img.width * ratio;
       const h = img.height * ratio;
-      const topY = 772;
+      const yImgBottom = imageBandBottom + (topY - imageBandBottom - h) / 2;
       annexPage.drawImage(img, {
         x: (595 - w) / 2,
-        y: topY - h,
+        y: yImgBottom,
         width: w,
         height: h,
       });
@@ -1721,11 +1821,11 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     }
     annexPage.drawText(
       `GPS ${photo.latitude != null && photo.longitude != null ? `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}` : "— (carga desde oficina)"}`,
-      { x: 40, y: 44, size: 8, font, color: rgb(0.35, 0.35, 0.35) },
+      { x: 40, y: PDF_FOOTER_CLEARANCE_Y + 22, size: 8, font, color: rgb(0.35, 0.35, 0.35) },
     );
     annexPage.drawText(`Registro ${new Date(photo.createdAt).toLocaleString("es-ES")}`, {
       x: 40,
-      y: 32,
+      y: PDF_FOOTER_CLEARANCE_Y + 10,
       size: 8,
       font,
       color: rgb(0.35, 0.35, 0.35),
@@ -1866,7 +1966,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     legalPage.drawText(line, { x: 24, y: legalY, size: 9.5, font, color: rgb(0.22, 0.22, 0.24) });
     legalY -= 14;
   }
-  legalY -= 36;
+  legalY -= 56;
 
   const signature = project.signatures[0];
   const installerSigSource = signature?.installerImageDataUrl ?? "";
@@ -1878,7 +1978,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   // Incluye metadatos (GPS + timestamp) bajo las cajas de firma.
   const signatureBlockH = 318;
-  const minBottom = 110;
+  const minBottom = PDF_FOOTER_CLEARANCE_Y + 36;
   if (legalY - signatureBlockH < minBottom) {
     // No cabe holgado: saltamos a nueva página para firmas.
     legalPage = pdf.addPage([595, 842]);
@@ -1886,7 +1986,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     legalY = 752;
   } else {
     legalPage.drawText("FIRMAS Y CONFORMIDAD", { x: 24, y: legalY, size: 12, font: bold });
-    legalY -= 32;
+    legalY -= 44;
   }
 
   const sigBoxYTop = legalY;
@@ -1931,8 +2031,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       if (img) {
         const maxW = sigBoxW - 22;
         const maxH = sigBoxH - 86;
-        const baseRatio = Math.min(maxW / img.width, maxH / img.height);
-        const ratio = Math.min(baseRatio * 1.28, maxW / img.width, maxH / img.height);
+        const ratio = Math.min(maxW / img.width, maxH / img.height);
         const w = img.width * ratio;
         const h = img.height * ratio;
         legalPage.drawImage(img, {

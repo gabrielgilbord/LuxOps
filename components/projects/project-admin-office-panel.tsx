@@ -1,3 +1,7 @@
+"use client";
+
+import { useActionState, useRef, useState, useTransition, type RefObject } from "react";
+import { useFormStatus } from "react-dom";
 import {
   BadgeCheck,
   Building2,
@@ -7,10 +11,15 @@ import {
   FileText,
   Hash,
   ImagePlus,
+  Loader2,
   Shield,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { saveProjectAdminMemoryAction, uploadAdminUnifilarPhotoAction } from "@/app/actions/projects";
+import {
+  saveProjectAdminMemoryAction,
+  uploadAdminUnifilarPhotoAction,
+  type SaveProjectAdminMemoryState,
+} from "@/app/actions/projects";
 import type { ProjectDetail } from "@/lib/data";
 import {
   SELF_CONSUMPTION_MODALITY_LABEL,
@@ -29,7 +38,74 @@ type PanelProps = {
   project: ProjectDetail;
 };
 
+function OfficeSaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:from-emerald-500 hover:to-teal-500 disabled:pointer-events-none disabled:opacity-60 sm:w-auto sm:min-w-[200px] sm:justify-self-start"
+    >
+      {pending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
+      {pending ? "Guardando..." : "Guardar cambios de oficina"}
+    </button>
+  );
+}
+
+function UnifilarUploadButton({
+  projectId,
+  fileInputRef,
+}: {
+  projectId: string;
+  fileInputRef: RefObject<HTMLInputElement | null>;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  return (
+    <div className="flex flex-col items-stretch gap-1 sm:items-end">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          const file = fileInputRef.current?.files?.[0];
+          if (!file) {
+            setUploadError("Selecciona una imagen.");
+            return;
+          }
+          setUploadError(null);
+          const fd = new FormData();
+          fd.set("projectId", projectId);
+          fd.set("unifilarFile", file);
+          startTransition(async () => {
+            try {
+              await uploadAdminUnifilarPhotoAction(fd);
+            } catch (e) {
+              setUploadError(e instanceof Error ? e.message : "No se pudo subir el unifilar.");
+            }
+          });
+        }}
+        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 text-xs font-bold text-white shadow hover:bg-cyan-500 disabled:pointer-events-none disabled:opacity-60"
+      >
+        {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+        {pending ? "Subiendo..." : "Subir unifilar"}
+      </button>
+      {uploadError ? (
+        <p className="max-w-xs text-right text-[11px] text-red-300 sm:text-left" role="alert">
+          {uploadError}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function ProjectAdminOfficePanel({ project }: PanelProps) {
+  const [saveState, saveFormAction] = useActionState(
+    saveProjectAdminMemoryAction,
+    undefined as SaveProjectAdminMemoryState | undefined,
+  );
+  const unifilarFileRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="mb-6 overflow-hidden rounded-2xl border border-emerald-500/35 bg-slate-950 ring-1 ring-emerald-400/15">
       <div className="border-b border-emerald-500/25 bg-gradient-to-r from-emerald-950/80 via-slate-950 to-slate-950 px-4 py-3 sm:px-5">
@@ -48,8 +124,22 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
         </p>
       </div>
 
-      <form action={saveProjectAdminMemoryAction} className="grid gap-5 p-4 sm:p-5">
+      <form action={saveFormAction} className="grid gap-5 p-4 sm:p-5">
         <input type="hidden" name="projectId" value={project.id} />
+
+        {saveState?.ok ? (
+          <p
+            className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200"
+            role="status"
+          >
+            Cambios guardados correctamente en el expediente
+          </p>
+        ) : null}
+        {saveState?.ok === false && saveState.error ? (
+          <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
+            {saveState.error}
+          </p>
+        ) : null}
 
         <div className={sectionShell}>
           <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
@@ -217,26 +307,18 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
             Sube aquí el esquema unifilar si el operario no lo ha aportado en campo. Se añadirá como
             evidencia <span className="font-mono text-slate-300">ESQUEMA_UNIFILAR</span> en el PDF.
           </p>
-          <form action={uploadAdminUnifilarPhotoAction} encType="multipart/form-data">
-            <input type="hidden" name="projectId" value={project.id} />
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="block min-w-0 flex-1">
-                <span className={labelCls}>Imagen (JPEG, PNG o WebP, máx. 5 MB)</span>
-                <input
-                  type="file"
-                  name="unifilarFile"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="mt-2 block w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-cyan-500"
-                />
-              </label>
-              <button
-                type="submit"
-                className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-cyan-600 px-4 text-xs font-bold text-white shadow hover:bg-cyan-500"
-              >
-                Subir unifilar
-              </button>
-            </div>
-          </form>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <label className="block min-w-0 flex-1">
+              <span className={labelCls}>Imagen (JPEG, PNG o WebP, máx. 5 MB)</span>
+              <input
+                ref={unifilarFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="mt-2 block w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-cyan-500"
+              />
+            </label>
+            <UnifilarUploadButton projectId={project.id} fileInputRef={unifilarFileRef} />
+          </div>
         </div>
 
         <div className={sectionShell}>
@@ -327,6 +409,45 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
 
         <div className={sectionShell}>
           <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <Shield className="h-4 w-4 text-violet-300" />
+            <h3 className="text-sm font-bold text-slate-100">Protecciones (dossier / mediciones)</h3>
+          </div>
+          <p className="mb-3 text-xs text-slate-500">
+            Corrige aquí si en PDF no coincidían con el inventario de batería: son campos distintos en base de
+            datos.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className={labelCls}>Protección térmica — marca</span>
+              <input
+                name="thermalProtectionBrand"
+                defaultValue={project.thermalProtectionBrand ?? ""}
+                className={inputCls}
+                maxLength={120}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Protección térmica — modelo</span>
+              <input
+                name="thermalProtectionModel"
+                defaultValue={project.thermalProtectionModel ?? ""}
+                className={inputCls}
+                maxLength={120}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>SPD — marca</span>
+              <input name="spdBrand" defaultValue={project.spdBrand ?? ""} className={inputCls} maxLength={120} />
+            </label>
+            <label className="block">
+              <span className={labelCls}>SPD — modelo</span>
+              <input name="spdModel" defaultValue={project.spdModel ?? ""} className={inputCls} maxLength={120} />
+            </label>
+          </div>
+        </div>
+
+        <div className={sectionShell}>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
             <Cpu className="h-4 w-4 text-yellow-300" />
             <h3 className="text-sm font-bold text-slate-100">Potencias declaradas (kWp / kWn / kWh)</h3>
           </div>
@@ -361,12 +482,7 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:from-emerald-500 hover:to-teal-500 sm:w-auto sm:min-w-[200px] sm:justify-self-start"
-        >
-          Guardar cambios de oficina
-        </button>
+        <OfficeSaveButton />
       </form>
     </div>
   );

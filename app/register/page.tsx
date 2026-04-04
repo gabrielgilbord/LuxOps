@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { CheckCircle2, CreditCard, ShieldCheck } from "lucide-react";
-import { createCheckoutSessionAction } from "@/app/actions/checkout";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { RegisterCheckoutButton } from "@/app/register/register-checkout-button";
 import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
 
 function LuxOpsLogo() {
@@ -52,15 +52,7 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          <form action={createCheckoutSessionAction}>
-            <button
-              type="submit"
-              className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-yellow-300 to-yellow-400 px-4 py-3 text-sm font-bold text-yellow-950 shadow-lg shadow-yellow-300/30 transition hover:-translate-y-0.5 hover:from-yellow-200 hover:to-yellow-300"
-            >
-              <CreditCard className="mr-2 h-4 w-4" />
-              Continuar al pago
-            </button>
-          </form>
+          <RegisterCheckoutButton />
 
           <p className="mt-3 inline-flex items-center gap-2 text-xs text-slate-500">
             <ShieldCheck className="h-4 w-4 text-slate-500" />

@@ -192,7 +192,21 @@ export async function createProjectAction(
   redirect("/dashboard");
 }
 
-export async function saveProjectAdminMemoryAction(formData: FormData): Promise<void> {
+export type SaveProjectAdminMemoryState = { ok?: boolean; error?: string };
+
+export async function saveProjectAdminMemoryAction(
+  _prev: SaveProjectAdminMemoryState | undefined,
+  formData: FormData,
+): Promise<SaveProjectAdminMemoryState> {
+  try {
+    return await performSaveProjectAdminMemory(formData);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "No se pudieron guardar los cambios.";
+    return { ok: false, error: msg };
+  }
+}
+
+async function performSaveProjectAdminMemory(formData: FormData): Promise<SaveProjectAdminMemoryState> {
   const admin = await requireAdminUser();
   const projectId = String(formData.get("projectId") ?? "").trim();
   if (!projectId) throw new Error("Proyecto inválido.");
@@ -259,6 +273,10 @@ export async function saveProjectAdminMemoryAction(formData: FormData): Promise<
       assetInverterModel: String(formData.get("assetInverterModel") ?? "").trim() || null,
       assetBatteryBrand: String(formData.get("assetBatteryBrand") ?? "").trim() || null,
       assetBatteryModel: String(formData.get("assetBatteryModel") ?? "").trim() || null,
+      thermalProtectionBrand: String(formData.get("thermalProtectionBrand") ?? "").trim() || null,
+      thermalProtectionModel: String(formData.get("thermalProtectionModel") ?? "").trim() || null,
+      spdBrand: String(formData.get("spdBrand") ?? "").trim() || null,
+      spdModel: String(formData.get("spdModel") ?? "").trim() || null,
       peakPowerKwp,
       inverterPowerKwn,
       storageCapacityKwh,
@@ -268,8 +286,10 @@ export async function saveProjectAdminMemoryAction(formData: FormData): Promise<
   });
 
   revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`, "page");
   revalidatePath("/dashboard");
   revalidatePath("/mobile-dashboard");
+  return { ok: true };
 }
 
 export async function reassignUnassignedProjectAction(formData: FormData): Promise<void> {
@@ -793,6 +813,7 @@ export async function uploadAdminUnifilarPhotoAction(formData: FormData): Promis
   });
 
   revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`, "page");
   revalidatePath("/dashboard");
   revalidatePath("/mobile-dashboard");
 }

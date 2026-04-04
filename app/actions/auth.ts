@@ -5,7 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
 
-export async function loginAction(formData: FormData) {
+export async function loginAction(
+  _prev: { error?: string } | undefined,
+  formData: FormData,
+): Promise<{ error?: string }> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 

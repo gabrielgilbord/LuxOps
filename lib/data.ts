@@ -43,6 +43,10 @@ export type ProjectDetail = DashboardProject & {
   peakPowerKwp?: string | null;
   inverterPowerKwn?: string | null;
   storageCapacityKwh?: string | null;
+  thermalProtectionBrand?: string | null;
+  thermalProtectionModel?: string | null;
+  spdBrand?: string | null;
+  spdModel?: string | null;
   photos: {
     id: string;
     tipo: TipoFoto;
@@ -247,6 +251,10 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       peakPowerKwp: project.peakPowerKwp?.toString() ?? null,
       inverterPowerKwn: project.inverterPowerKwn?.toString() ?? null,
       storageCapacityKwh: project.storageCapacityKwh?.toString() ?? null,
+      thermalProtectionBrand: project.thermalProtectionBrand,
+      thermalProtectionModel: project.thermalProtectionModel,
+      spdBrand: project.spdBrand,
+      spdModel: project.spdModel,
       photosCount: project.photos.length,
       photos,
       signatures,
