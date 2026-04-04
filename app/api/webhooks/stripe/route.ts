@@ -4,6 +4,29 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
+/** Stripe devuelve a veces string id y a veces objeto expandido. */
+function stripeRefId(
+  value: string | Stripe.Customer | Stripe.DeletedCustomer | Stripe.Subscription | null | undefined,
+): string | null {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "id" in value && typeof value.id === "string") {
+    return value.id;
+  }
+  return null;
+}
+
+/**
+ * Suscripción activa en LuxOps = `Organization.isSubscribed` (+ `subscriptionStatus`).
+ * No hay campo de suscripción en `User`; los usuarios heredan el estado vía su organización.
+ *
+ * URL en Stripe Dashboard (producción): `https://luxops.es/api/webhooks/stripe`
+ * Secreto: `STRIPE_WEBHOOK_SECRET` (Signing secret del endpoint, empieza por `whsec_`).
+ *
+ * Eventos recomendados: `checkout.session.completed`, `customer.subscription.updated`,
+ * `customer.subscription.deleted`, `invoice.payment_failed`.
+ */
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   const stripe = getStripe();
   const signature = (await headers()).get("stripe-signature");
@@ -34,9 +57,8 @@ export async function POST(request: Request) {
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-      const customerId = typeof session.customer === "string" ? session.customer : null;
-      const subscriptionId =
-        typeof session.subscription === "string" ? session.subscription : null;
+      const customerId = stripeRefId(session.customer);
+      const subscriptionId = stripeRefId(session.subscription);
 
       const result = await prisma.organization.updateMany({
         where: {
@@ -49,17 +71,18 @@ export async function POST(request: Request) {
           isSubscribed: true,
           subscriptionStatus: "active",
           stripeSubscriptionId: subscriptionId ?? undefined,
+          ...(customerId ? { stripeCustomerId: customerId } : {}),
         },
       });
       if (result.count === 0) {
-        console.error(
-          "LuxOps Stripe webhook: checkout.session.completed matched 0 organizations — trace sessionId in Stripe Dashboard and DB",
+        console.warn(
+          "LuxOps Stripe webhook: checkout.session.completed — 0 filas (normal si el alta de org aún no guardó `stripeCheckoutSessionId`).",
           { sessionId: session.id, customerId },
         );
       }
     } else if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object as Stripe.Subscription;
-      const customerId = typeof subscription.customer === "string" ? subscription.customer : null;
+      const customerId = stripeRefId(subscription.customer);
       if (customerId) {
         await prisma.organization.updateMany({
           where: { stripeCustomerId: customerId },
@@ -75,8 +98,9 @@ export async function POST(request: Request) {
       event.type === "invoice.payment_failed"
     ) {
       const object = event.data.object as Stripe.Subscription | Stripe.Invoice;
-      const customerId =
-        "customer" in object && typeof object.customer === "string" ? object.customer : null;
+      const customerId = stripeRefId(
+        "customer" in object ? object.customer : undefined,
+      );
       if (customerId) {
         await prisma.organization.updateMany({
           where: { stripeCustomerId: customerId },
