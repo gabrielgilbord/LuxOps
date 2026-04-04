@@ -23,11 +23,34 @@ function LoginSubmitButton() {
   );
 }
 
-export function LoginForm() {
+type LoginFormProps = {
+  showEmailVerificationNotice?: boolean;
+  showAuthError?: boolean;
+};
+
+export function LoginForm({
+  showEmailVerificationNotice = false,
+  showAuthError = false,
+}: LoginFormProps) {
   const [state, formAction] = useActionState(loginAction, undefined);
 
   return (
     <form action={formAction} className="mt-6 space-y-4">
+      {showEmailVerificationNotice ? (
+        <p
+          className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900"
+          role="status"
+        >
+          Revisa tu correo (incluida la carpeta de spam) y abre el enlace para confirmar la cuenta.
+          Después podrás entrar aquí con tu email y contraseña.
+        </p>
+      ) : null}
+      {showAuthError ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+          El enlace de acceso no es válido o ha caducado. Vuelve a intentarlo desde el correo o
+          entra con tu contraseña.
+        </p>
+      ) : null}
       {state?.error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
           {state.error}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getPublicAppUrl } from "@/lib/public-app-url";
 import { getStripe } from "@/lib/stripe";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/authz";
@@ -36,16 +37,23 @@ export async function completeCheckoutOnboarding(formData: FormData) {
     redirect("/login");
   }
 
+  const appUrl = getPublicAppUrl();
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: fullName },
+      emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
     },
   });
 
-  if (error || !data.user) {
+  if (error) {
+    throw new Error(
+      error.message || "No se pudo crear la cuenta del administrador. Revisa el email o prueba otro.",
+    );
+  }
+  if (!data.user) {
     throw new Error("No se pudo crear la cuenta del administrador.");
   }
 
@@ -62,31 +70,37 @@ export async function completeCheckoutOnboarding(formData: FormData) {
       ? null
       : session.subscription?.status ?? null;
 
-  const organization = await prisma.organization.create({
-    data: {
-      name: companyName,
-      isSubscribed: true,
-      stripeCheckoutSessionId: session.id,
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      subscriptionStatus: subscriptionStatus ?? "active",
-      planPriceCents: 15000,
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    const organization = await tx.organization.create({
+      data: {
+        name: companyName,
+        isSubscribed: true,
+        stripeCheckoutSessionId: session.id,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscriptionId,
+        subscriptionStatus: subscriptionStatus ?? "active",
+        planPriceCents: 15000,
+      },
+    });
 
-  await prisma.user.create({
-    data: {
-      supabaseUserId: data.user.id,
-      email,
-      name: fullName,
-      role: "ADMIN",
-      organizationId: organization.id,
-    },
+    await tx.user.create({
+      data: {
+        supabaseUserId: data.user!.id,
+        email,
+        name: fullName,
+        role: "ADMIN",
+        organizationId: organization.id,
+      },
+    });
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/mobile-dashboard");
   revalidatePath("/dashboard/settings");
+
+  if (!data.session) {
+    redirect("/login?verify=1");
+  }
 
   redirect("/dashboard");
 }
@@ -108,10 +122,8 @@ export async function openCustomerPortalAction(formData: FormData) {
   }
 
   const stripe = getStripe();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const returnUrl = appUrl
-    ? `${appUrl}/dashboard/settings?tab=subscription`
-    : "http://localhost:3000/dashboard/settings?tab=subscription";
+  const appUrl = getPublicAppUrl();
+  const returnUrl = `${appUrl}/dashboard/settings?tab=subscription`;
 
   try {
     const flowData =

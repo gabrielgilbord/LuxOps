@@ -5,7 +5,15 @@ function LuxOpsLogo() {
   return <BrandLogo darkBackground className="h-12 w-auto" />;
 }
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ verify?: string; error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { verify, error } = await searchParams;
+  const showEmailVerificationNotice = verify === "1";
+  const showAuthError = error === "auth";
+
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-slate-950 p-10 lg:flex lg:flex-col lg:justify-between">
@@ -31,7 +39,10 @@ export default function LoginPage() {
             Accede a tu panel de control operativo.
           </p>
 
-          <LoginForm />
+          <LoginForm
+            showEmailVerificationNotice={showEmailVerificationNotice}
+            showAuthError={showAuthError}
+          />
         </div>
       </section>
     </main>

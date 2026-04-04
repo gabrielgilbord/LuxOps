@@ -1,14 +1,9 @@
+import { getPublicAppUrl } from "@/lib/public-app-url";
 import { getStripe } from "@/lib/stripe";
 import type Stripe from "stripe";
 
-/** Base pública de la app (Stripe redirige aquí). Debe coincidir con el dominio real (ej. http://localhost:3002). */
-export function getStripeAppBaseUrl(): string {
-  const raw = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/$/, "");
-  return raw || "http://localhost:3000";
-}
-
 export async function createStripeCheckoutSession() {
-  const base = getStripeAppBaseUrl();
+  const base = getPublicAppUrl();
   const stripe = getStripe();
   const priceId = process.env.STRIPE_PRICE_ID_MONTHLY;
 
