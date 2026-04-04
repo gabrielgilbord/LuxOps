@@ -17,6 +17,9 @@ export function SiteFooter() {
         <Link href="/terminos" className="hover:text-slate-900 hover:underline">
           Términos
         </Link>
+        <Link href="/blog" className="hover:text-slate-900 hover:underline">
+          Blog
+        </Link>
       </div>
     </footer>
   );
