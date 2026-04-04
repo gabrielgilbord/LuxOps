@@ -718,6 +718,25 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     discY += 8;
   }
 
+  discY += 4;
+  const legalNameEnv = (process.env.NEXT_PUBLIC_LEGAL_NAME ?? "").trim();
+  const rgpdFooterClause = pdfLibSafeText(
+    legalNameEnv
+      ? `Clausula RGPD (informacion basica): responsable del tratamiento en relacion con la plataforma LuxOps: ${legalNameEnv}. Puede ejercer sus derechos segun la Politica de privacidad del servicio y la normativa aplicable.`
+      : "Clausula RGPD (informacion basica): responsable del tratamiento segun la Politica de privacidad publicada en el servicio LuxOps; configure NEXT_PUBLIC_LEGAL_NAME en el despliegue para mostrar la identidad completa en esta portada.",
+  );
+  const rgpdFooterLines = wrapPdfLines(rgpdFooterClause, 531, font, 6).slice(0, 8);
+  for (const ln of rgpdFooterLines) {
+    coverPage.drawText(ln, {
+      x: 32,
+      y: discY,
+      size: 6,
+      font,
+      color: rgb(0.32, 0.32, 0.36),
+    });
+    discY += 7;
+  }
+
   let summaryPage = pdf.addPage([595, 842]);
   summaryPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
   summaryPage.drawRectangle({ x: 24, y: 768, width: 547, height: 2, color: accent });

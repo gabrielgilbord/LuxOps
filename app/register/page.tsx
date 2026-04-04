@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
-import { RegisterCheckoutButton } from "@/app/register/register-checkout-button";
+import { RegisterCheckoutSection } from "@/app/register/register-checkout-section";
 import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
 
 function LuxOpsLogo() {
@@ -52,7 +52,7 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          <RegisterCheckoutButton />
+          <RegisterCheckoutSection />
 
           <p className="mt-3 inline-flex items-center gap-2 text-xs text-slate-500">
             <ShieldCheck className="h-4 w-4 text-slate-500" />
