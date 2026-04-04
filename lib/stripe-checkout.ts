@@ -1,7 +1,14 @@
 import { getStripe } from "@/lib/stripe";
 import type Stripe from "stripe";
 
-export async function createStripeCheckoutSession(origin: string) {
+/** Base pública de la app (Stripe redirige aquí). Debe coincidir con el dominio real (ej. http://localhost:3002). */
+export function getStripeAppBaseUrl(): string {
+  const raw = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/$/, "");
+  return raw || "http://localhost:3000";
+}
+
+export async function createStripeCheckoutSession() {
+  const base = getStripeAppBaseUrl();
   const stripe = getStripe();
   const priceId = process.env.STRIPE_PRICE_ID_MONTHLY;
 
@@ -25,8 +32,8 @@ export async function createStripeCheckoutSession(origin: string) {
   return stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: lineItems,
-    success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/#precios`,
+    success_url: `${base}/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${base}/register`,
     allow_promotion_codes: true,
     billing_address_collection: "required",
   });

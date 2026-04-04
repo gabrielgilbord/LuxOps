@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
@@ -82,6 +83,10 @@ export async function completeCheckoutOnboarding(formData: FormData) {
       organizationId: organization.id,
     },
   });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/mobile-dashboard");
+  revalidatePath("/dashboard/settings");
 
   redirect("/dashboard");
 }

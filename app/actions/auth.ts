@@ -39,8 +39,7 @@ export async function loginAction(
 
 export async function registerAction(formData: FormData) {
   void formData;
-  const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const session = await createStripeCheckoutSession(origin);
+  const session = await createStripeCheckoutSession();
   if (!session.url) {
     return { error: "No se pudo iniciar el checkout de Stripe." };
   }

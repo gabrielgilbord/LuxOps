@@ -3,8 +3,7 @@ import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
 
 export async function GET(request: Request) {
   try {
-    const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-    const session = await createStripeCheckoutSession(origin);
+    const session = await createStripeCheckoutSession();
 
     return NextResponse.redirect(session.url!, { status: 303 });
   } catch (error) {
