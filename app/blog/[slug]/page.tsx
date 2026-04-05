@@ -70,7 +70,7 @@ export default async function BlogArticlePage({
       <BlogPostingJsonLd slug={slug} post={post} />
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
         <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-3xl px-4 py-4 md:px-6">
+          <div className="mx-auto flex max-w-3xl px-5 py-4 sm:px-6 lg:px-8">
             <Link
               href="/blog"
               className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition hover:text-amber-800"
@@ -81,7 +81,7 @@ export default async function BlogArticlePage({
           </div>
         </header>
 
-        <article className="mx-auto max-w-3xl px-4 py-8 md:px-6 md:py-12">
+        <article className="mx-auto max-w-3xl px-5 py-8 sm:px-6 md:py-12 lg:px-8">
           <time
             dateTime={post.publishedAt}
             className="text-sm font-medium text-slate-500"

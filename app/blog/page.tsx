@@ -36,7 +36,7 @@ export default function BlogIndexPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
       <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-8">
           <Link
             href="/"
             className="text-sm font-semibold text-slate-600 transition hover:text-slate-900"
@@ -50,7 +50,7 @@ export default function BlogIndexPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-16">
+      <main className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
             Blog LuxOps

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowRight,
+  BookOpen,
   Camera,
   CheckCircle2,
   ClipboardCheck,
@@ -16,27 +18,34 @@ import {
   TriangleAlert,
   UserRoundCog,
 } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { createCheckoutSessionAction } from "@/app/actions/checkout";
-import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
+import { LandingNav } from "@/components/landing/landing-nav";
 
-function LuxOpsLogo() {
-  return <BrandLogo darkBackground className="h-10 w-auto" />;
+export type LandingBlogTeaser = {
+  slug: string;
+  title: string;
+  description: string;
+  publishedAt: string;
+};
+
+type LandingPageProps = {
+  latestBlogPosts?: LandingBlogTeaser[];
+};
+
+function formatBlogDate(iso: string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso));
 }
 
-export function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
+export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
   const [checkoutState, checkoutFormAction, checkoutPending] = useActionState(
     createCheckoutSessionAction,
     undefined,
   );
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     const url = checkoutState?.checkoutUrl;
@@ -51,39 +60,9 @@ export function LandingPage() {
       <div className="pointer-events-none absolute -left-20 top-40 h-72 w-72 rotate-12 rounded-3xl border border-white/10 bg-white/5 blur-2xl" />
       <div className="pointer-events-none absolute right-0 top-72 h-56 w-56 -rotate-12 rounded-full border border-yellow-300/20 bg-yellow-300/10 blur-2xl" />
 
-      <header
-        className={`sticky top-0 z-30 transition-all duration-500 ${
-          scrolled
-            ? "border-b border-white/15 bg-slate-900/55 backdrop-blur-md"
-            : "bg-transparent"
-        }`}
-      >
-        <div className="mx-auto flex h-18 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
-          <LuxOpsLogo />
-          <nav className="flex items-center gap-2 text-yellow-300">
-            <Link
-              href="#precios"
-              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-yellow-400/15 hover:text-yellow-200"
-            >
-              Precios
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-yellow-400/15 hover:text-yellow-200"
-            >
-              Login
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-lg border border-yellow-300/60 bg-yellow-400 px-4 py-2 text-sm font-bold text-yellow-950 shadow-lg shadow-yellow-300/20 transition hover:-translate-y-0.5 hover:bg-yellow-300"
-            >
-              Empezar
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <LandingNav />
 
-      <section className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-2 lg:pt-24">
+      <section className="relative mx-auto grid w-full max-w-7xl gap-10 px-5 pb-20 pt-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pt-24">
         <div className="animate-fade-in-up">
           <p className="mb-4 inline-flex rounded-full border border-yellow-300/35 bg-yellow-300/15 px-3 py-1 text-xs font-bold text-yellow-200">
             SaaS para instaladoras solares
@@ -140,7 +119,7 @@ export function LandingPage() {
 
       <div className="mx-auto h-px w-full max-w-7xl bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6">
+      <section className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 py-20">
         <div className="animate-fade-in-up text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/80">
             El caos actual
@@ -184,7 +163,7 @@ export function LandingPage() {
 
       <div className="mx-auto h-px w-full max-w-7xl bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6">
+      <section className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 py-20">
         <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/80">
@@ -236,7 +215,7 @@ export function LandingPage() {
 
       <div className="mx-auto h-px w-full max-w-7xl bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6">
+      <section className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 py-20">
         <div className="animate-fade-in-up">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/80">
             Cómo funciona
@@ -276,7 +255,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 pb-14 sm:px-6">
+      <section className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 pb-14">
         <div className="animate-fade-in-up rounded-2xl border border-emerald-300/35 bg-emerald-400/10 p-5 backdrop-blur-md">
           <p className="inline-flex items-center gap-2 text-sm font-medium text-emerald-200">
             <ShieldCheck className="h-5 w-5" />
@@ -288,7 +267,7 @@ export function LandingPage() {
 
       <div className="mx-auto h-px w-full max-w-7xl bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6">
+      <section className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 py-20">
         <div className="animate-fade-in-up rounded-3xl border border-yellow-300/25 bg-yellow-300/8 p-7 backdrop-blur-md">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/80">
             Lo que te ahorras
@@ -314,7 +293,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="precios" className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6">
+      <section id="precios" className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 pb-24">
         <div className="animate-fade-in-up rounded-3xl border border-white/15 bg-white/10 p-9 text-center shadow-2xl backdrop-blur-xl">
           <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-yellow-300/40 bg-yellow-300/15 px-3 py-1 text-xs font-bold text-yellow-200">
             <CheckCircle2 className="h-4 w-4" />
@@ -354,7 +333,85 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 pb-28 sm:px-6">
+      <section
+        id="blog"
+        aria-labelledby="blog-landing-title"
+        className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 pb-24"
+      >
+        <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-[#0B0E14]/80 p-8 shadow-2xl backdrop-blur-xl sm:p-10 lg:p-12">
+          <div className="pointer-events-none absolute -right-20 top-0 h-64 w-64 rounded-full bg-yellow-400/10 blur-3xl" />
+          <div className="relative">
+            <div className="mb-10 flex flex-col gap-4 text-center sm:mb-12">
+              <p className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/90">
+                <BookOpen className="h-4 w-4" aria-hidden />
+                Blog y recursos
+              </p>
+              <h2
+                id="blog-landing-title"
+                className="text-balance text-3xl font-bold text-white sm:text-4xl"
+              >
+                Guías para profesionalizar tu instaladora
+              </h2>
+              <p className="mx-auto max-w-2xl text-pretty text-sm text-slate-300 sm:text-base">
+                Estrategia operativa, digitalización y CRM solar. Contenido pensado para quienes
+                viven del tejado y la legalización.
+              </p>
+            </div>
+
+            {latestBlogPosts.length > 0 ? (
+              <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+                {latestBlogPosts.map((post) => (
+                  <li key={post.slug}>
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-yellow-300/35 hover:bg-white/[0.07]"
+                    >
+                      <time
+                        dateTime={post.publishedAt}
+                        className="text-xs font-medium uppercase tracking-wide text-yellow-300/90"
+                      >
+                        {formatBlogDate(post.publishedAt)}
+                      </time>
+                      <h3 className="mt-3 text-lg font-bold leading-snug text-white group-hover:text-yellow-200">
+                        {post.title}
+                      </h3>
+                      <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-slate-400">
+                        {post.description}
+                      </p>
+                      <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-yellow-400">
+                        Leer artículo
+                        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-sm text-slate-400">
+                Pronto publicaremos nuevas guías. Mientras tanto, visita el blog.
+              </p>
+            )}
+
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link
+                href="/blog"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-6 py-3 text-sm font-bold text-yellow-200 transition hover:bg-yellow-400/20"
+              >
+                Ver todo el blog
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-6 py-3 text-sm font-bold text-yellow-950 shadow-lg shadow-yellow-400/20 transition hover:bg-yellow-300"
+              >
+                Comenzar ahora
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 pb-28">
         <div className="mb-8 animate-fade-in-up text-center">
           <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/80">
             <HelpCircle className="h-4 w-4" />
@@ -404,7 +461,7 @@ export function LandingPage() {
       <section
         id="autoridad"
         aria-labelledby="autoridad-titulo"
-        className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6"
+        className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 pb-16"
       >
         <div className="rounded-3xl border border-white/15 bg-slate-800/50 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-10 lg:p-12">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
@@ -485,25 +542,13 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 bg-slate-950/90 py-10 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-4 px-4 text-center sm:px-6">
+      <section className="border-t border-white/10 bg-slate-950/40 py-10 backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-5 text-center sm:px-6 lg:px-8">
           <p className="text-xs font-semibold tracking-wide text-yellow-200/90">
             Supervisado por Ingeniería Colegiada
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
-            <Link href="/support" className="transition hover:text-yellow-200">
-              Soporte
-            </Link>
-            <Link href="/login" className="transition hover:text-yellow-200">
-              Login
-            </Link>
-            <Link href="/register" className="transition hover:text-yellow-200">
-              Registro
-            </Link>
-          </div>
-          <p className="text-xs text-slate-500">© {new Date().getFullYear()} LuxOps. Todos los derechos reservados.</p>
         </div>
-      </footer>
+      </section>
     </main>
   );
 }
