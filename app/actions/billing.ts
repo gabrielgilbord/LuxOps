@@ -143,8 +143,8 @@ export async function openCustomerPortalAction(formData: FormData) {
     });
 
     redirect(session.url);
-  } catch (error) {
-    console.error("No se pudo abrir portal de Stripe", error);
+  } catch {
+    console.error("[billing] openCustomerPortalAction: error al abrir portal de Stripe");
     const fallbackSession = await stripe.billingPortal.sessions.create({
       customer: organization.stripeCustomerId,
       return_url: returnUrl,

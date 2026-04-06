@@ -6,8 +6,8 @@ export async function GET(request: Request) {
     const session = await createStripeCheckoutSession();
 
     return NextResponse.redirect(session.url!, { status: 303 });
-  } catch (error) {
-    console.error(error);
+  } catch {
+    console.error("[api/stripe/checkout] no se pudo crear sesión de Stripe");
     return NextResponse.redirect(new URL("/#precios", request.url), 303);
   }
 }

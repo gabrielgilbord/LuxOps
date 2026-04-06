@@ -43,7 +43,7 @@ export async function createCheckoutSessionAction(
     }
     return { checkoutUrl: session.url };
   } catch (err) {
-    console.error("[checkout] createCheckoutSessionAction", err);
+    console.error("[checkout] createCheckoutSessionAction falló");
     return { error: checkoutErrorMessage(err) };
   }
 }

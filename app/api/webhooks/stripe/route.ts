@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
@@ -41,8 +42,8 @@ export async function POST(request: Request) {
 
   try {
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-  } catch (error) {
-    console.error("Invalid webhook signature", error);
+  } catch {
+    console.error("LuxOps Stripe webhook: firma inválida o cuerpo corrupto");
     return NextResponse.json({ error: "Firma invalida" }, { status: 400 });
   }
 
@@ -76,8 +77,7 @@ export async function POST(request: Request) {
       });
       if (result.count === 0) {
         console.warn(
-          "LuxOps Stripe webhook: checkout.session.completed — 0 filas (normal si el alta de org aún no guardó `stripeCheckoutSessionId`).",
-          { sessionId: session.id, customerId },
+          "LuxOps Stripe webhook: checkout.session.completed sin fila Organization (esperable si el alta aún no guardó sesión; rescate vía Stripe API por email).",
         );
       }
     } else if (event.type === "customer.subscription.updated") {
@@ -113,12 +113,23 @@ export async function POST(request: Request) {
       }
     }
 
-    await prisma.stripeEvent.create({
-      data: { eventId: event.id, eventType: event.type },
-    });
+    try {
+      await prisma.stripeEvent.create({
+        data: { eventId: event.id, eventType: event.type },
+      });
+    } catch (createErr) {
+      if (
+        createErr instanceof Prisma.PrismaClientKnownRequestError &&
+        createErr.code === "P2002"
+      ) {
+        // Misma entrega concurrente o reintento muy rápido: otro worker ya insertó este event.id.
+        return NextResponse.json({ received: true, deduplicated: true });
+      }
+      throw createErr;
+    }
     return NextResponse.json({ received: true });
-  } catch (e) {
-    console.error("LuxOps Stripe webhook: handler failed before persisting stripeEvent", e);
+  } catch {
+    console.error("LuxOps Stripe webhook: error al procesar evento o persistir deduplicación");
     return NextResponse.json({ error: "handler_failed" }, { status: 500 });
   }
 }

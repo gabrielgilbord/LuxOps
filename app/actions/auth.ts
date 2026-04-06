@@ -56,8 +56,8 @@ export async function registerAction(
       return { error: "No se pudo iniciar el checkout de Stripe." };
     }
     return { checkoutUrl: session.url };
-  } catch (e) {
-    console.error("[registerAction]", e);
+  } catch {
+    console.error("[auth] registerAction: error al crear sesión de checkout");
     return { error: "No se pudo iniciar el pago. Revisa Stripe en el servidor." };
   }
 }

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPublicAppUrl } from "@/lib/public-app-url";
 import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
-import { getStripe } from "@/lib/stripe";
+import { findActiveSubscriptionForEmail } from "@/lib/rescue";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function normalizeEmail(raw: string): string {
@@ -22,35 +22,6 @@ export type RescueEligibilityResult =
   | { kind: "unsubscribed" }
   | { kind: "has_account_subscribed"; email: string; needsOrgProfile: boolean }
   | { kind: "stripe_paid_no_app_account"; email: string; suggestedCompany: string | null };
-
-type PaidStripeInfo = {
-  customerId: string;
-  subscriptionId: string;
-  subscriptionStatus: string;
-  suggestedName: string | null;
-};
-
-async function findActiveSubscriptionForEmail(email: string): Promise<PaidStripeInfo | null> {
-  const stripe = getStripe();
-  const { data: customers } = await stripe.customers.list({ email, limit: 15 });
-  for (const c of customers) {
-    const { data: subs } = await stripe.subscriptions.list({
-      customer: c.id,
-      status: "all",
-      limit: 15,
-    });
-    const active = subs.find((s) => s.status === "active" || s.status === "trialing");
-    if (active) {
-      return {
-        customerId: c.id,
-        subscriptionId: active.id,
-        subscriptionStatus: active.status,
-        suggestedName: c.name ?? (c.metadata?.company_name as string | undefined) ?? null,
-      };
-    }
-  }
-  return null;
-}
 
 /**
  * Comprueba si el correo puede usar el flujo de rescate (pago en Stripe sin registro completo,
@@ -265,8 +236,8 @@ export async function completeRescueRegistration(
         });
       }
     });
-  } catch (e) {
-    console.error("[completeRescueRegistration] prisma", e);
+  } catch {
+    console.error("[rescue] completeRescueRegistration: error al persistir organización");
     return {
       error:
         "No se pudo guardar la organización. Si el problema continúa, contacta con soporte indicando tu correo de pago.",
