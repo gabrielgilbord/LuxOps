@@ -1,14 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { getAllBlogPosts } from "@/lib/blog/registry";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -34,63 +27,50 @@ export default function BlogIndexPage() {
   const posts = getAllBlogPosts();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="text-sm font-semibold text-slate-600 transition hover:text-slate-900"
-          >
-            ← LuxOps
-          </Link>
-          <span className="inline-flex items-center gap-2 text-sm font-medium text-amber-800">
-            <BookOpen className="h-4 w-4" aria-hidden />
-            Blog
-          </span>
-        </div>
-      </header>
+    <main className="mx-auto w-full max-w-6xl flex-1 px-5 pb-20 pt-10 sm:px-6 sm:pt-14 md:pb-24 lg:px-8">
+      <div className="mx-auto max-w-2xl text-center">
+        <p className="mb-4 inline-flex items-center justify-center gap-2 rounded-full border border-yellow-300/35 bg-yellow-300/15 px-3 py-1 text-xs font-bold text-yellow-200">
+          <BookOpen className="h-3.5 w-3.5" aria-hidden />
+          Blog y recursos
+        </p>
+        <h1 className="text-balance text-5xl font-bold tracking-tight text-transparent sm:text-6xl bg-gradient-to-r from-sky-200 via-sky-300 to-yellow-300 bg-clip-text">
+          Blog LuxOps
+        </h1>
+        <p className="mt-5 text-pretty text-base leading-relaxed text-slate-200/90 sm:text-lg">
+          Recursos para instaladoras: estrategia operativa, normativa y software para empresas solares
+          que quieren crecer con margen.
+        </p>
+      </div>
 
-      <main className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Blog LuxOps
-          </h1>
-          <p className="mt-3 text-pretty text-slate-600 md:text-lg">
-            Estrategia operativa, normativa y software para instaladoras solares que quieren crecer
-            con margen.
-          </p>
-        </div>
-
-        <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-          {posts.map((post) => (
-            <li key={post.slug}>
-              <Link href={`/blog/${post.slug}`} className="group block h-full">
-                <Card className="h-full border-slate-200/90 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-amber-300/60 hover:shadow-md">
-                  <CardHeader className="border-b border-slate-100 pb-4">
-                    <time
-                      dateTime={post.publishedAt}
-                      className="text-xs font-medium uppercase tracking-wide text-amber-700"
-                    >
-                      {formatPublishedDate(post.publishedAt)}
-                    </time>
-                    <CardTitle className="text-lg leading-snug text-slate-900 group-hover:text-amber-900 md:text-xl">
-                      {post.title}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-3 text-slate-600">
-                      {post.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <span className="text-sm font-semibold text-amber-700 group-hover:underline">
-                      Leer artículo →
-                    </span>
-                  </CardContent>
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </main>
-    </div>
+      <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3 lg:gap-6">
+        {posts.map((post) => (
+          <li key={post.slug}>
+            <Link href={`/blog/${post.slug}`} className="group flex h-full flex-col">
+              <article className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/20 backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-yellow-300/35 hover:bg-white/[0.07] hover:shadow-[0_20px_50px_-15px_rgba(250,204,21,0.1)]">
+                <time
+                  dateTime={post.publishedAt}
+                  className="text-xs font-semibold uppercase tracking-[0.12em] text-yellow-300/90"
+                >
+                  {formatPublishedDate(post.publishedAt)}
+                </time>
+                <h2 className="mt-4 text-lg font-bold leading-snug text-yellow-200 transition group-hover:text-yellow-100 md:text-xl">
+                  {post.title}
+                </h2>
+                <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-slate-200/85">
+                  {post.description}
+                </p>
+                <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-yellow-300 transition group-hover:gap-3 group-hover:text-yellow-200">
+                  Leer artículo
+                  <ArrowRight
+                    className="h-4 w-4 shrink-0 transition group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </span>
+              </article>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 }

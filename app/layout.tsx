@@ -95,7 +95,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="flex min-h-full flex-col">
         <LuxOpsJsonLd />
-        <div className="flex min-h-full flex-1 flex-col">{children}</div>
+        <div className="flex min-h-screen flex-1 flex-col bg-slate-950">{children}</div>
         <SiteFooter />
         <CookieBanner />
       </body>

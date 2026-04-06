@@ -68,23 +68,23 @@ export default async function BlogArticlePage({
   return (
     <>
       <BlogPostingJsonLd slug={slug} post={post} />
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-        <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-3xl px-5 py-4 sm:px-6 lg:px-8">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="border-b border-white/10 bg-slate-950/60 backdrop-blur-md">
+          <div className="mx-auto max-w-3xl px-5 py-4 sm:px-6 lg:px-8">
             <Link
               href="/blog"
-              className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition hover:text-amber-800"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-300/90 transition hover:text-yellow-200"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden />
               Volver al blog
             </Link>
           </div>
-        </header>
+        </div>
 
-        <article className="mx-auto max-w-3xl px-5 py-8 sm:px-6 md:py-12 lg:px-8">
+        <article className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 text-slate-100 sm:px-6 sm:py-12 md:py-14 lg:px-8">
           <time
             dateTime={post.publishedAt}
-            className="text-sm font-medium text-slate-500"
+            className="text-xs font-bold uppercase tracking-[0.15em] text-yellow-300/85"
           >
             {formatPublishedDate(post.publishedAt)}
           </time>

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useActionState, useEffect } from "react";
 import { createCheckoutSessionAction } from "@/app/actions/checkout";
-import { LandingNav } from "@/components/landing/landing-nav";
+import { LandingShell } from "@/components/landing/landing-shell";
 
 export type LandingBlogTeaser = {
   slug: string;
@@ -55,13 +55,8 @@ export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
   }, [checkoutState?.checkoutUrl]);
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-slate-950">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.18),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(251,191,36,0.16),transparent_30%)]" />
-      <div className="pointer-events-none absolute -left-20 top-40 h-72 w-72 rotate-12 rounded-3xl border border-white/10 bg-white/5 blur-2xl" />
-      <div className="pointer-events-none absolute right-0 top-72 h-56 w-56 -rotate-12 rounded-full border border-yellow-300/20 bg-yellow-300/10 blur-2xl" />
-
-      <LandingNav />
-
+    <LandingShell>
+      <main className="relative w-full">
       <section className="relative mx-auto grid w-full max-w-7xl gap-10 px-5 pb-20 pt-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pt-24">
         <div className="animate-fade-in-up">
           <p className="mb-4 inline-flex rounded-full border border-yellow-300/35 bg-yellow-300/15 px-3 py-1 text-xs font-bold text-yellow-200">
@@ -549,6 +544,7 @@ export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
           </p>
         </div>
       </section>
-    </main>
+      </main>
+    </LandingShell>
   );
 }
