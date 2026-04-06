@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPublicAppUrl } from "@/lib/public-app-url";
 import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
+import { firstNameForWelcome } from "@/lib/celebration-name";
 import { findActiveSubscriptionForEmail } from "@/lib/rescue";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -251,5 +252,6 @@ export async function completeRescueRegistration(
   if (!data.session) {
     redirect("/login?verify=1");
   }
-  redirect("/onboarding?continue=1");
+  const elite = encodeURIComponent(firstNameForWelcome(name, email));
+  redirect(`/onboarding?continue=1&celebrate=1&elite=${elite}`);
 }

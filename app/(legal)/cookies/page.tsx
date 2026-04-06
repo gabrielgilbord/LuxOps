@@ -11,8 +11,8 @@ export default function CookiesPage() {
     <article className="prose prose-slate max-w-none">
       <h1 className="text-3xl font-bold tracking-tight text-slate-950">Política de cookies</h1>
       <p className="text-sm text-slate-500">
-        Información sobre almacenamiento local y tecnologías similares utilizadas en luxops.app o
-        dominios asociados al servicio.
+        Información sobre almacenamiento local y tecnologías similares utilizadas en LuxOps (por
+        ejemplo en luxops.es) o dominios asociados al servicio.
       </p>
 
       <h2 className="mt-10 text-xl font-semibold text-slate-900">1. Cookies técnicas y funcionales</h2>

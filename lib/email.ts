@@ -1,7 +1,13 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { dossierProjectInclude, generateDossierPdfBuffer } from "@/lib/generate-dossier-pdf";
-import { buildCertificateEmail, buildWelcomeInstallerEmail } from "@/lib/email-templates";
+import { getPublicAppUrl } from "@/lib/public-app-url";
+import {
+  buildCertificateEmail,
+  buildOperarioObraAssignedEmail,
+  buildPaidSubscriptionWelcomeEmail,
+  buildWelcomeInstallerEmail,
+} from "@/lib/email-templates";
 
 type SendProjectFinishedEmailParams = {
   organizationId: string;
@@ -86,6 +92,62 @@ export async function sendProjectFinishedEmail(params: SendProjectFinishedEmailP
         ]
       : undefined,
   });
+}
+
+export async function sendPaidSubscriptionWelcomeEmail(params: {
+  to: string;
+  firstName: string;
+}): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!apiKey || !from || !isLikelyEmail(params.to)) return false;
+  try {
+    const resend = new Resend(apiKey);
+    const base = getPublicAppUrl().replace(/\/$/, "");
+    const template = buildPaidSubscriptionWelcomeEmail({
+      firstName: params.firstName,
+      dashboardUrl: `${base}/login`,
+    });
+    await resend.emails.send({
+      from,
+      to: [params.to.trim().toLowerCase()],
+      subject: "🚀 ¡Bienvenido a LuxOps! Tu empresa ya es digital.",
+      html: template.html,
+      text: template.text,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function sendOperarioObraAssignedEmail(params: {
+  to: string;
+  operarioName: string;
+  cliente: string;
+  obraUrl: string;
+}): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!apiKey || !from || !isLikelyEmail(params.to)) return false;
+  try {
+    const resend = new Resend(apiKey);
+    const template = buildOperarioObraAssignedEmail({
+      operarioName: params.operarioName,
+      cliente: params.cliente,
+      obraUrl: params.obraUrl,
+    });
+    await resend.emails.send({
+      from,
+      to: [params.to.trim().toLowerCase()],
+      subject: "☀️ Nueva obra asignada en LuxOps",
+      html: template.html,
+      text: template.text,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function sendOperarioInviteEmail(params: SendOperarioInviteEmailParams) {

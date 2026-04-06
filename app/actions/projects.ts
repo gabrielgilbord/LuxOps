@@ -10,12 +10,21 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminUser, requireSubscribedUser } from "@/lib/authz";
 import {
   sendOperarioInviteEmail,
+  sendOperarioObraAssignedEmail,
   sendOperarioResetEmail,
   sendProjectFinishedEmail,
 } from "@/lib/email";
 import { uploadDataUrlToStorage } from "@/lib/storage";
 import { isSelfConsumptionModality } from "@/lib/self-consumption-modality";
 import type { SelfConsumptionModality } from "@prisma/client";
+
+async function resolveAppBaseUrl(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  if (host) return `${proto}://${host}`.replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
 
 export async function getProjects() {
   try {
@@ -160,8 +169,9 @@ export async function createProjectAction(
     select: { rebtCompanyNumber: true },
   });
 
+  let created: { id: string; cliente: string };
   try {
-    await prisma.project.create({
+    created = await prisma.project.create({
       data: {
         cliente,
         direccion,
@@ -178,6 +188,7 @@ export async function createProjectAction(
         estimatedRevenue: estimatedRevenueRaw || null,
         rebtCompanyNumber: orgRow?.rebtCompanyNumber ?? null,
       },
+      select: { id: true, cliente: true },
     });
   } catch (e) {
     console.error("LuxOps createProjectAction DB:", e);
@@ -186,6 +197,14 @@ export async function createProjectAction(
         "No se pudo guardar el proyecto en la base de datos. En Vercel, revisa DATABASE_URL (pool 6543 + ?pgbouncer=true) y que las migraciones estén aplicadas.",
     };
   }
+
+  const appBase = await resolveAppBaseUrl();
+  void sendOperarioObraAssignedEmail({
+    to: assignedUser.email,
+    operarioName: assignedUser.name ?? assignedUser.email,
+    cliente: created.cliente,
+    obraUrl: `${appBase}/mobile-dashboard/obra/${created.id}`,
+  });
 
   revalidatePath("/dashboard");
   revalidatePath("/mobile-dashboard");
@@ -299,7 +318,7 @@ export async function reassignUnassignedProjectAction(formData: FormData): Promi
 
   const project = await prisma.project.findFirst({
     where: { id: projectId, organizationId: admin.organizationId },
-    select: { id: true, assignedUserId: true },
+    select: { id: true, assignedUserId: true, cliente: true },
   });
   if (!project) throw new Error("Proyecto no encontrado.");
   if (project.assignedUserId) return;
@@ -325,6 +344,14 @@ export async function reassignUnassignedProjectAction(formData: FormData): Promi
       operarioNombre: operario.name ?? operario.email,
       operarioInitials: initials || "OP",
     },
+  });
+
+  const appBase = await resolveAppBaseUrl();
+  void sendOperarioObraAssignedEmail({
+    to: operario.email,
+    operarioName: operario.name ?? operario.email,
+    cliente: project.cliente,
+    obraUrl: `${appBase}/mobile-dashboard/obra/${project.id}`,
   });
 
   revalidatePath("/dashboard");

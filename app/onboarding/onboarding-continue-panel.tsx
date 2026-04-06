@@ -5,6 +5,7 @@ import { getCurrentDbUser } from "@/lib/authz";
 import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
 import { getOnboardingContinueOrgSnapshot } from "@/app/actions/onboarding-profile";
 import { OnboardingContinueForm } from "@/app/onboarding/onboarding-continue-form";
+import { OnboardingEliteCelebration } from "@/app/onboarding/onboarding-elite-celebration";
 import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
 
 function LuxOpsLogo() {
@@ -20,7 +21,15 @@ function isActiveSubscription(org: {
   );
 }
 
-export async function OnboardingContinuePanel() {
+type ContinuePanelProps = {
+  celebrate?: boolean;
+  eliteName?: string | null;
+};
+
+export async function OnboardingContinuePanel({
+  celebrate = false,
+  eliteName = null,
+}: ContinuePanelProps = {}) {
   const user = await getCurrentDbUser();
   if (!user) {
     redirect(`/login?next=${encodeURIComponent("/onboarding?continue=1")}`);
@@ -40,8 +49,11 @@ export async function OnboardingContinuePanel() {
     redirect("/dashboard");
   }
 
+  const elite = (eliteName ?? "").trim();
+
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
+    <main className="relative grid min-h-screen lg:grid-cols-2">
+      <OnboardingEliteCelebration celebrate={celebrate && elite.length > 0} firstName={elite} />
       <section className="relative hidden overflow-hidden bg-slate-950 p-10 lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(251,191,36,0.22),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(56,189,248,0.14),transparent_30%)]" />
         <div className="relative z-10">

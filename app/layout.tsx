@@ -45,9 +45,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: [{ url: "/luxops-logo.svg", type: "image/svg+xml" }],
-    shortcut: "/luxops-logo.svg",
-    apple: "/luxops-logo.svg",
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
   openGraph: {
     type: "website",
@@ -58,10 +58,10 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: "/luxops-logo.svg",
+        url: "/icon.svg",
         width: 512,
         height: 512,
-        alt: "LuxOps — CRM para instaladores solares",
+        alt: "LuxOps",
       },
     ],
   },
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/luxops-logo.svg"],
+    images: ["/icon.svg"],
   },
   robots: {
     index: true,

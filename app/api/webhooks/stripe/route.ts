@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { firstNameForWelcome } from "@/lib/celebration-name";
+import { sendPaidSubscriptionWelcomeEmail } from "@/lib/email";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
@@ -79,6 +81,20 @@ export async function POST(request: Request) {
         console.warn(
           "LuxOps Stripe webhook: checkout.session.completed sin fila Organization (esperable si el alta aún no guardó sesión; rescate vía Stripe API por email).",
         );
+      }
+      try {
+        const full = await stripe.checkout.sessions.retrieve(session.id);
+        const payerEmail =
+          full.customer_details?.email ??
+          (typeof full.customer_email === "string" ? full.customer_email : null) ??
+          null;
+        const payerName = full.customer_details?.name ?? null;
+        if (payerEmail) {
+          const firstName = firstNameForWelcome(payerName, payerEmail);
+          void sendPaidSubscriptionWelcomeEmail({ to: payerEmail, firstName });
+        }
+      } catch {
+        /* no bloquear el webhook si falla el correo o el retrieve */
       }
     } else if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object as Stripe.Subscription;

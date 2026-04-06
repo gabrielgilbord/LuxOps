@@ -8,18 +8,42 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
 
 type OnboardingPageProps = {
-  searchParams: Promise<{ session_id?: string; continue?: string }>;
+  searchParams: Promise<{
+    session_id?: string;
+    continue?: string;
+    celebrate?: string;
+    elite?: string;
+  }>;
 };
 
 function LuxOpsLogo() {
   return <BrandLogo darkBackground className="h-12 w-auto" />;
 }
 
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
-  const { session_id: sessionId, continue: continueFlag } = await searchParams;
+  const {
+    session_id: sessionId,
+    continue: continueFlag,
+    celebrate: celebrateFlag,
+    elite: eliteParam,
+  } = await searchParams;
 
   if (continueFlag === "1") {
-    return <OnboardingContinuePanel />;
+    const eliteRaw = eliteParam?.trim() ? safeDecodeURIComponent(eliteParam.trim()) : "";
+    return (
+      <OnboardingContinuePanel
+        celebrate={celebrateFlag === "1"}
+        eliteName={eliteRaw || null}
+      />
+    );
   }
 
   if (!sessionId) {

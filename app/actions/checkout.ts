@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
+import { firstNameForWelcome } from "@/lib/celebration-name";
 import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
 
 /** `checkoutUrl`: abrir en el cliente con `window.location.assign` (no usar `redirect()` a Stripe desde Server Action: CORS/preflight 403). */
@@ -103,5 +104,21 @@ export async function syncOrganizationFromCheckoutSession(sessionId: string) {
     return { ok: true as const, updated: result.count };
   } catch {
     return { ok: false as const, reason: "stripe_or_db_error" };
+  }
+}
+
+/** Nombre para el mensaje de celebración en `/success` (datos del Checkout de Stripe). */
+export async function getCheckoutWelcomeInfo(sessionId: string): Promise<{ firstName: string }> {
+  const id = sessionId.trim();
+  if (!id) return { firstName: "Instalador" };
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(id);
+    const name = session.customer_details?.name ?? null;
+    const email =
+      session.customer_details?.email ?? (session.customer_email as string | null) ?? null;
+    return { firstName: firstNameForWelcome(name, email) };
+  } catch {
+    return { firstName: "Instalador" };
   }
 }
