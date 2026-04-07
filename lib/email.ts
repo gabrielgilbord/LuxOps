@@ -97,18 +97,16 @@ export async function sendLuxOpsMagicLinkAccessEmail(params: {
   });
   if ("error" in link) return { ok: false, error: link.error };
   const tmpl = buildLuxOpsAuthActionEmail({
-    title: "Accede a LuxOps",
-    greeting: "Hola,",
-    bodyParagraphs: [
-      "Has solicitado un enlace para entrar en LuxOps sin usar contraseña.",
-      "Pulsa el botón dorado para continuar de forma segura. El enlace caduca pasado un tiempo.",
+    heading: "Acceso a LuxOps",
+    bodyLines: [
+      "Has solicitado un acceso rápido y seguro. Pulsa el botón dorado inferior para entrar a tu panel de control.",
     ],
-    buttonLabel: "Entrar con enlace seguro",
+    buttonLabel: "ENTRAR CON ENLACE SEGURO",
     actionLink: link.actionLink,
   });
   const sent = await sendLuxOpsAuthResend({
     to: email,
-    subject: "Tu enlace de acceso a LuxOps",
+    subject: "🔑 Tu clave de acceso a LuxOps",
     html: tmpl.html,
     text: tmpl.text,
   });
@@ -134,18 +132,17 @@ export async function sendLuxOpsSignupConfirmationEmail(params: {
   });
   if ("error" in link) return { ok: false, error: link.error };
   const tmpl = buildLuxOpsAuthActionEmail({
-    title: "Confirma tu cuenta LuxOps",
-    greeting: "Te damos la bienvenida,",
-    bodyParagraphs: [
-      "Tu cuenta está casi lista. Confirma el correo pulsando el botón para activar el acceso de forma segura.",
-      "Si no has solicitado este registro, puedes ignorar este mensaje.",
+    heading: "Confirma tu cuenta",
+    bodyLines: [
+      "Te damos la bienvenida.",
+      "Tu cuenta está casi lista. Pulsa el botón para activar el acceso. Si no solicitaste LuxOps, ignora este mensaje.",
     ],
-    buttonLabel: "Confirmar cuenta",
+    buttonLabel: "CONFIRMAR CUENTA",
     actionLink: link.actionLink,
   });
   const sent = await sendLuxOpsAuthResend({
     to: email,
-    subject: "Confirma tu cuenta LuxOps",
+    subject: "✉️ Confirma tu correo en LuxOps",
     html: tmpl.html,
     text: tmpl.text,
   });
@@ -168,18 +165,17 @@ export async function sendLuxOpsPasswordRecoveryEmail(params: {
     return { ok: true, skipped: true };
   }
   const tmpl = buildLuxOpsAuthActionEmail({
-    title: "Restablece tu contraseña",
-    greeting: "Hola,",
-    bodyParagraphs: [
+    heading: "Recuperar contraseña",
+    bodyLines: [
       "Has pedido restablecer la contraseña de tu cuenta LuxOps.",
       "Pulsa el botón para elegir una nueva contraseña. Si no fuiste tú, ignora este correo.",
     ],
-    buttonLabel: "Restablecer contraseña",
+    buttonLabel: "RESTABLECER CONTRASEÑA",
     actionLink: link.actionLink,
   });
   const sent = await sendLuxOpsAuthResend({
     to: email,
-    subject: "Restablece tu contraseña LuxOps",
+    subject: "🔐 Restablece tu contraseña en LuxOps",
     html: tmpl.html,
     text: tmpl.text,
   });
