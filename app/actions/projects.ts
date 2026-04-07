@@ -14,6 +14,7 @@ import {
   sendOperarioResetEmail,
   sendProjectFinishedEmail,
 } from "@/lib/email";
+import { getPublicAppUrl } from "@/lib/public-app-url";
 import { uploadDataUrlToStorage } from "@/lib/storage";
 import { isSelfConsumptionModality } from "@/lib/self-consumption-modality";
 import type { SelfConsumptionModality } from "@prisma/client";
@@ -23,7 +24,7 @@ async function resolveAppBaseUrl(): Promise<string> {
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "http";
   if (host) return `${proto}://${host}`.replace(/\/$/, "");
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return getPublicAppUrl();
 }
 
 export async function getProjects() {
@@ -385,11 +386,7 @@ export async function inviteOperarioAction(
   const token = crypto.randomBytes(24).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const fromRequest = host ? `${proto}://${host}` : null;
-  const appUrl = fromRequest ?? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+  const appUrl = await resolveAppBaseUrl();
   const inviteLink = `${appUrl}/invite/complete?token=${token}`;
 
   await prisma.operatorInvite.create({
@@ -506,11 +503,7 @@ export async function resendOperarioInviteAction(formData: FormData) {
   const token = crypto.randomBytes(24).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const fromRequest = host ? `${proto}://${host}` : null;
-  const appUrl = fromRequest ?? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+  const appUrl = await resolveAppBaseUrl();
   const inviteLink = `${appUrl}/invite/complete?token=${token}`;
 
   await prisma.operatorInvite.update({
@@ -740,11 +733,7 @@ export async function sendOperarioPasswordResetAction(formData: FormData) {
     redirect("/dashboard/team?resetStatus=error");
   }
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const fromRequest = host ? `${proto}://${host}` : null;
-  const appUrl = fromRequest ?? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+  const appUrl = await resolveAppBaseUrl();
 
   let status: "sent" | "error" = "error";
   let message = "";

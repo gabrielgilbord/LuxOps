@@ -33,7 +33,7 @@ function isLikelyEmail(value: string) {
 export async function sendProjectFinishedEmail(params: SendProjectFinishedEmailParams) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getPublicAppUrl();
   if (!apiKey || !from) return;
 
   const [project, admins, projectFull] = await Promise.all([

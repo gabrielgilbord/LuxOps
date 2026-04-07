@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getPublicAppUrl } from "@/lib/public-app-url";
 
 type InstallationPayload = {
   projectId: string;
@@ -9,7 +10,7 @@ async function sendInstallationCompletedWhatsapp(projectId: string) {
   const token = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_WHATSAPP_FROM;
   const to = process.env.OWNER_WHATSAPP_TO;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getPublicAppUrl();
 
   if (!sid || !token || !from || !to) return;
 
