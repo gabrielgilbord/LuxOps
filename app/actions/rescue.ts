@@ -106,6 +106,7 @@ export async function sendRescueMagicLinkAction(
   const sent = await sendLuxOpsMagicLinkAccessEmail({
     to: email,
     redirectTo,
+    nextPath,
     ...(displayName ? { data: { full_name: displayName } } : {}),
   });
   if (!sent.ok) {

@@ -218,13 +218,13 @@ export function buildLuxOpsAuthActionEmail(params: {
   <title>${heading}</title>
 </head>
 <body style="margin:0;padding:0;">
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#0B0E14;padding:50px 0;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;background-color:#0B0E14;margin:0;padding:24px 10px;font-family:Arial,Helvetica,sans-serif;">
   <tr>
-    <td align="center">
-      <table role="presentation" width="400" border="0" cellspacing="0" cellpadding="0" style="background-color:#161B22;border:2px solid #FBBF24;border-radius:20px;padding:40px;max-width:400px;">
+    <td align="center" style="padding:0;">
+      <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:450px;background-color:#161B22;border:2px solid #FBBF24;border-radius:20px;padding:28px 18px;">
         <tr>
-          <td align="center" style="padding-bottom:25px;">
-            <img src="${LUXOPS_AUTH_EMAIL_LOGO}" width="70" height="70" style="display:block;border-radius:12px;border:1px solid #FBBF24;" alt="Logo LuxOps">
+          <td align="center" style="padding-bottom:20px;">
+            <img src="${LUXOPS_AUTH_EMAIL_LOGO}" width="120" height="120" style="display:block;width:120px;height:120px;border-radius:14px;border:1px solid #FBBF24;" alt="Logo LuxOps">
           </td>
         </tr>
         <tr>

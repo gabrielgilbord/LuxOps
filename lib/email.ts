@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { dossierProjectInclude, generateDossierPdfBuffer } from "@/lib/generate-dossier-pdf";
-import { getPublicAppUrl } from "@/lib/public-app-url";
+import { getAuthConfirmUrl, getPublicAppUrl } from "@/lib/public-app-url";
 import {
   buildCertificateEmail,
   buildLuxOpsAuthActionEmail,
@@ -86,6 +86,8 @@ async function sendLuxOpsAuthResend(params: {
 export async function sendLuxOpsMagicLinkAccessEmail(params: {
   to: string;
   redirectTo: string;
+  /** Ruta interna post-verificación (ej. /dashboard o /onboarding?continue=1). */
+  nextPath: string;
   data?: Record<string, unknown>;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const email = params.to.trim().toLowerCase();
@@ -96,13 +98,18 @@ export async function sendLuxOpsMagicLinkAccessEmail(params: {
     data: params.data,
   });
   if ("error" in link) return { ok: false, error: link.error };
+  const confirmUrl = getAuthConfirmUrl({
+    tokenHash: link.tokenHash,
+    type: link.verificationType,
+    nextPath: params.nextPath,
+  });
   const tmpl = buildLuxOpsAuthActionEmail({
     heading: "Acceso a LuxOps",
     bodyLines: [
       "Has solicitado un acceso rápido y seguro. Pulsa el botón dorado inferior para entrar a tu panel de control.",
     ],
     buttonLabel: "ENTRAR CON ENLACE SEGURO",
-    actionLink: link.actionLink,
+    actionLink: confirmUrl,
   });
   const sent = await sendLuxOpsAuthResend({
     to: email,
@@ -131,6 +138,11 @@ export async function sendLuxOpsSignupConfirmationEmail(params: {
     data,
   });
   if ("error" in link) return { ok: false, error: link.error };
+  const confirmUrl = getAuthConfirmUrl({
+    tokenHash: link.tokenHash,
+    type: link.verificationType,
+    nextPath: "/dashboard",
+  });
   const tmpl = buildLuxOpsAuthActionEmail({
     heading: "Confirma tu cuenta",
     bodyLines: [
@@ -138,7 +150,7 @@ export async function sendLuxOpsSignupConfirmationEmail(params: {
       "Tu cuenta está casi lista. Pulsa el botón para activar el acceso. Si no solicitaste LuxOps, ignora este mensaje.",
     ],
     buttonLabel: "CONFIRMAR CUENTA",
-    actionLink: link.actionLink,
+    actionLink: confirmUrl,
   });
   const sent = await sendLuxOpsAuthResend({
     to: email,
@@ -164,6 +176,11 @@ export async function sendLuxOpsPasswordRecoveryEmail(params: {
   if ("error" in link) {
     return { ok: true, skipped: true };
   }
+  const confirmUrl = getAuthConfirmUrl({
+    tokenHash: link.tokenHash,
+    type: link.verificationType,
+    nextPath: "/auth/reset-password",
+  });
   const tmpl = buildLuxOpsAuthActionEmail({
     heading: "Recuperar contraseña",
     bodyLines: [
@@ -171,7 +188,7 @@ export async function sendLuxOpsPasswordRecoveryEmail(params: {
       "Pulsa el botón para elegir una nueva contraseña. Si no fuiste tú, ignora este correo.",
     ],
     buttonLabel: "RESTABLECER CONTRASEÑA",
-    actionLink: link.actionLink,
+    actionLink: confirmUrl,
   });
   const sent = await sendLuxOpsAuthResend({
     to: email,
