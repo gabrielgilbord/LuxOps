@@ -21,8 +21,11 @@ export default async function DashboardLayout({
       taxAddress: true,
     },
   });
+  if (!orgGate) {
+    redirect("/recuperar-acceso");
+  }
   if (
-    orgGate?.isSubscribed &&
+    orgGate.isSubscribed &&
     isOrganizationProfileIncomplete({
       rebtCompanyNumber: orgGate.rebtCompanyNumber,
       taxAddress: orgGate.taxAddress,
