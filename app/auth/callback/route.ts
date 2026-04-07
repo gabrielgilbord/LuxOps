@@ -1,49 +1,54 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import { getPublicAppUrl } from "@/lib/public-app-url";
 
 /**
- * Intercambia el código de Supabase (confirmación de email, magic link, OAuth)
- * por sesión. Añade en Supabase → Auth → URL Configuration → Redirect URLs:
- * `${NEXT_PUBLIC_APP_URL}/auth/callback`
+ * Intercambia el `code` PKCE de Supabase (magic link, confirmación email, OAuth)
+ * por sesión y escribe las cookies **en la misma respuesta de redirect**.
+ *
+ * Importante: en Route Handlers, si solo usas `cookies()` de `next/headers`, las
+ * cookies de sesión pueden no viajar con `NextResponse.redirect` y el usuario
+ * acaba “sin sesión” en la siguiente petición (p. ej. landing en `/`).
+ *
+ * Supabase → Auth → URL Configuration → Redirect URLs:
+ * `https://TU_DOMINIO/auth/callback`
  */
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
-  const nextRaw = searchParams.get("next") ?? "/dashboard";
+export async function GET(request: NextRequest) {
+  const url = request.nextUrl;
+  const code = url.searchParams.get("code");
+  const nextRaw = url.searchParams.get("next") ?? "/dashboard";
   const next =
     nextRaw.startsWith("/") && !nextRaw.startsWith("//") && !nextRaw.includes("://")
       ? nextRaw
       : "/dashboard";
-  const base = getPublicAppUrl();
 
-  if (code) {
-    const cookieStore = await cookies();
-    const { url, key } = getSupabaseEnv();
-    const supabase = createServerClient(url, key, {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            /* set puede fallar en algunos contextos de RSC; el redirect igualmente intenta la sesión */
-          }
-        },
-      },
-    });
+  const origin = url.origin;
+  const failRedirect = NextResponse.redirect(new URL("/login?error=auth", origin));
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(new URL(next, base));
-    }
+  if (!code) {
+    return failRedirect;
   }
 
-  return NextResponse.redirect(new URL("/login?error=auth", base));
+  const successRedirect = NextResponse.redirect(new URL(next, origin));
+  const { url: supabaseUrl, key } = getSupabaseEnv();
+
+  const supabase = createServerClient(supabaseUrl, key, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          successRedirect.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    return failRedirect;
+  }
+
+  return successRedirect;
 }
