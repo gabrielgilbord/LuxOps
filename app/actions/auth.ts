@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { sendLuxOpsPasswordRecoveryEmail } from "@/lib/email";
+import { getSupabaseAuthResetPasswordUrl } from "@/lib/public-app-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
 
@@ -10,6 +12,37 @@ function safeInternalNextPath(raw: string): string | null {
   if (!t.startsWith("/") || t.startsWith("//")) return null;
   if (t.includes("://")) return null;
   return t;
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+/**
+ * Recuperación de contraseña: enlace generado con Supabase Admin (`recovery`) y envío con Resend.
+ * No revela si el correo existe en Auth (mensaje genérico si no hay usuario).
+ */
+export async function sendPasswordResetEmailAction(
+  _prev: { error?: string; ok?: boolean } | undefined,
+  formData: FormData,
+): Promise<{ error?: string; ok?: boolean }> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!isValidEmail(email)) {
+    return { error: "Introduce un correo válido." };
+  }
+
+  try {
+    const redirectTo = getSupabaseAuthResetPasswordUrl();
+    const result = await sendLuxOpsPasswordRecoveryEmail({ to: email, redirectTo });
+    if (!result.ok) {
+      return { error: result.error };
+    }
+  } catch (e) {
+    console.error("[auth] sendPasswordResetEmailAction", e);
+    return { error: "No se pudo procesar la solicitud. Inténtalo más tarde." };
+  }
+
+  return { ok: true };
 }
 
 export async function loginAction(

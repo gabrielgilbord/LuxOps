@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { sendLuxOpsSignupConfirmationEmail } from "@/lib/email";
 import { getPublicAppUrl, getSupabaseAuthCallbackUrl } from "@/lib/public-app-url";
 import { getStripe } from "@/lib/stripe";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/authz";
 
 export async function completeCheckoutOnboarding(formData: FormData) {
@@ -37,23 +38,42 @@ export async function completeCheckoutOnboarding(formData: FormData) {
     redirect("/login");
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({
+  const supabaseAdmin = createSupabaseAdminClient();
+  const { data: authCreate, error: createErr } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: { full_name: fullName },
-      emailRedirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
-    },
+    email_confirm: false,
+    user_metadata: { full_name: fullName },
   });
 
-  if (error) {
+  if (createErr || !authCreate.user) {
+    const msg = createErr?.message?.toLowerCase() ?? "";
+    const code = createErr?.code ?? "";
+    if (
+      msg.includes("already been registered") ||
+      msg.includes("already registered") ||
+      code === "user_already_exists"
+    ) {
+      throw new Error(
+        "Ese correo ya tiene cuenta de acceso. Inicia sesión o usa «¿Olvidaste tu contraseña?».",
+      );
+    }
     throw new Error(
-      error.message || "No se pudo crear la cuenta del administrador. Revisa el email o prueba otro.",
+      createErr?.message || "No se pudo crear la cuenta del administrador. Revisa el email o prueba otro.",
     );
   }
-  if (!data.user) {
-    throw new Error("No se pudo crear la cuenta del administrador.");
+
+  const authUserId = authCreate.user.id;
+
+  const confirmSend = await sendLuxOpsSignupConfirmationEmail({
+    to: email,
+    password,
+    redirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
+    fullName: fullName,
+  });
+  if (!confirmSend.ok) {
+    await supabaseAdmin.auth.admin.deleteUser(authUserId);
+    throw new Error(confirmSend.error);
   }
 
   const customerId =
@@ -69,39 +89,43 @@ export async function completeCheckoutOnboarding(formData: FormData) {
       ? null
       : session.subscription?.status ?? null;
 
-  await prisma.$transaction(async (tx) => {
-    const organization = await tx.organization.create({
-      data: {
-        name: companyName,
-        isSubscribed: true,
-        stripeCheckoutSessionId: session.id,
-        stripeCustomerId: customerId,
-        stripeSubscriptionId: subscriptionId,
-        subscriptionStatus: subscriptionStatus ?? "active",
-        planPriceCents: 15000,
-      },
-    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.create({
+        data: {
+          name: companyName,
+          isSubscribed: true,
+          stripeCheckoutSessionId: session.id,
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscriptionId,
+          subscriptionStatus: subscriptionStatus ?? "active",
+          planPriceCents: 15000,
+        },
+      });
 
-    await tx.user.create({
-      data: {
-        supabaseUserId: data.user!.id,
-        email,
-        name: fullName,
-        role: "ADMIN",
-        organizationId: organization.id,
-      },
+      await tx.user.create({
+        data: {
+          supabaseUserId: authUserId,
+          email,
+          name: fullName,
+          role: "ADMIN",
+          organizationId: organization.id,
+        },
+      });
     });
-  });
+  } catch {
+    console.error("[billing] completeCheckoutOnboarding: error al persistir organización");
+    await supabaseAdmin.auth.admin.deleteUser(authUserId);
+    throw new Error(
+      "No se pudo guardar la empresa en LuxOps. Si el cargo aparece en Stripe, contacta con soporte con tu correo de pago.",
+    );
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/mobile-dashboard");
   revalidatePath("/dashboard/settings");
 
-  if (!data.session) {
-    redirect("/login?verify=1");
-  }
-
-  redirect("/onboarding?continue=1");
+  redirect("/login?verify=1");
 }
 
 export async function openCustomerPortalAction(formData: FormData) {

@@ -4,10 +4,12 @@ import { dossierProjectInclude, generateDossierPdfBuffer } from "@/lib/generate-
 import { getPublicAppUrl } from "@/lib/public-app-url";
 import {
   buildCertificateEmail,
+  buildLuxOpsAuthActionEmail,
   buildOperarioObraAssignedEmail,
   buildPaidSubscriptionWelcomeEmail,
   buildWelcomeInstallerEmail,
 } from "@/lib/email-templates";
+import { generateAuthActionLink } from "@/lib/supabase/generate-auth-action-link";
 
 type SendProjectFinishedEmailParams = {
   organizationId: string;
@@ -31,6 +33,8 @@ function isLikelyEmail(value: string) {
 }
 
 const DEFAULT_FROM = "LuxOps <hola@luxops.es>";
+/** Remitente fijo para correos transaccionales de Auth (magic link, confirmación, recuperación). */
+const LUXOPS_AUTH_FROM = "LuxOps <hola@luxops.es>";
 const DEFAULT_REPLY_TO = "ggilbordon@gmail.com";
 
 function getResendFrom(): string {
@@ -40,6 +44,147 @@ function getResendFrom(): string {
 
 function shouldLogInsteadOfSend(apiKey: string | undefined): boolean {
   return !(apiKey ?? "").trim();
+}
+
+async function sendLuxOpsAuthResend(params: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = params.to.trim().toLowerCase();
+  if (!isLikelyEmail(to)) return false;
+  if (shouldLogInsteadOfSend(apiKey)) {
+    console.log("[email:dev] LuxOps auth email (missing RESEND_API_KEY)", {
+      from: LUXOPS_AUTH_FROM,
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: params.subject,
+      textPreview: params.text.slice(0, 200),
+    });
+    return true;
+  }
+  try {
+    const resend = new Resend(apiKey);
+    await resend.emails.send({
+      from: LUXOPS_AUTH_FROM,
+      replyTo: DEFAULT_REPLY_TO,
+      to: [to],
+      subject: params.subject,
+      html: params.html,
+      text: params.text,
+    });
+    return true;
+  } catch (e) {
+    console.error("[email] LuxOps auth Resend send failed", e);
+    return false;
+  }
+}
+
+/** Magic link (usuario ya existe en Supabase Auth). */
+export async function sendLuxOpsMagicLinkAccessEmail(params: {
+  to: string;
+  redirectTo: string;
+  data?: Record<string, unknown>;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const email = params.to.trim().toLowerCase();
+  const link = await generateAuthActionLink({
+    type: "magiclink",
+    email,
+    redirectTo: params.redirectTo,
+    data: params.data,
+  });
+  if ("error" in link) return { ok: false, error: link.error };
+  const tmpl = buildLuxOpsAuthActionEmail({
+    title: "Accede a LuxOps",
+    greeting: "Hola,",
+    bodyParagraphs: [
+      "Has solicitado un enlace para entrar en LuxOps sin usar contraseña.",
+      "Pulsa el botón dorado para continuar de forma segura. El enlace caduca pasado un tiempo.",
+    ],
+    buttonLabel: "Entrar con enlace seguro",
+    actionLink: link.actionLink,
+  });
+  const sent = await sendLuxOpsAuthResend({
+    to: email,
+    subject: "Tu enlace de acceso a LuxOps",
+    html: tmpl.html,
+    text: tmpl.text,
+  });
+  if (!sent) return { ok: false, error: "No se pudo enviar el correo. Inténtalo más tarde." };
+  return { ok: true };
+}
+
+/** Confirmación de alta tras `auth.admin.createUser` (sin envío automático de Supabase). */
+export async function sendLuxOpsSignupConfirmationEmail(params: {
+  to: string;
+  password: string;
+  redirectTo: string;
+  fullName?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const email = params.to.trim().toLowerCase();
+  const data = params.fullName ? { full_name: params.fullName } : undefined;
+  const link = await generateAuthActionLink({
+    type: "signup",
+    email,
+    password: params.password,
+    redirectTo: params.redirectTo,
+    data,
+  });
+  if ("error" in link) return { ok: false, error: link.error };
+  const tmpl = buildLuxOpsAuthActionEmail({
+    title: "Confirma tu cuenta LuxOps",
+    greeting: "Te damos la bienvenida,",
+    bodyParagraphs: [
+      "Tu cuenta está casi lista. Confirma el correo pulsando el botón para activar el acceso de forma segura.",
+      "Si no has solicitado este registro, puedes ignorar este mensaje.",
+    ],
+    buttonLabel: "Confirmar cuenta",
+    actionLink: link.actionLink,
+  });
+  const sent = await sendLuxOpsAuthResend({
+    to: email,
+    subject: "Confirma tu cuenta LuxOps",
+    html: tmpl.html,
+    text: tmpl.text,
+  });
+  if (!sent) return { ok: false, error: "No se pudo enviar el correo de confirmación." };
+  return { ok: true };
+}
+
+/** Recuperación de contraseña (enlace tipo recovery de Supabase). */
+export async function sendLuxOpsPasswordRecoveryEmail(params: {
+  to: string;
+  redirectTo: string;
+}): Promise<{ ok: true; skipped?: boolean } | { ok: false; error: string }> {
+  const email = params.to.trim().toLowerCase();
+  const link = await generateAuthActionLink({
+    type: "recovery",
+    email,
+    redirectTo: params.redirectTo,
+  });
+  if ("error" in link) {
+    return { ok: true, skipped: true };
+  }
+  const tmpl = buildLuxOpsAuthActionEmail({
+    title: "Restablece tu contraseña",
+    greeting: "Hola,",
+    bodyParagraphs: [
+      "Has pedido restablecer la contraseña de tu cuenta LuxOps.",
+      "Pulsa el botón para elegir una nueva contraseña. Si no fuiste tú, ignora este correo.",
+    ],
+    buttonLabel: "Restablecer contraseña",
+    actionLink: link.actionLink,
+  });
+  const sent = await sendLuxOpsAuthResend({
+    to: email,
+    subject: "Restablece tu contraseña LuxOps",
+    html: tmpl.html,
+    text: tmpl.text,
+  });
+  if (!sent) return { ok: false, error: "No se pudo enviar el correo. Inténtalo más tarde." };
+  return { ok: true };
 }
 
 export async function sendProjectFinishedEmail(params: SendProjectFinishedEmailParams) {

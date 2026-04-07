@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSupabaseAuthCallbackUrl } from "@/lib/public-app-url";
+import { sendLuxOpsMagicLinkAccessEmail, sendLuxOpsSignupConfirmationEmail } from "@/lib/email";
 import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
-import { firstNameForWelcome } from "@/lib/celebration-name";
 import { findActiveSubscriptionForEmail } from "@/lib/rescue";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
@@ -100,17 +100,16 @@ export async function sendRescueMagicLinkAction(
     taxAddress: dbUser.organization.taxAddress,
   });
   const nextPath = needsOrgProfile ? "/onboarding?continue=1" : "/dashboard";
+  const redirectTo = getSupabaseAuthCallbackUrl(nextPath);
+  const displayName = (dbUser.name ?? "").trim();
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: getSupabaseAuthCallbackUrl(nextPath),
-    },
+  const sent = await sendLuxOpsMagicLinkAccessEmail({
+    to: email,
+    redirectTo,
+    ...(displayName ? { data: { full_name: displayName } } : {}),
   });
-
-  if (error) {
-    return { ok: false, error: error.message || "No se pudo enviar el enlace." };
+  if (!sent.ok) {
+    return { ok: false, error: sent.error };
   }
   return { ok: true };
 }
@@ -163,32 +162,41 @@ export async function completeRescueRegistration(
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({
+  const supabaseAdmin = createSupabaseAdminClient();
+  const { data: authCreate, error: createErr } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: { full_name: name },
-      emailRedirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
-    },
+    email_confirm: false,
+    user_metadata: { full_name: name },
   });
 
-  if (error) {
-    const msg = error.message?.toLowerCase() ?? "";
+  if (createErr || !authCreate.user) {
+    const msg = createErr?.message?.toLowerCase() ?? "";
+    const code = createErr?.code ?? "";
     if (
       msg.includes("already been registered") ||
       msg.includes("already registered") ||
-      error.code === "user_already_exists"
+      code === "user_already_exists"
     ) {
       return {
         error:
           "Ese correo ya está registrado en el sistema de acceso. Usa Iniciar sesión o recupera la contraseña desde ahí.",
       };
     }
-    return { error: error.message || "No se pudo crear la cuenta." };
+    return { error: createErr?.message || "No se pudo crear la cuenta." };
   }
-  if (!data.user) {
-    return { error: "No se pudo crear la cuenta de acceso." };
+
+  const authUserId = authCreate.user.id;
+
+  const confirmSend = await sendLuxOpsSignupConfirmationEmail({
+    to: email,
+    password,
+    redirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
+    fullName: name,
+  });
+  if (!confirmSend.ok) {
+    await supabaseAdmin.auth.admin.deleteUser(authUserId);
+    return { error: confirmSend.error };
   }
 
   try {
@@ -206,7 +214,7 @@ export async function completeRescueRegistration(
         });
         await tx.user.create({
           data: {
-            supabaseUserId: data.user!.id,
+            supabaseUserId: authUserId,
             email,
             name,
             role: "ADMIN",
@@ -226,7 +234,7 @@ export async function completeRescueRegistration(
         });
         await tx.user.create({
           data: {
-            supabaseUserId: data.user!.id,
+            supabaseUserId: authUserId,
             email,
             name,
             role: "ADMIN",
@@ -237,6 +245,7 @@ export async function completeRescueRegistration(
     });
   } catch {
     console.error("[rescue] completeRescueRegistration: error al persistir organización");
+    await supabaseAdmin.auth.admin.deleteUser(authUserId);
     return {
       error:
         "No se pudo guardar la organización. Si el problema continúa, contacta con soporte indicando tu correo de pago.",
@@ -247,9 +256,5 @@ export async function completeRescueRegistration(
   revalidatePath("/mobile-dashboard");
   revalidatePath("/dashboard/settings");
 
-  if (!data.session) {
-    redirect("/login?verify=1");
-  }
-  const elite = encodeURIComponent(firstNameForWelcome(name, email));
-  redirect(`/onboarding?continue=1&celebrate=1&elite=${elite}`);
+  redirect("/login?verify=1");
 }

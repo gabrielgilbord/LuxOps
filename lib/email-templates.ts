@@ -175,3 +175,69 @@ Cliente: ${params.nombreCliente}
 Ver certificado online: ${params.reportUrl}`;
   return { html, text };
 }
+
+function escapeHtmlPlain(text: string) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Tarjeta LuxOps Deluxe para enlaces generados con Supabase `admin.generateLink` (magic link, signup, recovery). */
+function wrapLuxOpsAuthDeluxeHtml(opts: { title: string; inner: string }) {
+  const logoUrl = emailLogoUrl();
+  return `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#0B0E14;">
+    <div style="font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0B0E14;padding:32px 16px;">
+      <div style="max-width:560px;margin:0 auto;background:#161B22;border:1px solid #FBBF24;border-radius:16px;padding:28px 24px;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <img src="${logoUrl}" width="72" height="72" alt="LuxOps" style="display:block;margin:0 auto;background:#0B0E14;border-radius:18px;" />
+        </div>
+        <h1 style="margin:0 0 14px 0;font-size:18px;line-height:1.25;color:#F1F5F9;text-align:center;letter-spacing:-0.01em;">${opts.title}</h1>
+        <div>${opts.inner}</div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.10);margin:22px 0 14px 0;" />
+        <p style="margin:0;font-size:12px;color:#94A3B8;text-align:center;line-height:1.5;">
+          LuxOps · Hecho en Canarias
+        </p>
+      </div>
+    </div>
+  </body>
+</html>`;
+}
+
+export function buildLuxOpsAuthActionEmail(params: {
+  title: string;
+  greeting: string;
+  bodyParagraphs: string[];
+  buttonLabel: string;
+  actionLink: string;
+}) {
+  const greeting = escapeHtmlPlain(params.greeting);
+  const paras = params.bodyParagraphs
+    .map(
+      (p) =>
+        `<p style="margin:0 0 10px 0;font-size:14px;color:#CBD5E1;line-height:1.55">${escapeHtmlPlain(p)}</p>`,
+    )
+    .join("");
+  const btn = escapeHtmlPlain(params.buttonLabel);
+  const inner = `
+    <p style="margin:0 0 12px 0;font-size:15px;color:#E2E8F0">${greeting}</p>
+    ${paras}
+    <div style="text-align:center;margin:26px 0;">
+      <a href="${params.actionLink}" style="display:inline-block;background:#FBBF24;color:#0B0E14;text-decoration:none;font-weight:900;padding:14px 28px;border-radius:12px;font-size:15px;border:1px solid #FBBF24;">
+        ${btn}
+      </a>
+    </div>
+    <p style="margin:0;font-size:11px;color:#64748B;text-align:center;word-break:break-all;line-height:1.45;">
+      Si el botón no responde, copia y pega este enlace en el navegador:<br />
+      <span style="color:#94A3B8">${escapeHtmlPlain(params.actionLink)}</span>
+    </p>
+  `;
+  const html = wrapLuxOpsAuthDeluxeHtml({ title: escapeHtmlPlain(params.title), inner });
+  const textBody = [params.greeting, ...params.bodyParagraphs, "", `${params.buttonLabel}: ${params.actionLink}`, "", "LuxOps"].join(
+    "\n",
+  );
+  return { html, text: textBody };
+}
