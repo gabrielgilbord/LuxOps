@@ -35,9 +35,15 @@ function checkoutErrorMessage(err: unknown): string {
  */
 export async function createCheckoutSessionAction(
   _prev: CheckoutSessionActionState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<{ error?: string; checkoutUrl?: string }> {
   try {
+    const acceptedLegal = String(formData.get("acceptedLegal") ?? "").trim();
+    if (acceptedLegal !== "1") {
+      return {
+        error: "Debes aceptar la Política de Privacidad y los Términos de Servicio para continuar.",
+      };
+    }
     const session = await createStripeCheckoutSession();
     if (!session.url) {
       return { error: "No se pudo obtener el enlace de pago." };

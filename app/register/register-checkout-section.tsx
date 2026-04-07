@@ -38,7 +38,7 @@ export function RegisterCheckoutSection() {
           .
         </span>
       </label>
-      <RegisterCheckoutButton disabled={!accepted} />
+      <RegisterCheckoutButton acceptedLegal={accepted} disabled={!accepted} />
     </div>
   );
 }

@@ -30,11 +30,31 @@ function isLikelyEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+const DEFAULT_FROM = "LuxOps <hola@luxops.es>";
+const DEFAULT_REPLY_TO = "ggilbordon@gmail.com";
+
+function getResendFrom(): string {
+  const from = (process.env.RESEND_FROM_EMAIL ?? "").trim();
+  return from || DEFAULT_FROM;
+}
+
+function shouldLogInsteadOfSend(apiKey: string | undefined): boolean {
+  return !(apiKey ?? "").trim();
+}
+
 export async function sendProjectFinishedEmail(params: SendProjectFinishedEmailParams) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+  const from = getResendFrom();
   const appUrl = getPublicAppUrl();
-  if (!apiKey || !from) return;
+  if (shouldLogInsteadOfSend(apiKey)) {
+    console.log("[email:dev] sendProjectFinishedEmail skipped (missing RESEND_API_KEY)", {
+      from,
+      replyTo: DEFAULT_REPLY_TO,
+      organizationId: params.organizationId,
+      projectId: params.projectId,
+    });
+    return;
+  }
 
   const [project, admins, projectFull] = await Promise.all([
     prisma.project.findFirst({
@@ -78,6 +98,7 @@ export async function sendProjectFinishedEmail(params: SendProjectFinishedEmailP
 
   await resend.emails.send({
     from,
+    replyTo: DEFAULT_REPLY_TO,
     to: recipients,
     ...(cc?.length ? { cc } : {}),
     subject: `📄 Certificado Técnico LuxOps - Expediente ${expediente} - ${project.cliente}`,
@@ -99,8 +120,19 @@ export async function sendPaidSubscriptionWelcomeEmail(params: {
   firstName: string;
 }): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !from || !isLikelyEmail(params.to)) return false;
+  const from = getResendFrom();
+  if (!isLikelyEmail(params.to)) return false;
+  if (shouldLogInsteadOfSend(apiKey)) {
+    const base = getPublicAppUrl().replace(/\/$/, "");
+    console.log("[email:dev] sendPaidSubscriptionWelcomeEmail skipped (missing RESEND_API_KEY)", {
+      from,
+      replyTo: DEFAULT_REPLY_TO,
+      to: params.to.trim().toLowerCase(),
+      subject: "🚀 ¡Bienvenido a LuxOps! Tu empresa ya es digital.",
+      dashboardUrl: `${base}/login`,
+    });
+    return true;
+  }
   try {
     const resend = new Resend(apiKey);
     const base = getPublicAppUrl().replace(/\/$/, "");
@@ -110,6 +142,7 @@ export async function sendPaidSubscriptionWelcomeEmail(params: {
     });
     await resend.emails.send({
       from,
+      replyTo: DEFAULT_REPLY_TO,
       to: [params.to.trim().toLowerCase()],
       subject: "🚀 ¡Bienvenido a LuxOps! Tu empresa ya es digital.",
       html: template.html,
@@ -128,8 +161,20 @@ export async function sendOperarioObraAssignedEmail(params: {
   obraUrl: string;
 }): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !from || !isLikelyEmail(params.to)) return false;
+  const from = getResendFrom();
+  if (!isLikelyEmail(params.to)) return false;
+  if (shouldLogInsteadOfSend(apiKey)) {
+    console.log("[email:dev] sendOperarioObraAssignedEmail skipped (missing RESEND_API_KEY)", {
+      from,
+      replyTo: DEFAULT_REPLY_TO,
+      to: params.to.trim().toLowerCase(),
+      subject: "☀️ Nueva obra asignada en LuxOps",
+      obraUrl: params.obraUrl,
+      cliente: params.cliente,
+      operarioName: params.operarioName,
+    });
+    return true;
+  }
   try {
     const resend = new Resend(apiKey);
     const template = buildOperarioObraAssignedEmail({
@@ -139,6 +184,7 @@ export async function sendOperarioObraAssignedEmail(params: {
     });
     await resend.emails.send({
       from,
+      replyTo: DEFAULT_REPLY_TO,
       to: [params.to.trim().toLowerCase()],
       subject: "☀️ Nueva obra asignada en LuxOps",
       html: template.html,
@@ -152,8 +198,18 @@ export async function sendOperarioObraAssignedEmail(params: {
 
 export async function sendOperarioInviteEmail(params: SendOperarioInviteEmailParams) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !from) return false;
+  const from = getResendFrom();
+  if (shouldLogInsteadOfSend(apiKey)) {
+    console.log("[email:dev] sendOperarioInviteEmail skipped (missing RESEND_API_KEY)", {
+      from,
+      replyTo: DEFAULT_REPLY_TO,
+      to: params.to.trim().toLowerCase(),
+      subject: "☀️ Bienvenido a LuxOps | Tu cuenta de certificación técnica está activa",
+      inviteUrl: params.inviteUrl,
+      name: params.name,
+    });
+    return true;
+  }
 
   try {
     const resend = new Resend(apiKey);
@@ -163,6 +219,7 @@ export async function sendOperarioInviteEmail(params: SendOperarioInviteEmailPar
     });
     await resend.emails.send({
       from,
+      replyTo: DEFAULT_REPLY_TO,
       to: [params.to],
       subject: "☀️ Bienvenido a LuxOps | Tu cuenta de certificación técnica está activa",
       html: template.html,
@@ -176,13 +233,24 @@ export async function sendOperarioInviteEmail(params: SendOperarioInviteEmailPar
 
 export async function sendOperarioResetEmail(params: SendOperarioResetEmailParams) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !from) return false;
+  const from = getResendFrom();
+  if (shouldLogInsteadOfSend(apiKey)) {
+    console.log("[email:dev] sendOperarioResetEmail skipped (missing RESEND_API_KEY)", {
+      from,
+      replyTo: DEFAULT_REPLY_TO,
+      to: params.to.trim().toLowerCase(),
+      subject: "Restablece tu contraseña de LuxOps",
+      resetUrl: params.resetUrl,
+      name: params.name,
+    });
+    return true;
+  }
 
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
       from,
+      replyTo: DEFAULT_REPLY_TO,
       to: [params.to],
       subject: "Restablece tu contraseña de LuxOps",
       html: `

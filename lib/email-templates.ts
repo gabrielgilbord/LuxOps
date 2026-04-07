@@ -14,34 +14,46 @@ type OperarioObraAssignedParams = {
   obraUrl: string;
 };
 
-const lxLogoSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 512 512" style="display:block;margin:0 auto 16px;">
-  <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FBBF24"/><stop offset="100%" style="stop-color:#D97706"/></linearGradient></defs>
-  <rect width="512" height="512" rx="112" fill="#0B0E14"/>
-  <text x="256" y="330" text-anchor="middle" font-family="system-ui,sans-serif" font-size="200" font-weight="800" fill="url(#g)">LX</text>
-</svg>`;
+import * as React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { getPublicAppUrl } from "@/lib/public-app-url";
+import { EmailLayout } from "@/lib/emails/layout";
+
+function emailLogoUrl() {
+  const base = getPublicAppUrl().replace(/\/$/, "");
+  return `${base}/icon.svg`;
+}
+
+function wrapDeluxeEmail(opts: { title?: string; inner: string }) {
+  // renderToStaticMarkup devuelve markup sin doctype; lo añadimos para compatibilidad.
+  const element = React.createElement(
+    EmailLayout,
+    { logoUrl: emailLogoUrl(), title: opts.title },
+    React.createElement("div", { dangerouslySetInnerHTML: { __html: opts.inner } }),
+  );
+  return `<!doctype html>${renderToStaticMarkup(element)}`;
+}
 
 export function buildPaidSubscriptionWelcomeEmail(params: PaidSubscriptionWelcomeParams) {
-  const html = `
-  <div style="font-family:Inter,system-ui,Arial,sans-serif;background:#0B0E14;padding:32px 16px;">
-    <div style="max-width:560px;margin:0 auto;background:#161B22;border:1px solid rgba(251,191,36,0.25);border-radius:16px;padding:32px 28px;">
-      ${lxLogoSvg}
-      <p style="margin:0 0 12px 0;font-size:15px;color:#e2e8f0">Hola ${params.firstName},</p>
-      <p style="margin:0 0 12px 0;font-size:15px;color:#cbd5e1;line-height:1.55">
-        Tu pago se ha confirmado. <strong style="color:#fbbf24">LuxOps</strong> ya es el cerebro digital de tu instaladora: obras, equipo y trazabilidad en un solo flujo.
-      </p>
-      <p style="margin:0 0 24px 0;font-size:14px;color:#94a3b8">
-        Entra cuando quieras para completar el alta y abrir el panel.
-      </p>
-      <div style="text-align:center;margin:28px 0;">
-        <a href="${params.dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#FBBF24,#D97706);color:#0f172a;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:12px;font-size:15px;">
-          Ir a mi Dashboard
-        </a>
-      </div>
-      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:24px 0;" />
-      <p style="margin:0;font-size:12px;color:#64748b;text-align:center">LuxOps · CRM para instaladoras solares</p>
+  const inner = `
+    <p style="margin:0 0 12px 0;font-size:15px;color:#E2E8F0">Hola ${params.firstName},</p>
+    <p style="margin:0 0 12px 0;font-size:15px;color:#CBD5E1;line-height:1.55">
+      Tu pago se ha confirmado. <strong style="color:#FBBF24">LuxOps</strong> ya es el cerebro digital de tu instaladora:
+      obras, equipo y trazabilidad en un solo flujo.
+    </p>
+    <p style="margin:0 0 22px 0;font-size:14px;color:#94A3B8">
+      Entra cuando quieras para completar el alta y abrir el panel.
+    </p>
+    <div style="text-align:center;margin:26px 0;">
+      <a href="${params.dashboardUrl}" style="display:inline-block;background:#FBBF24;color:#0B0E14;text-decoration:none;font-weight:900;padding:14px 28px;border-radius:12px;font-size:15px;">
+        Ir a mi Dashboard
+      </a>
     </div>
-  </div>`;
+    <p style="margin:0;font-size:12px;color:#64748B;text-align:center">
+      Si no puedes hacer clic, copia y pega este enlace: ${params.dashboardUrl}
+    </p>
+  `;
+  const html = wrapDeluxeEmail({ title: "Bienvenido a LuxOps", inner });
   const text = `Hola ${params.firstName},
 
 Tu pago se ha confirmado. LuxOps ya es el cerebro digital de tu instaladora.
@@ -53,25 +65,23 @@ LuxOps · CRM para instaladoras solares`;
 }
 
 export function buildOperarioObraAssignedEmail(params: OperarioObraAssignedParams) {
-  const html = `
-  <div style="font-family:Inter,system-ui,Arial,sans-serif;background:#0B0E14;padding:32px 16px;">
-    <div style="max-width:560px;margin:0 auto;background:#161B22;border:1px solid rgba(251,191,36,0.25);border-radius:16px;padding:32px 28px;">
-      ${lxLogoSvg}
-      <p style="margin:0 0 8px 0;font-size:15px;color:#e2e8f0">Hola ${params.operarioName},</p>
-      <p style="margin:0 0 12px 0;font-size:15px;color:#cbd5e1;line-height:1.55">
-        Te han asignado una obra en <strong style="color:#fbbf24">LuxOps</strong>.
-      </p>
-      <p style="margin:0 0 8px 0;font-size:14px;color:#94a3b8">Cliente / instalación:</p>
-      <p style="margin:0 0 24px 0;font-size:16px;color:#f1f5f9;font-weight:700">${params.cliente}</p>
-      <div style="text-align:center;margin:28px 0;">
-        <a href="${params.obraUrl}" style="display:inline-block;background:linear-gradient(135deg,#FBBF24,#D97706);color:#0f172a;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:12px;font-size:15px;">
-          Abrir obra en el móvil
-        </a>
-      </div>
-      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:24px 0;" />
-      <p style="margin:0;font-size:12px;color:#64748b;text-align:center">LuxOps · Modo tejado</p>
+  const inner = `
+    <p style="margin:0 0 8px 0;font-size:15px;color:#E2E8F0">Hola ${params.operarioName},</p>
+    <p style="margin:0 0 12px 0;font-size:15px;color:#CBD5E1;line-height:1.55">
+      Te han asignado una obra en <strong style="color:#FBBF24">LuxOps</strong>.
+    </p>
+    <p style="margin:0 0 8px 0;font-size:14px;color:#94A3B8">Cliente / instalación:</p>
+    <p style="margin:0 0 22px 0;font-size:16px;color:#F1F5F9;font-weight:800">${params.cliente}</p>
+    <div style="text-align:center;margin:26px 0;">
+      <a href="${params.obraUrl}" style="display:inline-block;background:#FBBF24;color:#0B0E14;text-decoration:none;font-weight:900;padding:14px 28px;border-radius:12px;font-size:15px;">
+        Abrir obra en el móvil
+      </a>
     </div>
-  </div>`;
+    <p style="margin:0;font-size:12px;color:#64748B;text-align:center">
+      Si no puedes hacer clic, copia y pega este enlace: ${params.obraUrl}
+    </p>
+  `;
+  const html = wrapDeluxeEmail({ title: "Nueva obra asignada", inner });
   const text = `Hola ${params.operarioName},
 
 Te han asignado una obra en LuxOps.

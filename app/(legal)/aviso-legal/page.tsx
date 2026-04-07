@@ -45,6 +45,14 @@ export default function AvisoLegalPage() {
         información actualizada.
       </p>
 
+      <h2 className="mt-10 text-xl font-semibold text-slate-900">Servicio y proveedores</h2>
+      <p className="text-slate-700 leading-relaxed">
+        LuxOps es un software de gestión operativa para instaladoras. Para prestar el servicio,
+        podemos apoyarnos en proveedores tecnológicos como <strong>Supabase</strong> (autenticación y
+        datos), <strong>Stripe</strong> (pagos) y <strong>Resend</strong> (envío de emails
+        transaccionales), bajo acuerdos y garantías aplicables.
+      </p>
+
       <h2 className="mt-10 text-xl font-semibold text-slate-900">Propiedad intelectual</h2>
       <p className="text-slate-700 leading-relaxed">
         Los contenidos propios del sitio y de la marca LuxOps están protegidos. La reproducción no

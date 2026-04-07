@@ -65,10 +65,26 @@ export default function PrivacidadPage() {
 
       <h2 className="mt-10 text-xl font-semibold text-slate-900">5. Destinatarios y encargados</h2>
       <p className="text-slate-700 leading-relaxed">
-        Proveedores que actúan como encargados del tratamiento (por ejemplo: alojamiento, base de
-        datos, correo transaccional, pasarela de pago Stripe, almacenamiento de archivos), con
-        contrato o cláusulas tipo adecuadas. No se ceden datos a terceros para su propio marketing
-        salvo base legal específica e información previa.
+        LuxOps utiliza proveedores que actúan como encargados del tratamiento para poder prestar el
+        servicio. En particular:
+      </p>
+      <ul className="list-disc space-y-2 pl-5 text-slate-700">
+        <li>
+          <strong>Supabase</strong>: autenticación y base de datos (gestión de cuentas, sesión y
+          almacenamiento asociado).
+        </li>
+        <li>
+          <strong>Stripe</strong>: suscripción y pagos.
+        </li>
+        <li>
+          <strong>Resend</strong>: envío de correos transaccionales (por ejemplo, notificaciones y
+          comunicaciones operativas).
+        </li>
+      </ul>
+      <p className="text-slate-700 leading-relaxed">
+        Estos proveedores tratan datos siguiendo instrucciones del responsable, con las garantías y
+        contratos aplicables. No se ceden datos a terceros para su propio marketing salvo base legal
+        específica e información previa.
       </p>
 
       <h2 className="mt-10 text-xl font-semibold text-slate-900">6. Derechos</h2>
