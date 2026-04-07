@@ -81,6 +81,12 @@ export function NewProjectForm({ operarios }: { operarios: OperarioOption[] }) {
           placeholder="Importe de la instalación (€) · opcional"
           className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-yellow-300/70 focus:ring-2 focus:ring-yellow-300/30"
         />
+        <input
+          name="moduleEfficiencyPercent"
+          inputMode="decimal"
+          placeholder="Eficiencia del módulo (%) · opcional (ej. 20.50)"
+          className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-yellow-300/70 focus:ring-2 focus:ring-yellow-300/30"
+        />
         <select
           name="assignedUserId"
           required

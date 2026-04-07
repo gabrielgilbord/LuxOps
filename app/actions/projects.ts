@@ -117,6 +117,9 @@ export async function createProjectAction(
   const assignedUserId = String(formData.get("assignedUserId") ?? "").trim();
   const clienteNotificacionEmail = String(formData.get("clienteNotificacionEmail") ?? "").trim();
   const estimatedRevenueRaw = String(formData.get("estimatedRevenue") ?? "").trim().replace(",", ".");
+  const moduleEfficiencyPercentRaw = String(formData.get("moduleEfficiencyPercent") ?? "")
+    .trim()
+    .replace(",", ".");
 
   if (!cliente || !direccion || !assignedUserId) {
     return { error: "Completa cliente, dirección y operario asignado." };
@@ -144,6 +147,14 @@ export async function createProjectAction(
   if (estimatedRevenueRaw && !/^\d+(\.\d{1,2})?$/.test(estimatedRevenueRaw)) {
     return { error: "El importe estimado debe ser un número válido (máx. 2 decimales)." };
   }
+  if (
+    moduleEfficiencyPercentRaw &&
+    !/^\d+(\.\d{1,2})?$/.test(moduleEfficiencyPercentRaw)
+  ) {
+    return { error: "La eficiencia del módulo debe ser un número válido (máx. 2 decimales)." };
+  }
+  const moduleEfficiencyPercent =
+    moduleEfficiencyPercentRaw ? moduleEfficiencyPercentRaw : null;
 
   const assignedUser = await prisma.user.findFirst({
     where: {
@@ -187,6 +198,7 @@ export async function createProjectAction(
         operarioInitials: initials || "OP",
         clienteNotificacionEmail: clienteNotificacionEmail || null,
         estimatedRevenue: estimatedRevenueRaw || null,
+        moduleEfficiencyPercent,
         rebtCompanyNumber: orgRow?.rebtCompanyNumber ?? null,
       },
       select: { id: true, cliente: true },
@@ -243,12 +255,14 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
   let storageCapacityKwh: string | null;
   let estimatedRevenue: string | null;
   let presupuestoFinal: string | null;
+  let moduleEfficiencyPercent: string | null;
   try {
     peakPowerKwp = parseNullableDecimal("peakPowerKwp");
     inverterPowerKwn = parseNullableDecimal("inverterPowerKwn");
     storageCapacityKwh = parseNullableDecimal("storageCapacityKwh");
     estimatedRevenue = parseNullableDecimal("estimatedRevenue");
     presupuestoFinal = parseNullableDecimal("presupuestoFinal");
+    moduleEfficiencyPercent = parseNullableDecimal("moduleEfficiencyPercent");
   } catch {
     throw new Error(
       "Revisa importes y potencias: solo números con hasta 2 decimales (ej. 12450.00).",
@@ -310,6 +324,7 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
       peakPowerKwp,
       inverterPowerKwn,
       storageCapacityKwh,
+      moduleEfficiencyPercent,
       estimatedRevenue,
       presupuestoFinal,
       nBoletin,

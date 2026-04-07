@@ -253,6 +253,10 @@ export async function POST(request: Request) {
           rejected.push({ id: operation.id, reason: "Formato de archivo inválido" });
           continue;
         }
+        const operationCreatedAt = (() => {
+          const d = new Date(operation.createdAt);
+          return Number.isFinite(d.getTime()) ? d : new Date();
+        })();
         const isPvgis = operation.tipo === "ANEXO_PVGIS";
         if (isPvgis) {
           if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(meta.mime)) {
@@ -295,6 +299,8 @@ export async function POST(request: Request) {
               typeof operation.latitude === "number" ? operation.latitude : null,
             longitude:
               typeof operation.longitude === "number" ? operation.longitude : null,
+            // Guardamos el instante de captura en dispositivo (la cola envía createdAt al encolar).
+            createdAt: operationCreatedAt,
           },
         });
         successIds.push(operation.id);

@@ -24,6 +24,7 @@ export type ProjectDetail = DashboardProject & {
   ownerTaxId?: string;
   estimatedRevenue?: string | null;
   presupuestoFinal?: string | null;
+  moduleEfficiencyPercent?: string | null;
   quoteReference?: string | null;
   technicalMemory?: string | null;
   reviewedByOfficeTech?: boolean;
@@ -235,6 +236,7 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       ownerTaxId: project.ownerTaxId,
       estimatedRevenue: project.estimatedRevenue?.toString() ?? null,
       presupuestoFinal: project.presupuestoFinal?.toString() ?? null,
+      moduleEfficiencyPercent: project.moduleEfficiencyPercent?.toString() ?? null,
       quoteReference: project.quoteReference ?? null,
       technicalMemory: project.technicalMemory,
       reviewedByOfficeTech: project.reviewedByOfficeTech,

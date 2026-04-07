@@ -510,7 +510,7 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
             <Cpu className="h-4 w-4 text-yellow-300" />
             <h3 className="text-sm font-bold text-slate-100">Potencias declaradas (kWp / kWn / kWh)</h3>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-4">
             <label className="block">
               <span className={labelCls}>Pico (kWp)</span>
               <input
@@ -534,6 +534,15 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
               <input
                 name="storageCapacityKwh"
                 defaultValue={project.storageCapacityKwh ?? ""}
+                inputMode="decimal"
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Eficiencia módulo (%)</span>
+              <input
+                name="moduleEfficiencyPercent"
+                defaultValue={project.moduleEfficiencyPercent ?? ""}
                 inputMode="decimal"
                 className={inputCls}
               />
