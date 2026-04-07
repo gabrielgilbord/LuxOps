@@ -85,9 +85,19 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-14 border-t border-white/10 pt-8">
+        <div className="mt-14 space-y-3 border-t border-white/10 pt-8">
           <p className="text-center text-xs text-slate-500">
             © 2026 LuxOps. Todos los derechos reservados.
+          </p>
+          <p className="mx-auto max-w-md text-center text-xs leading-relaxed text-slate-500">
+            Hecho con{" "}
+            <span className="text-yellow-200/70" aria-hidden>
+              ❤️
+            </span>{" "}
+            en Canarias —{" "}
+            <span className="text-yellow-200/50">
+              Cumple normativa IDAE &amp; Next Generation
+            </span>
           </p>
         </div>
       </div>

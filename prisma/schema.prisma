@@ -144,6 +144,8 @@ model Project {
   estimatedRevenue Decimal?       @db.Decimal(12, 2)
   /** Presupuesto final (importe que debe cuadrar con la ayuda / factura) */
   presupuestoFinal Decimal?       @db.Decimal(12, 2)
+  /** Eficiencia del módulo FV (%), p. ej. 20.50 */
+  moduleEfficiencyPercent Decimal? @db.Decimal(5, 2)
   /** Nº presupuesto / oferta (oficina comercial) */
   quoteReference   String?
   estado           EstadoProyecto @default(PRESUPUESTO)
