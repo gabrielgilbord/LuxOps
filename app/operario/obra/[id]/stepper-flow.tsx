@@ -64,6 +64,9 @@ type DraftState = {
   traceability: {
     inverterSerial: string;
     batterySerial: string;
+    nBoletin: string;
+    fechaCIE: string;
+    presupuestoFinal: string;
     inverterItems: EquipmentItem[];
     panelSerials: string[];
     batterySerials: string[];
@@ -340,6 +343,9 @@ function readDraft(projectId: string): DraftState | null {
         traceability: {
           inverterSerial: String(parsedTraceability.inverterSerial ?? ""),
           batterySerial: String(parsedTraceability.batterySerial ?? ""),
+          nBoletin: String(parsedTraceability.nBoletin ?? ""),
+          fechaCIE: String(parsedTraceability.fechaCIE ?? ""),
+          presupuestoFinal: String(parsedTraceability.presupuestoFinal ?? ""),
           panelSerials: legacyPanelSerials,
           batterySerials: legacyBatterySerials,
           panelItems: panelItems.length > 0 ? panelItems : [emptyEquipmentItem()],
@@ -404,6 +410,9 @@ function readDraft(projectId: string): DraftState | null {
       traceability: {
         inverterSerial: "",
         batterySerial: "",
+        nBoletin: "",
+        fechaCIE: "",
+        presupuestoFinal: "",
         inverterItems: [emptyEquipmentItem()],
         panelSerials: [""],
         batterySerials: [""],
@@ -457,6 +466,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
   const [traceability, setTraceability] = useState({
     inverterSerial: "",
     batterySerial: "",
+    nBoletin: "",
+    fechaCIE: "",
+    presupuestoFinal: "",
     inverterItems: [emptyEquipmentItem()],
     panelSerials: [""],
     batterySerials: [""],
@@ -690,6 +702,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
           setTraceability({
             inverterSerial: op.inverterSerial,
             batterySerial: op.batterySerial,
+            nBoletin: String(opT.nBoletin ?? ""),
+            fechaCIE: String(opT.fechaCIE ?? ""),
+            presupuestoFinal: String(opT.presupuestoFinal ?? ""),
             inverterItems:
               opInverterItems.length > 0
                 ? opInverterItems.map((row) => normalizeEquipmentItem(row))
@@ -1153,6 +1168,9 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
       inverterSerial:
         cleanInverterSerials[0] ?? traceability.inverterSerial.trim(),
       batterySerial: traceability.batterySerial.trim() || cleanBatterySerials[0] || "",
+      nBoletin: traceability.nBoletin.trim() || undefined,
+      fechaCIE: traceability.fechaCIE.trim() || undefined,
+      presupuestoFinal: traceability.presupuestoFinal.trim() || undefined,
       inverterItems: cleanInverterItems,
       panelSerials: cleanPanelSerials,
       batterySerials: cleanBatterySerials,
@@ -2043,6 +2061,41 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
             certificación técnica.
           </p>
           <div className="mt-3 grid gap-3">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
+                Nº Boletín (CIE)
+                <input
+                  className={`${inputCls} mt-0`}
+                  value={traceability.nBoletin}
+                  onChange={(e) => setTraceability((t) => ({ ...t, nBoletin: e.target.value }))}
+                  placeholder="Ej.: BT-123456"
+                  maxLength={64}
+                  autoComplete="off"
+                />
+              </label>
+              <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
+                Fecha emisión CIE
+                <input
+                  type="date"
+                  className={`${inputCls} mt-0`}
+                  value={traceability.fechaCIE}
+                  onChange={(e) => setTraceability((t) => ({ ...t, fechaCIE: e.target.value }))}
+                />
+              </label>
+              <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
+                Presupuesto final (€)
+                <input
+                  className={`${inputCls} mt-0`}
+                  inputMode="decimal"
+                  value={traceability.presupuestoFinal}
+                  onChange={(e) =>
+                    setTraceability((t) => ({ ...t, presupuestoFinal: e.target.value }))
+                  }
+                  placeholder="Ej.: 12450.00"
+                  autoComplete="off"
+                />
+              </label>
+            </div>
             <label className={`text-xs font-semibold ${sunMode ? "text-black" : "text-slate-200"}`}>
               <span className="max-sm:hidden">Configuración de strings (texto libre)</span>
               <span className="sm:hidden">Strings (texto)</span>

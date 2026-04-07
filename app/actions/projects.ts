@@ -242,16 +242,26 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
   let inverterPowerKwn: string | null;
   let storageCapacityKwh: string | null;
   let estimatedRevenue: string | null;
+  let presupuestoFinal: string | null;
   try {
     peakPowerKwp = parseNullableDecimal("peakPowerKwp");
     inverterPowerKwn = parseNullableDecimal("inverterPowerKwn");
     storageCapacityKwh = parseNullableDecimal("storageCapacityKwh");
     estimatedRevenue = parseNullableDecimal("estimatedRevenue");
+    presupuestoFinal = parseNullableDecimal("presupuestoFinal");
   } catch {
     throw new Error(
       "Revisa importes y potencias: solo números con hasta 2 decimales (ej. 12450.00).",
     );
   }
+
+  const nBoletin =
+    String(formData.get("nBoletin") ?? "")
+      .trim()
+      .slice(0, 64) || null;
+  const fechaCieRaw = String(formData.get("fechaCIE") ?? "").trim();
+  const fechaCIE =
+    fechaCieRaw && !Number.isNaN(new Date(fechaCieRaw).getTime()) ? new Date(fechaCieRaw) : null;
 
   const quoteReference =
     String(formData.get("quoteReference") ?? "")
@@ -301,6 +311,9 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
       inverterPowerKwn,
       storageCapacityKwh,
       estimatedRevenue,
+      presupuestoFinal,
+      nBoletin,
+      fechaCIE,
       quoteReference,
     },
   });

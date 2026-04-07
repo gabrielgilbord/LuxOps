@@ -133,11 +133,17 @@ model Project {
   direccion        String
   /** Punto de suministro (20–22 caracteres, validado en alta) */
   cups             String         @default("")
+  /** Nº Boletín eléctrico (CIE) / referencia de boletín */
+  nBoletin         String?
+  /** Fecha de emisión del CIE / boletín */
+  fechaCIE         DateTime?
   /** Referencia catastral del inmueble */
   catastralReference String       @default("")
   /** DNI / NIE / CIF del titular del suministro */
   ownerTaxId       String         @default("")
   estimatedRevenue Decimal?       @db.Decimal(12, 2)
+  /** Presupuesto final (importe que debe cuadrar con la ayuda / factura) */
+  presupuestoFinal Decimal?       @db.Decimal(12, 2)
   /** Nº presupuesto / oferta (oficina comercial) */
   quoteReference   String?
   estado           EstadoProyecto @default(PRESUPUESTO)

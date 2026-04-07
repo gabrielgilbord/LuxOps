@@ -266,6 +266,41 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
               />
             </label>
           </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className={labelCls}>Nº Boletín (CIE)</span>
+              <input
+                name="nBoletin"
+                defaultValue={(project.nBoletin ?? "").toString()}
+                className={inputCls}
+                placeholder="BT-123456"
+                maxLength={64}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Fecha emisión CIE</span>
+              <input
+                type="date"
+                name="fechaCIE"
+                defaultValue={
+                  project.fechaCIE
+                    ? new Date(project.fechaCIE).toISOString().slice(0, 10)
+                    : ""
+                }
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Presupuesto final (€)</span>
+              <input
+                name="presupuestoFinal"
+                defaultValue={project.presupuestoFinal ?? ""}
+                className={inputCls}
+                placeholder="12450.00"
+                inputMode="decimal"
+              />
+            </label>
+          </div>
           <label className="mt-4 inline-flex cursor-pointer items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2.5">
             <input
               type="checkbox"

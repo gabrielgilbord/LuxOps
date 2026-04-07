@@ -8,17 +8,17 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-white/10 bg-[#0B0E14] pb-28 pt-12 text-slate-300 sm:pb-24">
       <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
-          <div className="space-y-4">
-            <BrandLogo darkBackground className="h-9 w-auto opacity-95" />
-            <p className="max-w-xs text-sm leading-relaxed text-slate-500">
+        <div className="grid gap-12 text-center sm:grid-cols-2 sm:text-left lg:grid-cols-4 lg:gap-12">
+          <div className="mx-auto space-y-4 sm:mx-0">
+            <BrandLogo darkBackground className="mx-auto h-9 w-auto opacity-95 sm:mx-0" />
+            <p className="mx-auto max-w-xs text-sm leading-relaxed text-slate-500 sm:mx-0">
               CRM y operativa para instaladoras solares. Oficina y campo en un solo flujo.
             </p>
           </div>
 
           <div>
             <p className={colTitle}>Producto</p>
-            <ul className="mt-4 flex flex-col gap-3">
+            <ul className="mt-5 flex flex-col items-center gap-4 sm:items-start sm:gap-3">
               <li>
                 <Link href="/#precios" className={footerLink}>
                   Precios
@@ -39,7 +39,7 @@ export function SiteFooter() {
 
           <div>
             <p className={colTitle}>Legal</p>
-            <ul className="mt-4 flex flex-col gap-3">
+            <ul className="mt-5 flex flex-col items-center gap-4 sm:items-start sm:gap-3">
               <li>
                 <Link href="/aviso-legal" className={footerLink}>
                   Aviso legal
@@ -65,7 +65,7 @@ export function SiteFooter() {
 
           <div>
             <p className={colTitle}>Recursos</p>
-            <ul className="mt-4 flex flex-col gap-3">
+            <ul className="mt-5 flex flex-col items-center gap-4 sm:items-start sm:gap-3">
               <li>
                 <Link href="/blog" className={footerLink}>
                   Blog

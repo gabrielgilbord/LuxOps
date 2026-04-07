@@ -54,6 +54,11 @@ const traceabilitySchema = baseSchema.extend({
   kind: z.literal("traceability"),
   inverterSerial: z.string().max(120),
   batterySerial: z.string().max(120),
+  nBoletin: z.string().trim().max(64).optional(),
+  /** YYYY-MM-DD o ISO (se parsea en servidor) */
+  fechaCIE: z.string().trim().max(32).optional(),
+  /** Número con hasta 2 decimales, como texto */
+  presupuestoFinal: z.string().trim().max(32).optional(),
   panelSerials: z.array(z.string().trim().max(120)).max(400).optional(),
   batterySerials: z.array(z.string().trim().max(120)).max(100).optional(),
   panelItems: z
@@ -150,6 +155,15 @@ function toPrismaDecimal(raw: string | undefined): Prisma.Decimal | null {
   const n = Number(String(raw).replace(",", "."));
   if (!Number.isFinite(n)) return null;
   return new Prisma.Decimal(n);
+}
+
+function toOptionalDate(raw: string | undefined): Date | null {
+  const t = (raw ?? "").trim();
+  if (!t) return null;
+  // Acepta YYYY-MM-DD (input date) o ISO.
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
 }
 
 function parseDataUrlMeta(dataUrl: string) {
@@ -338,6 +352,9 @@ export async function POST(request: Request) {
         await prisma.project.update({
           where: { id: operation.projectId },
           data: {
+            nBoletin: (operation.nBoletin ?? "").trim() || null,
+            fechaCIE: toOptionalDate(operation.fechaCIE) ?? null,
+            presupuestoFinal: toPrismaDecimal(operation.presupuestoFinal),
             equipmentInverterSerial:
               operation.inverterSerial ||
               inverterItems.map((item) => item.serial).filter(Boolean)[0] ||

@@ -66,6 +66,12 @@ export type OfflineOperation =
       projectId: string;
       inverterSerial: string;
       batterySerial: string;
+      /** Nº boletín / CIE (subvenciones) */
+      nBoletin?: string;
+      /** Fecha emisión CIE (YYYY-MM-DD o ISO) */
+      fechaCIE?: string;
+      /** Presupuesto final (EUR, texto numérico) */
+      presupuestoFinal?: string;
       /** Opcional en colas antiguas antes de multi-inversor */
       inverterItems?: EquipmentItemDraft[];
       panelSerials: string[];
@@ -136,6 +142,9 @@ export type OfflineOperationPayload =
       kind: "traceability";
       inverterSerial: string;
       batterySerial: string;
+      nBoletin?: string;
+      fechaCIE?: string;
+      presupuestoFinal?: string;
       /** Opcional en colas antiguas antes de multi-inversor */
       inverterItems?: EquipmentItemDraft[];
       panelSerials: string[];

@@ -18,9 +18,12 @@ export type DashboardProject = {
 
 export type ProjectDetail = DashboardProject & {
   cups?: string;
+  nBoletin?: string | null;
+  fechaCIE?: string | null;
   catastralReference?: string;
   ownerTaxId?: string;
   estimatedRevenue?: string | null;
+  presupuestoFinal?: string | null;
   quoteReference?: string | null;
   technicalMemory?: string | null;
   reviewedByOfficeTech?: boolean;
@@ -226,9 +229,12 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       operarioInitials: project.operarioInitials,
       progreso: project.progreso,
       cups: project.cups,
+      nBoletin: project.nBoletin ?? null,
+      fechaCIE: project.fechaCIE ? project.fechaCIE.toISOString() : null,
       catastralReference: project.catastralReference,
       ownerTaxId: project.ownerTaxId,
       estimatedRevenue: project.estimatedRevenue?.toString() ?? null,
+      presupuestoFinal: project.presupuestoFinal?.toString() ?? null,
       quoteReference: project.quoteReference ?? null,
       technicalMemory: project.technicalMemory,
       reviewedByOfficeTech: project.reviewedByOfficeTech,
