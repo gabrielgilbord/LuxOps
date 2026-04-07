@@ -95,6 +95,12 @@ export function LoginForm({
 
       <LoginSubmitButton />
 
+      <p className="mt-3 text-sm text-slate-600">
+        <Link href="/forgot-password" className="font-medium text-slate-900 underline">
+          ¿Olvidaste tu contraseña?
+        </Link>
+      </p>
+
       <p className="mt-4 text-sm text-slate-600">
         ¿Pagaste y no terminaste el alta?{" "}
         <Link href="/recuperar-acceso" className="font-medium text-amber-900 underline">
