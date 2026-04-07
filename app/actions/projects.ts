@@ -14,7 +14,11 @@ import {
   sendOperarioResetEmail,
   sendProjectFinishedEmail,
 } from "@/lib/email";
-import { getPublicAppUrl } from "@/lib/public-app-url";
+import {
+  getOperarioInviteCompleteUrl,
+  getPublicAppUrl,
+  getSupabaseAuthResetPasswordUrl,
+} from "@/lib/public-app-url";
 import { uploadDataUrlToStorage } from "@/lib/storage";
 import { isSelfConsumptionModality } from "@/lib/self-consumption-modality";
 import type { SelfConsumptionModality } from "@prisma/client";
@@ -414,8 +418,7 @@ export async function inviteOperarioAction(
   const token = crypto.randomBytes(24).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-  const appUrl = await resolveAppBaseUrl();
-  const inviteLink = `${appUrl}/invite/complete?token=${token}`;
+  const inviteLink = getOperarioInviteCompleteUrl(token);
 
   await prisma.operatorInvite.create({
     data: {
@@ -531,8 +534,7 @@ export async function resendOperarioInviteAction(formData: FormData) {
   const token = crypto.randomBytes(24).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-  const appUrl = await resolveAppBaseUrl();
-  const inviteLink = `${appUrl}/invite/complete?token=${token}`;
+  const inviteLink = getOperarioInviteCompleteUrl(token);
 
   await prisma.operatorInvite.update({
     where: { id: invite.id },
@@ -761,8 +763,6 @@ export async function sendOperarioPasswordResetAction(formData: FormData) {
     redirect("/dashboard/team?resetStatus=error");
   }
 
-  const appUrl = await resolveAppBaseUrl();
-
   let status: "sent" | "error" = "error";
   let message = "";
   let outputLink = "";
@@ -773,7 +773,7 @@ export async function sendOperarioPasswordResetAction(formData: FormData) {
       type: "recovery",
       email: operario.email,
       options: {
-        redirectTo: `${appUrl}/reset-password`,
+        redirectTo: getSupabaseAuthResetPasswordUrl(),
       },
     });
     const resetLink =

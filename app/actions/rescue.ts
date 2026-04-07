@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getPublicAppUrl } from "@/lib/public-app-url";
+import { getSupabaseAuthCallbackUrl } from "@/lib/public-app-url";
 import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
 import { firstNameForWelcome } from "@/lib/celebration-name";
 import { findActiveSubscriptionForEmail } from "@/lib/rescue";
@@ -101,12 +101,11 @@ export async function sendRescueMagicLinkAction(
   });
   const nextPath = needsOrgProfile ? "/onboarding?continue=1" : "/dashboard";
 
-  const appUrl = getPublicAppUrl();
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      emailRedirectTo: getSupabaseAuthCallbackUrl(nextPath),
     },
   });
 
@@ -164,14 +163,13 @@ export async function completeRescueRegistration(
     };
   }
 
-  const appUrl = getPublicAppUrl();
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: name },
-      emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+      emailRedirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
     },
   });
 

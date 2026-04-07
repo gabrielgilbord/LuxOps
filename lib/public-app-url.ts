@@ -13,3 +13,28 @@ export function getPublicAppUrl(): string {
   // Último fallback: desarrollo local.
   return "http://localhost:3000";
 }
+
+/**
+ * URL absoluta del callback PKCE de Supabase (magic link, confirmación, OAuth).
+ * Supabase + SMTP externo (Resend) requieren siempre URL absoluta, nunca `/auth/callback` solo.
+ */
+export function getSupabaseAuthCallbackUrl(nextPath = "/dashboard"): string {
+  const base = getPublicAppUrl().trim().replace(/\/$/, "");
+  const next =
+    nextPath.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("://")
+      ? nextPath
+      : "/dashboard";
+  return `${base}/auth/callback?next=${encodeURIComponent(next)}`;
+}
+
+/** URL absoluta donde aterriza el recovery (debe coincidir con Redirect URLs en Supabase). */
+export function getSupabaseAuthResetPasswordUrl(): string {
+  const base = getPublicAppUrl().trim().replace(/\/$/, "");
+  return `${base}/auth/reset-password`;
+}
+
+/** Invitación operario: destino tras auth (URL absoluta). */
+export function getOperarioInviteCompleteUrl(token: string): string {
+  const base = getPublicAppUrl().trim().replace(/\/$/, "");
+  return `${base}/invite/complete?token=${encodeURIComponent(token)}`;
+}

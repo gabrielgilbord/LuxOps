@@ -6,6 +6,10 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
  * Intercambia el `code` PKCE de Supabase (magic link, confirmación email, OAuth)
  * por sesión y escribe las cookies **en la misma respuesta de redirect**.
  *
+ * Si Auth envía el correo por **SMTP propio (p. ej. Resend)**, el remitente cambia
+ * pero el enlace sigue apuntando a `*.supabase.co/auth/v1/verify` y el flujo PKCE
+ * termina aquí igual: este handler solo necesita `code` + claves de Supabase.
+ *
  * Importante: en Route Handlers, si solo usas `cookies()` de `next/headers`, las
  * cookies de sesión pueden no viajar con `NextResponse.redirect` y el usuario
  * acaba “sin sesión” en la siguiente petición (p. ej. landing en `/`).

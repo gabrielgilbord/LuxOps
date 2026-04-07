@@ -5,15 +5,9 @@ import Link from "next/link";
 import { Mail, Loader2 } from "lucide-react";
 import { LuxOpsLogo as BrandLogo } from "@/components/brand/luxops-logo";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { getSupabaseAuthResetPasswordUrl } from "@/lib/public-app-url";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-function resolvePublicOrigin(): string {
-  const explicit = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/$/, "");
-  if (explicit) return explicit;
-  if (typeof window !== "undefined") return window.location.origin;
-  return "https://luxops.es";
-}
 
 export default function ForgotPasswordPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -35,7 +29,7 @@ export default function ForgotPasswordPage() {
 
     setPending(true);
     try {
-      const redirectTo = `${resolvePublicOrigin()}/auth/reset-password`;
+      const redirectTo = getSupabaseAuthResetPasswordUrl();
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(normalized, {
         redirectTo,
       });

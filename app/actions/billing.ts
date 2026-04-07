@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getPublicAppUrl } from "@/lib/public-app-url";
+import { getPublicAppUrl, getSupabaseAuthCallbackUrl } from "@/lib/public-app-url";
 import { getStripe } from "@/lib/stripe";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/authz";
@@ -37,14 +37,13 @@ export async function completeCheckoutOnboarding(formData: FormData) {
     redirect("/login");
   }
 
-  const appUrl = getPublicAppUrl();
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+      emailRedirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
     },
   });
 
