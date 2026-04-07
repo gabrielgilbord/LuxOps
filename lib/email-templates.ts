@@ -14,10 +14,7 @@ type OperarioObraAssignedParams = {
   obraUrl: string;
 };
 
-import * as React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { getPublicAppUrl } from "@/lib/public-app-url";
-import { EmailLayout } from "@/lib/emails/layout";
 
 function emailLogoUrl() {
   const base = getPublicAppUrl().replace(/\/$/, "");
@@ -25,13 +22,29 @@ function emailLogoUrl() {
 }
 
 function wrapDeluxeEmail(opts: { title?: string; inner: string }) {
-  // renderToStaticMarkup devuelve markup sin doctype; lo añadimos para compatibilidad.
-  const element = React.createElement(
-    EmailLayout,
-    { logoUrl: emailLogoUrl(), title: opts.title },
-    React.createElement("div", { dangerouslySetInnerHTML: { __html: opts.inner } }),
-  );
-  return `<!doctype html>${renderToStaticMarkup(element)}`;
+  const logoUrl = emailLogoUrl();
+  const titleHtml = opts.title
+    ? `<h1 style="margin:0 0 14px 0;font-size:18px;line-height:1.25;color:#F1F5F9;text-align:center;letter-spacing:-0.01em;">${opts.title}</h1>`
+    : "";
+
+  return `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#0B0E14;">
+    <div style="font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0B0E14;padding:32px 16px;">
+      <div style="max-width:560px;margin:0 auto;background:#161B22;border:1px solid rgba(251,191,36,0.22);border-radius:16px;padding:28px 24px;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <img src="${logoUrl}" width="72" height="72" alt="LuxOps" style="display:block;margin:0 auto;background:#0B0E14;border-radius:18px;" />
+        </div>
+        ${titleHtml}
+        <div>${opts.inner}</div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.10);margin:22px 0 14px 0;" />
+        <p style="margin:0;font-size:12px;color:#94A3B8;text-align:center;line-height:1.5;">
+          LuxOps - Hecho en Canarias. Has recibido este correo porque eres cliente de LuxOps.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>`;
 }
 
 export function buildPaidSubscriptionWelcomeEmail(params: PaidSubscriptionWelcomeParams) {
