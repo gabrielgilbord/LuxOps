@@ -16,6 +16,9 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
  *
  * Supabase → Auth → URL Configuration → Redirect URLs:
  * `https://TU_DOMINIO/auth/callback`
+ *
+ * Correos transaccionales (Resend) usan `/auth/confirm` + `verifyOtp` con `token_hash`;
+ * este handler sigue siendo necesario para OAuth y enlaces que traen `?code=`.
  */
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;

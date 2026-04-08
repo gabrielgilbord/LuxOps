@@ -49,7 +49,7 @@ export default async function DashboardLayout({
             className="group relative inline-flex items-center gap-2 text-lg font-bold tracking-tight"
           >
             <span className="pointer-events-none absolute -inset-x-2 -inset-y-1 -z-10 rounded-full bg-yellow-300/10 blur-md" />
-            <LuxOpsLogo invertColors className="h-7 w-auto" />
+            <LuxOpsLogo darkBackground className="h-7 w-auto" />
           </Link>
           <DashboardNavShell organizationName={orgName} userLabel={userLabel} />
         </div>
