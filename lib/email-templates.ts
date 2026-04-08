@@ -205,50 +205,68 @@ export function buildLuxOpsAuthActionEmail(params: {
   buttonLabel: string;
   actionLink: string;
 }) {
-  const href = escapeHrefAttribute(params.actionLink);
   const heading = escapeHtmlPlain(params.heading);
-  const bodyInner = params.bodyLines.map(escapeHtmlPlain).join("<br /><br />");
+  const bodyLines = params.bodyLines.map(escapeHtmlPlain);
   const btn = escapeHtmlPlain(params.buttonLabel);
+  const href = escapeHrefAttribute(params.actionLink);
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${heading}</title>
-</head>
-<body style="margin:0;padding:0;">
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;background-color:#0B0E14;margin:0;padding:24px 10px;font-family:Arial,Helvetica,sans-serif;">
+  const html = `<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0B0E14; margin: 0; padding: 0;">
   <tr>
-    <td align="center" style="padding:0;">
-      <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:450px;background-color:#161B22;border:2px solid #FBBF24;border-radius:20px;padding:28px 18px;">
+    <td align="center" style="padding: 40px 10px;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 450px; background-color: #161B22; border: 2px solid #FBBF24; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);">
         <tr>
-          <td align="center" style="padding-bottom:20px;">
-            <img src="${LUXOPS_AUTH_EMAIL_LOGO}" width="120" height="120" style="display:block;width:120px;height:120px;border-radius:14px;border:1px solid #FBBF24;" alt="Logo LuxOps">
+          <td align="center" style="padding: 40px 30px;">
+            
+            <table border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
+              <tr>
+                <td>
+                  <img src="${LUXOPS_AUTH_EMAIL_LOGO}" width="80" height="80" alt="LuxOps Deluxe" style="display: block; border-radius: 15px;">
+                </td>
+              </tr>
+            </table>
+
+            <h1 style="color: #F1F5F9; font-family: sans-serif; font-size: 24px; font-weight: bold; margin: 0 0 15px 0; text-align: center;">
+              ${heading}
+            </h1>
+
+            ${bodyLines
+              .map(
+                (line) => `
+              <p style="color: #CBD5E1; font-family: sans-serif; font-size: 16px; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+                ${line}
+              </p>
+            `,
+              )
+              .join("")}
+
+            <table border="0" cellspacing="0" cellpadding="0" width="100%" style="margin-top: 30px;">
+              <tr><td height="1" style="font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+            </table>
+
+            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+              <tr>
+                <td align="center">
+                  <a href="${href}" style="background-color: #FBBF24; color: #0B0E14; font-family: sans-serif; font-size: 16px; font-weight: bold; text-decoration: none; padding: 18px 0; border-radius: 12px; display: block; width: 100%; text-align: center; letter-spacing: 0.5px;">
+                    ${btn}
+                  </a>
+                </td>
+              </tr>
+            </table>
+
           </td>
         </tr>
+        
         <tr>
-          <td align="center">
-            <h2 style="color:#F1F5F9;font-size:22px;margin:0 0 10px 0;">${heading}</h2>
-            <p style="color:#CBD5E1;font-size:16px;line-height:1.5;margin:0 0 30px 0;">${bodyInner}</p>
-          </td>
-        </tr>
-        <tr>
-          <td align="center">
-            <a href="${href}" style="background-color:#FBBF24;color:#0B0E14;padding:16px 28px;text-decoration:none;font-weight:bold;border-radius:12px;display:inline-block;font-size:16px;">${btn}</a>
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding-top:35px;border-top:1px solid #30363D;">
-            <p style="color:#94A3B8;font-size:12px;margin:0;">LuxOps - Hecho en Canarias</p>
+          <td align="center" style="background-color: #111419; padding: 20px; border-top: 1px solid #30363D;">
+            <p style="color: #94A3B8; font-family: sans-serif; font-size: 12px; margin: 0;">
+              LuxOps - Sistema Operativo de Lujo
+            </p>
           </td>
         </tr>
       </table>
-    </td>
+      </td>
   </tr>
-</table>
-</body>
-</html>`;
+</table>`;
 
   const text = [
     params.heading,
