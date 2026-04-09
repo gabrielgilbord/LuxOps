@@ -2044,10 +2044,35 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
         /* mostrar aviso en portada */
       }
     }
-    cover.drawText(
-      "No se pudo incrustar el archivo como PDF. Consúltelo en LuxOps o suba un PDF válido.",
-      { x: 40, y: 400, size: 10, font: inter, color: rgb(0.55, 0.35, 0.28), maxWidth: 500 },
-    );
+    // Si no es PDF, intentamos incrustarlo como imagen (captura PVGIS).
+    const img = await embedAutoImage(pdf, photo.url, photo.storagePath ?? null);
+    if (img) {
+      const maxW = 515;
+      const maxH = 640;
+      const ratio = Math.min(maxW / img.width, maxH / img.height);
+      const w = img.width * ratio;
+      const h = img.height * ratio;
+      const x = (595 - w) / 2;
+      const y = 110;
+      cover.drawImage(img, { x, y, width: w, height: h });
+      cover.drawText("Adjunto aportado como imagen (captura).", {
+        x: 40,
+        y: 740,
+        size: 8,
+        font: inter,
+        color: rgb(0.42, 0.42, 0.45),
+      });
+      continue;
+    }
+
+    cover.drawText("No se pudo incrustar el adjunto (PDF o imagen). Sube un PDF válido o revisa el archivo en LuxOps.", {
+      x: 40,
+      y: 400,
+      size: 10,
+      font: inter,
+      color: rgb(0.55, 0.35, 0.28),
+      maxWidth: 500,
+    });
   }
 
   const legalBoxBg = rgb(0.985, 0.985, 0.985);
