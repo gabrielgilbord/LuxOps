@@ -7,7 +7,6 @@ import { getPublicAppUrl } from "@/lib/public-app-url";
 import { BlogPostingJsonLd } from "@/components/blog/blog-posting-json-ld";
 import { BlogArticleCta } from "@/components/blog/blog-article-cta";
 import { BlogComments } from "@/components/blog/blog-comments";
-import { getCurrentDbUser } from "@/lib/authz";
 
 export async function generateStaticParams() {
   return getAllBlogSlugs().map((slug) => ({ slug }));
@@ -66,7 +65,6 @@ export default async function BlogArticlePage({
   if (!post) notFound();
 
   const { Component } = post;
-  const dbUser = await getCurrentDbUser();
 
   return (
     <>
@@ -93,11 +91,7 @@ export default async function BlogArticlePage({
           </time>
           <Component />
           <BlogArticleCta promoCode={post.promoCode} />
-          <BlogComments
-            postId={slug}
-            isAuthenticated={Boolean(dbUser)}
-            loginHref={`/login?next=${encodeURIComponent(`/blog/${slug}`)}`}
-          />
+          <BlogComments postId={slug} isAuthenticated={false} />
         </article>
       </div>
     </>

@@ -114,11 +114,12 @@ model User {
 
 model Comment {
   id        String   @id @default(cuid())
+  authorName String
   content   String   @db.Text
   createdAt DateTime @default(now())
   postId    String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([postId, createdAt])
   @@index([userId, createdAt])

@@ -9,6 +9,13 @@ function sanitizePlainText(input: string): string {
   return withoutTags;
 }
 
+function sanitizeName(input: string): string {
+  const cleaned = sanitizePlainText(input)
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned;
+}
+
 function clampInt(value: string | null, fallback: number, min: number, max: number) {
   const n = Number.parseInt(String(value ?? ""), 10);
   if (!Number.isFinite(n)) return fallback;
@@ -45,22 +52,20 @@ export async function GET(request: NextRequest) {
     skip: offset,
     select: {
       id: true,
+      authorName: true,
       content: true,
       createdAt: true,
       postId: true,
-      user: {
-        select: { id: true, name: true },
-      },
     },
   });
 
   return NextResponse.json({
     items: rows.map((r) => ({
       id: r.id,
+      authorName: r.authorName,
       content: r.content,
       createdAt: r.createdAt.toISOString(),
       postId: r.postId,
-      user: { id: r.user.id, name: r.user.name ?? "Usuario" },
     })),
     nextOffset: offset + rows.length,
   });
@@ -68,9 +73,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const dbUser = await getCurrentDbUser();
-  if (!dbUser) {
-    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
-  }
 
   let body: unknown;
   try {
@@ -81,11 +83,28 @@ export async function POST(request: NextRequest) {
 
   const postId =
     typeof (body as any)?.postId === "string" ? String((body as any).postId).trim() : "";
+  const rawAuthorName =
+    typeof (body as any)?.authorName === "string" ? String((body as any).authorName) : "";
   const rawContent =
     typeof (body as any)?.content === "string" ? String((body as any).content) : "";
+  const honey =
+    typeof (body as any)?.website === "string" ? String((body as any).website).trim() : "";
 
   if (!postId) {
     return NextResponse.json({ error: "Falta postId." }, { status: 400 });
+  }
+
+  // Honeypot: if filled, silently accept but don't store (basic bot mitigation).
+  if (honey) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const authorName = sanitizeName(rawAuthorName);
+  if (authorName.length < 2) {
+    return NextResponse.json({ error: "Introduce tu nombre (mín. 2 caracteres)." }, { status: 400 });
+  }
+  if (authorName.length > 60) {
+    return NextResponse.json({ error: "Nombre demasiado largo (máx. 60)." }, { status: 400 });
   }
 
   const cleaned = sanitizePlainText(rawContent);
@@ -101,25 +120,26 @@ export async function POST(request: NextRequest) {
   const created = await prisma.comment.create({
     data: {
       postId,
+      authorName,
       content,
-      userId: dbUser.id,
+      userId: dbUser?.id ?? null,
     },
     select: {
       id: true,
+      authorName: true,
       content: true,
       createdAt: true,
       postId: true,
-      user: { select: { id: true, name: true } },
     },
   });
 
   return NextResponse.json({
     item: {
       id: created.id,
+      authorName: created.authorName,
       content: created.content,
       createdAt: created.createdAt.toISOString(),
       postId: created.postId,
-      user: { id: created.user.id, name: created.user.name ?? "Usuario" },
     },
   });
 }

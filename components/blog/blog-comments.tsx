@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 
 type CommentItem = {
   id: string;
+  authorName: string;
   content: string;
   createdAt: string;
-  user: { id: string; name: string };
 };
 
 function formatCommentDate(iso: string) {
@@ -22,13 +21,16 @@ function formatCommentDate(iso: string) {
   }).format(d);
 }
 
-export function BlogComments(props: { postId: string; isAuthenticated: boolean; loginHref?: string }) {
+export function BlogComments(props: { postId: string }) {
   const postId = props.postId;
   const [items, setItems] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
+  const [website, setWebsite] = useState("");
 
   const [order, setOrder] = useState<"new" | "old">("new");
   const [q, setQ] = useState("");
@@ -64,8 +66,14 @@ export function BlogComments(props: { postId: string; isAuthenticated: boolean; 
   }, [queryKey, order, postId, q]);
 
   async function publish() {
-    if (!props.isAuthenticated) return;
+    if (posting) return;
+    setSuccess(null);
+    const name = authorName.trim();
     const text = content.trim();
+    if (name.length < 2) {
+      setError("Introduce tu nombre (mín. 2 caracteres).");
+      return;
+    }
     if (text.length < 2) {
       setError("Escribe un comentario (mín. 2 caracteres).");
       return;
@@ -74,19 +82,36 @@ export function BlogComments(props: { postId: string; isAuthenticated: boolean; 
     setPosting(true);
     setError(null);
     try {
+      const optimistic: CommentItem = {
+        id: `tmp_${Date.now()}`,
+        authorName: name,
+        content: text,
+        createdAt: new Date().toISOString(),
+      };
+      setItems((prev) => (order === "new" ? [optimistic, ...prev] : [...prev, optimistic]));
+
       const res = await fetch("/api/blog/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId, content: text }),
+        body: JSON.stringify({ postId, authorName: name, content: text, website }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "No se pudo publicar el comentario.");
+      if (!res.ok) {
+        throw new Error(data?.error ?? "No se pudo publicar el comentario.");
+      }
       setContent("");
+      setWebsite("");
+      setSuccess("¡Gracias por tu comentario!");
       setItems((prev) => {
-        const next = [data.item as CommentItem, ...prev];
-        return order === "new" ? next : [...prev, data.item as CommentItem];
+        const cleaned = prev.filter((c) => c.id !== optimistic.id);
+        if (data?.item) {
+          return order === "new" ? [data.item as CommentItem, ...cleaned] : [...cleaned, data.item as CommentItem];
+        }
+        // Honeypot path: API returns ok without storing; just remove optimistic item.
+        return cleaned;
       });
     } catch (e) {
+      setItems((prev) => prev.filter((c) => !c.id.startsWith("tmp_")));
       setError(e instanceof Error ? e.message : "No se pudo publicar el comentario.");
     } finally {
       setPosting(false);
@@ -121,53 +146,56 @@ export function BlogComments(props: { postId: string; isAuthenticated: boolean; 
       </header>
 
       <div className="mt-6 rounded-2xl border border-[#FBBF24]/20 bg-[#161B22] p-5">
-        {props.isAuthenticated ? (
-          <>
-            <label className="text-xs font-bold uppercase tracking-[0.18em] text-yellow-200/90">
-              Escribe tu comentario
-            </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={4}
-              placeholder="Sé directo: qué funciona, qué falta, qué mejorarías."
-              className="mt-3 w-full resize-none rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400 outline-none focus:border-[#FBBF24]/60"
-            />
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-slate-400">
-                Publicamos como texto plano (sin HTML) para evitar XSS.
-              </p>
-              <button
-                type="button"
-                onClick={publish}
-                disabled={posting}
-                className="inline-flex items-center justify-center rounded-xl bg-[#FBBF24] px-5 py-2.5 text-sm font-bold text-[#0B0E14] shadow-lg shadow-yellow-400/20 transition hover:brightness-95 disabled:pointer-events-none disabled:opacity-60"
-              >
-                {posting ? "Publicando…" : "Publicar"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white">Inicia sesión para comentar</p>
-              <p className="mt-1 text-sm text-slate-300">
-                Necesitamos identificar al autor para mantener la conversación sana.
-              </p>
-            </div>
-            <Link
-              href={props.loginHref ?? "/login"}
-              className="inline-flex items-center justify-center rounded-xl border border-[#FBBF24]/50 bg-[#FBBF24] px-5 py-2.5 text-sm font-bold text-[#0B0E14] shadow-lg shadow-yellow-400/20 transition hover:brightness-95"
-            >
-              Inicia sesión para comentar
-            </Link>
-          </div>
-        )}
+        <label className="text-xs font-bold uppercase tracking-[0.18em] text-yellow-200/90">
+          Publica un comentario
+        </label>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <input
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            placeholder="Tu nombre"
+            className="h-10 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm text-slate-100 placeholder:text-slate-400 outline-none focus:border-[#FBBF24]/60"
+          />
+          {/* Honeypot (hidden for humans) */}
+          <input
+            tabIndex={-1}
+            autoComplete="off"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            className="hidden"
+            aria-hidden="true"
+          />
+        </div>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={4}
+          placeholder="Sé directo: qué funciona, qué falta, qué mejorarías."
+          className="mt-3 w-full resize-none rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400 outline-none focus:border-[#FBBF24]/60"
+        />
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-400">
+            Publicamos como texto plano (sin HTML) para evitar XSS.
+          </p>
+          <button
+            type="button"
+            onClick={publish}
+            disabled={posting}
+            className="inline-flex items-center justify-center rounded-xl bg-[#FBBF24] px-5 py-2.5 text-sm font-bold text-[#0B0E14] shadow-lg shadow-yellow-400/20 transition hover:brightness-95 disabled:pointer-events-none disabled:opacity-60"
+          >
+            {posting ? "Publicando…" : "Publicar comentario"}
+          </button>
+        </div>
       </div>
 
       {error ? (
         <p className="mt-4 rounded-xl border border-red-300/40 bg-red-950/40 px-4 py-3 text-sm text-red-100">
           {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p className="mt-4 rounded-xl border border-emerald-300/30 bg-emerald-950/35 px-4 py-3 text-sm text-emerald-100">
+          {success}
         </p>
       ) : null}
 
@@ -184,7 +212,7 @@ export function BlogComments(props: { postId: string; isAuthenticated: boolean; 
                 className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
               >
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm font-semibold text-white">{c.user.name}</p>
+                  <p className="text-sm font-semibold text-white">{c.authorName}</p>
                   <p className="text-xs text-slate-400">{formatCommentDate(c.createdAt)}</p>
                 </div>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-200">
