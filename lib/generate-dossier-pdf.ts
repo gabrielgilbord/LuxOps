@@ -2049,7 +2049,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     const img = await embedAutoImage(pdf, photo.url, photo.storagePath ?? null);
     if (img) {
       const maxW = 515;
-      const topY = 748;
+      // Reserva espacio para la línea "Adjunto aportado..." sin que se solape con la imagen.
+      const labelY = 742;
+      const topY = labelY - 14;
       const bottomY = PDF_FOOTER_CLEARANCE_Y;
       const maxH = Math.max(200, topY - bottomY);
       const ratio = Math.min(maxW / img.width, maxH / img.height);
@@ -2061,7 +2063,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       cover.drawImage(img, { x, y, width: w, height: h });
       cover.drawText("Adjunto aportado como imagen (captura).", {
         x: 40,
-        y: 740,
+        y: labelY,
         size: 8,
         font: inter,
         color: rgb(0.42, 0.42, 0.45),
