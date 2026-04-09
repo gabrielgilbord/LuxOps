@@ -1,7 +1,29 @@
 import type { BlogPostEntry } from "@/lib/blog/types";
 import { ArticleDigitalizar2026 } from "@/components/blog/articles/article-digitalizar-2026";
+import { ArticleLuxOpsLive } from "@/components/blog/articles/article-luxops-live";
 
 const posts: BlogPostEntry[] = [
+  {
+    slug: "luxops-live-nueva-era-certificacion-fotografica",
+    title: "LuxOps Live: La nueva era de la certificación fotográfica",
+    description:
+      "LuxOps ya está LIVE: trazabilidad Blockchain-Ready, dossier institucional con eIDAS y cumplimiento REBT para instaladoras solares.",
+    publishedAt: "2026-04-09T11:30:00+02:00",
+    updatedAt: "2026-04-09T11:30:00+02:00",
+    keywords: [
+      "LuxOps Live",
+      "certificación fotográfica",
+      "eIDAS",
+      "REBT",
+      "ITC-BT-19",
+      "ITC-BT-07",
+      "trazabilidad",
+      "blockchain-ready",
+      "instaladoras solares",
+    ],
+    promoCode: "LAUNCH100",
+    Component: ArticleLuxOpsLive,
+  },
   {
     slug: "digitalizar-empresa-instalaciones-solares-2026-guia",
     title:

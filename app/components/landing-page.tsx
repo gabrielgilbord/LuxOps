@@ -317,6 +317,9 @@ export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
                 {checkoutState.error}
               </p>
             ) : null}
+            <p className="mb-3 text-xs font-medium text-slate-200/80">
+              ¿Tienes un código promocional? Podrás introducirlo en el siguiente paso.
+            </p>
             <button
               type="submit"
               disabled={checkoutPending}

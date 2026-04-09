@@ -7,6 +7,8 @@ export type BlogPostEntry = {
   publishedAt: string;
   updatedAt?: string;
   keywords: string[];
+  /** Código promocional opcional mostrado en CTA del post. */
+  promoCode?: string;
   /** Cuerpo del artículo (incluye el H1 principal). */
   Component: ComponentType;
 };

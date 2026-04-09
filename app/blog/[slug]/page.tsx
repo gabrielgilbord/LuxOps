@@ -6,6 +6,7 @@ import { getAllBlogSlugs, getPostBySlug } from "@/lib/blog/registry";
 import { getPublicAppUrl } from "@/lib/public-app-url";
 import { BlogPostingJsonLd } from "@/components/blog/blog-posting-json-ld";
 import { BlogArticleCta } from "@/components/blog/blog-article-cta";
+import { BlogCommentsGiscus } from "@/components/blog/blog-comments-giscus";
 
 export async function generateStaticParams() {
   return getAllBlogSlugs().map((slug) => ({ slug }));
@@ -89,7 +90,8 @@ export default async function BlogArticlePage({
             {formatPublishedDate(post.publishedAt)}
           </time>
           <Component />
-          <BlogArticleCta />
+          <BlogArticleCta promoCode={post.promoCode} />
+          <BlogCommentsGiscus slug={slug} title={post.title} />
         </article>
       </div>
     </>
