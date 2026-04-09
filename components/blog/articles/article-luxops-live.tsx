@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function ArticleLuxOpsLive() {
   return (
-    <div className="space-y-6 text-base leading-relaxed text-slate-200 md:text-lg md:leading-relaxed">
+    <div className="space-y-8 text-base leading-relaxed text-slate-200 md:text-lg md:leading-relaxed">
       <p className="text-sm font-semibold uppercase tracking-wide text-yellow-300/90">
         Lanzamiento · LuxOps Live · 2026
       </p>
@@ -51,32 +51,6 @@ export function ArticleLuxOpsLive() {
         incluso con sincronización offline. La oficina deja de perseguir “la foto que falta” y el
         operario sabe exactamente qué evidencia necesita antes de cerrar.
       </p>
-
-      <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-        <h3 className="text-lg font-bold text-white">Call to Action</h3>
-        <p className="mt-2 text-sm text-slate-300">
-          Solo para los 5 primeros: Usa el código <strong className="text-white">FOUNDERS50</strong>{" "}
-          y obtén un <strong className="text-white">50% de DESCUENTO DE POR VIDA</strong> en tu
-          suscripción de LuxOps.
-        </p>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="rounded-xl border border-yellow-300/25 bg-yellow-300/10 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-yellow-200/90">
-              Código promocional
-            </p>
-            <p className="mt-1 text-sm font-extrabold text-yellow-200">FOUNDERS50</p>
-            <p className="mt-1 text-xs text-slate-300">
-              Introdúcelo en el checkout al activar LuxOps.
-            </p>
-          </div>
-          <Link
-            href="/#precios"
-            className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-6 py-3 text-sm font-bold text-yellow-950 shadow-lg shadow-yellow-400/20 transition hover:-translate-y-0.5 hover:bg-yellow-300"
-          >
-            Ver precios y activar
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }

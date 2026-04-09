@@ -22,13 +22,18 @@ export function BlogArticleCta({ promoCode }: { promoCode?: string }) {
           CRM pensado para instaladores: obras, documentación y equipo en un solo flujo.
         </p>
         {promoCode ? (
-          <div className="w-full rounded-xl border border-yellow-300/25 bg-yellow-300/10 px-4 py-3 text-left">
-            <p className="text-xs font-semibold uppercase tracking-wide text-yellow-200/90">
-              Código promocional de lanzamiento
+          <div className="w-full rounded-2xl border border-[#FBBF24]/60 bg-[#161B22] p-5 text-left shadow-[0_18px_60px_-24px_rgba(251,191,36,0.25)]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-yellow-200/90">
+              Oferta de lanzamiento
             </p>
-            <p className="mt-1 text-sm text-slate-200">
-              Usa <span className="rounded-md bg-black/30 px-2 py-1 font-extrabold text-yellow-200">{promoCode}</span>{" "}
-              en el checkout.
+            <p className="mt-3 text-sm leading-relaxed text-slate-200">
+              🎁 <strong className="text-white">¡OFERTA DE LANZAMIENTO!</strong> Sé uno de los{" "}
+              <strong className="text-white">5 primeros</strong> y obtén un{" "}
+              <strong className="text-white">50% de descuento DE POR VIDA</strong>. Usa el código:{" "}
+              <span className="ml-1 inline-flex items-center rounded-lg border border-[#FBBF24]/50 bg-black/25 px-2.5 py-1 font-extrabold text-[#FBBF24]">
+                {promoCode}
+              </span>{" "}
+              al suscribirte.
             </p>
           </div>
         ) : null}
