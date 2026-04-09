@@ -44,7 +44,14 @@ export async function GET(
       };
       return NextResponse.json(body, { status: 400 });
     }
-    console.error("LuxOps dossier PDF: PDF_GENERATION_FAILED", e);
+    console.error("LuxOps dossier PDF: PDF_GENERATION_FAILED", {
+      projectId: project.id,
+      orgId: project.organizationId,
+      logoUrl: project.organization?.logoUrl ?? null,
+      logoPath: project.organization?.logoPath ?? null,
+      brandColor: project.organization?.brandColor ?? null,
+      error: e instanceof Error ? { message: e.message, stack: e.stack } : e,
+    });
     return NextResponse.json(
       {
         error:

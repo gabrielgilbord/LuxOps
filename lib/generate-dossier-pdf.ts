@@ -171,13 +171,29 @@ async function embedAutoImage(pdf: PDFDocument, source: string, storagePath?: st
   const b3 = bytes[3];
   const isPng = b0 === 0x89 && b1 === 0x50 && b2 === 0x4e && b3 === 0x47;
   const isJpg = b0 === 0xff && b1 === 0xd8;
-  if (isPng) return pdf.embedPng(bytes);
-  if (isJpg) return pdf.embedJpg(bytes);
+  if (isPng) {
+    try {
+      return pdf.embedPng(bytes);
+    } catch {
+      return null;
+    }
+  }
+  if (isJpg) {
+    try {
+      return pdf.embedJpg(bytes);
+    } catch {
+      return null;
+    }
+  }
   // Fallback: intenta PNG primero (la mayoría de firmas son PNG).
   try {
     return await pdf.embedPng(bytes);
   } catch {
-    return await pdf.embedJpg(bytes);
+    try {
+      return await pdf.embedJpg(bytes);
+    } catch {
+      return null;
+    }
   }
 }
 
