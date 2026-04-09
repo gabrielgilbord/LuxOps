@@ -1,4 +1,4 @@
-# LuxOps CRM Solar (MVP)
+# LuxOps CRM Solar (MVP v1)
 
 MVP SaaS para empresas instaladoras solares:
 
