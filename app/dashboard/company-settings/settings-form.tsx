@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { updateCompanySettingsAction } from "@/app/actions/company";
 
 const initialState = { ok: false, error: undefined as string | undefined };
@@ -24,9 +24,33 @@ export function CompanySettingsForm({
 }) {
   const [logoPreview, setLogoPreview] = useState(defaultLogoUrl);
   const [state, formAction, pending] = useActionState(updateCompanySettingsAction, initialState);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [logoFileName, setLogoFileName] = useState<string>("");
+  const [dragActive, setDragActive] = useState(false);
+
+  const hasLogo = Boolean(logoPreview?.trim());
+  const isDefaultLogo = logoPreview === defaultLogoUrl;
+
+  const prettyHint = useMemo(() => {
+    if (logoFileName) return logoFileName;
+    if (hasLogo) return "Logo cargado";
+    return "Sin logo";
+  }, [hasLogo, logoFileName]);
+
+  async function readLogoFile(file: File) {
+    setLogoFileName(file.name);
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error("No se pudo leer el logo"));
+      reader.readAsDataURL(file);
+    });
+    setLogoPreview(dataUrl);
+  }
 
   useEffect(() => {
     setLogoPreview(defaultLogoUrl);
+    setLogoFileName("");
   }, [defaultLogoUrl]);
 
   return (
@@ -71,23 +95,124 @@ export function CompanySettingsForm({
         />
       </div>
       <input type="hidden" name="logoDataUrl" value={logoPreview} />
-      <label className="text-xs text-slate-300">Logo de empresa (PNG/JPG)</label>
-      <input
-        type="file"
-        accept="image/*"
-        className="text-xs text-slate-300"
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result ?? ""));
-            reader.onerror = () => reject(new Error("No se pudo leer el logo"));
-            reader.readAsDataURL(file);
-          });
-          setLogoPreview(dataUrl);
-        }}
-      />
+      <div className="grid gap-2">
+        <div className="flex items-end justify-between gap-3">
+          <div className="grid gap-0.5">
+            <label className="text-xs font-semibold text-slate-200">Logo de empresa</label>
+            <p className="text-[11px] text-slate-400">
+              Arrastra y suelta una imagen aquí o haz clic para seleccionarla. Recomendado: PNG con fondo
+              transparente.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-yellow-300/60"
+          >
+            Elegir logo
+          </button>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+          }}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragActive(true);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragActive(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragActive(false);
+          }}
+          onDrop={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragActive(false);
+            const file = e.dataTransfer.files?.[0];
+            if (!file) return;
+            await readLogoFile(file);
+          }}
+          className={`rounded-xl border p-3 transition ${
+            dragActive
+              ? "border-yellow-300/80 bg-yellow-300/10"
+              : "border-slate-800 bg-slate-950 hover:border-slate-700"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="grid h-14 w-14 place-items-center rounded-lg border border-slate-800 bg-slate-900/60">
+              {hasLogo ? (
+                <Image
+                  src={logoPreview}
+                  alt="Logo empresa"
+                  width={120}
+                  height={120}
+                  unoptimized
+                  className="h-10 w-10 object-contain"
+                />
+              ) : (
+                <span className="text-xs font-semibold text-slate-400">LOGO</span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-100">{prettyHint}</p>
+              <p className="text-xs text-slate-400">JPG/PNG/WebP · máximo recomendado 1 MB</p>
+            </div>
+            {hasLogo ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setLogoPreview("");
+                  setLogoFileName("");
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-200 hover:border-red-400/60 hover:text-red-200"
+              >
+                Quitar
+              </button>
+            ) : null}
+            {!isDefaultLogo && defaultLogoUrl ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setLogoPreview(defaultLogoUrl);
+                  setLogoFileName("");
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-200 hover:border-slate-700"
+              >
+                Restaurar
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            await readLogoFile(file);
+          }}
+        />
+      </div>
       {logoPreview ? (
         <div className="rounded-lg border border-slate-800 bg-slate-950 p-2">
           <Image
