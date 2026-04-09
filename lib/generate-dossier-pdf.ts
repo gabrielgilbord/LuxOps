@@ -1902,7 +1902,8 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       const ratio = Math.min(maxW / img.width, maxH / img.height);
       const w = img.width * ratio;
       const h = img.height * ratio;
-      const yImgBottom = imageBandBottom + (topY - imageBandBottom - h) / 2;
+      // Alinea arriba para aprovechar espacio y evitar huecos grandes.
+      const yImgBottom = Math.max(imageBandBottom, topY - h);
       annexPage.drawImage(img, {
         x: (595 - w) / 2,
         y: yImgBottom,
@@ -2048,12 +2049,15 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     const img = await embedAutoImage(pdf, photo.url, photo.storagePath ?? null);
     if (img) {
       const maxW = 515;
-      const maxH = 640;
+      const topY = 748;
+      const bottomY = PDF_FOOTER_CLEARANCE_Y;
+      const maxH = Math.max(200, topY - bottomY);
       const ratio = Math.min(maxW / img.width, maxH / img.height);
       const w = img.width * ratio;
       const h = img.height * ratio;
       const x = (595 - w) / 2;
-      const y = 110;
+      // Alineado arriba para evitar “aire” enorme como en Gmail/PDF viewers.
+      const y = Math.max(bottomY, topY - h);
       cover.drawImage(img, { x, y, width: w, height: h });
       cover.drawText("Adjunto aportado como imagen (captura).", {
         x: 40,
