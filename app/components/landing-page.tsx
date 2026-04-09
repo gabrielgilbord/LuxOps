@@ -289,46 +289,67 @@ export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
       </section>
 
       <section id="precios" className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8 pb-24">
-        <div className="animate-fade-in-up rounded-3xl border border-white/15 bg-white/10 p-9 text-center shadow-2xl backdrop-blur-xl">
-          <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-yellow-300/40 bg-yellow-300/15 px-3 py-1 text-xs font-bold text-yellow-200">
-            <CheckCircle2 className="h-4 w-4" />
-            Plan profesional
-          </div>
-          <p className="text-6xl font-bold text-yellow-300">150€/mes</p>
-          <p className="mt-3 text-sm text-slate-200/85">
-            Incluye autenticacion, multiorganizacion y dashboard operativo.
-          </p>
-          <ul className="mx-auto mt-4 w-fit space-y-2 text-left text-sm text-slate-100">
-            {[
-              "Proyectos ilimitados",
-              "Sincronización Offline",
-              "Soporte 24/7 de campo",
-              "Multitenancy activa",
-            ].map((item) => (
-              <li key={item} className="inline-flex items-center gap-3">
-                <CheckCircle2 className="h-4 w-4 text-yellow-300" />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <form action={checkoutFormAction} className="mt-7">
-            {checkoutState?.error ? (
-              <p className="mb-3 rounded-lg border border-red-300/50 bg-red-950/40 px-3 py-2 text-left text-sm text-red-100">
-                {checkoutState.error}
+        <div className="animate-fade-in-up rounded-3xl border border-white/15 bg-white/10 p-7 shadow-2xl backdrop-blur-xl sm:p-9 lg:p-12">
+          <div className="grid items-start gap-10 lg:grid-cols-[1fr,26rem] lg:gap-14">
+            <div className="text-left">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300/80">
+                Precios
               </p>
-            ) : null}
-            <p className="mb-3 text-xs font-medium text-slate-200/80">
-              Oferta de lanzamiento disponible: 50% de descuento para siempre para los primeros 5
-              registros con código.
-            </p>
-            <button
-              type="submit"
-              disabled={checkoutPending}
-              className="inline-flex rounded-xl bg-white px-7 py-3 text-sm font-bold text-slate-900 shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-60"
-            >
-              {checkoutPending ? "Abriendo pago…" : "Activar LuxOps"}
-            </button>
-          </form>
+              <h2 className="mt-3 text-balance text-3xl font-bold text-white sm:text-4xl">
+                Plan profesional para instaladoras
+              </h2>
+              <p className="mt-3 max-w-xl text-sm text-slate-200/85 sm:text-base">
+                Activa LuxOps y centraliza obras, evidencias, REBT y dossiers institucionales. El
+                checkout permite aplicar códigos promocionales.
+              </p>
+
+              <ul className="mt-7 grid gap-3 text-sm text-slate-100 sm:max-w-xl sm:grid-cols-2 sm:gap-x-8 sm:gap-y-4">
+                {[
+                  "Proyectos ilimitados",
+                  "Sincronización Offline",
+                  "Soporte 24/7 de campo",
+                  "Multitenancy activa",
+                ].map((item) => (
+                  <li key={item} className="inline-flex items-center gap-3">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-yellow-300" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-3xl border-2 border-yellow-300/70 bg-[#0B0E14]/70 p-7 text-center shadow-[0_24px_90px_-28px_rgba(251,191,36,0.35)] sm:p-9">
+              <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-yellow-300/40 bg-yellow-300/15 px-3 py-1 text-xs font-bold text-yellow-200">
+                <CheckCircle2 className="h-4 w-4" />
+                Plan profesional
+              </div>
+              <p className="text-6xl font-bold text-yellow-300">150€/mes</p>
+              <p className="mt-5 text-sm text-slate-200/85">
+                Incluye autenticacion, multiorganizacion y dashboard operativo.
+              </p>
+
+              <form action={checkoutFormAction} className="mt-8">
+                {checkoutState?.error ? (
+                  <p className="mb-4 rounded-lg border border-red-300/50 bg-red-950/40 px-3 py-2 text-left text-sm text-red-100">
+                    {checkoutState.error}
+                  </p>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={checkoutPending}
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-slate-900 shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-60"
+                >
+                  {checkoutPending ? "Abriendo pago…" : "Activar LuxOps"}
+                </button>
+
+                <p className="mt-4 text-xs font-medium text-slate-200/80">
+                  Oferta de lanzamiento disponible: 50% de descuento para siempre para los primeros 5
+                  registros con código.
+                </p>
+              </form>
+            </div>
+          </div>
         </div>
       </section>
 
