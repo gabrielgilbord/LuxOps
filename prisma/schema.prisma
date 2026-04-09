@@ -109,6 +109,19 @@ model User {
   assignedProjects Project[]  @relation("ProjectAssignedUser")
   syncEvents       SyncEvent[]
   notificationJobs NotificationJob[]
+  comments        Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  postId    String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model OperatorInvite {
