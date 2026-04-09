@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
-const ALLOWED_TYPES = new Set(["magiclink", "signup", "recovery"]);
+const ALLOWED_TYPES = new Set(["magiclink", "signup", "recovery", "invite"]);
 
 function safeInternalNext(raw: string | null, fallback: string): string {
   if (!raw) return fallback;
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
   const { error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
-    type: typeRaw as "signup" | "magiclink" | "recovery",
+    type: typeRaw as "signup" | "magiclink" | "recovery" | "invite",
   });
 
   if (error) {

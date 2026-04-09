@@ -9,7 +9,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminUser, requireSubscribedUser } from "@/lib/authz";
 import {
-  sendOperarioInviteEmail,
+  sendLuxOpsOperarioInviteEmail,
   sendOperarioObraAssignedEmail,
   sendOperarioResetEmail,
   sendProjectFinishedEmail,
@@ -17,6 +17,7 @@ import {
 import {
   getOperarioInviteCompleteUrl,
   getPublicAppUrl,
+  getSupabaseAuthCallbackUrl,
   getSupabaseAuthResetPasswordUrl,
 } from "@/lib/public-app-url";
 import { uploadDataUrlToStorage } from "@/lib/storage";
@@ -431,83 +432,20 @@ export async function inviteOperarioAction(
     },
   });
 
-  try {
-    const supabaseAdmin = createSupabaseAdminClient();
-    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: inviteLink,
-      data: { full_name: name },
-    });
-    if (error) {
-      const { data: fallbackData } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-        options: {
-          redirectTo: inviteLink,
-          data: { full_name: name },
-        },
-      });
-      const manualAuthLink =
-        fallbackData?.properties?.action_link ||
-        fallbackData?.properties?.hashed_token ||
-        inviteLink;
-      const resendSent = await sendOperarioInviteEmail({
-        to: email,
-        name,
-        inviteUrl: String(manualAuthLink),
-      });
-      if (resendSent) {
-        revalidatePath("/dashboard");
-        revalidatePath("/dashboard/team");
-        return { ok: true, inviteLink: String(manualAuthLink) };
-      }
-      return {
-        error: `Invitación creada. Supabase no pudo enviar email automático: ${error.message}. Usa el enlace manual.`,
-        inviteLink: String(manualAuthLink),
-      };
-    }
-  } catch (error) {
-    const errMessage = error instanceof Error ? error.message : "Error desconocido";
-    console.error("No se pudo enviar invitacion por Supabase:", error);
-    try {
-      const supabaseAdmin = createSupabaseAdminClient();
-      const { data: fallbackData } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-        options: {
-          redirectTo: inviteLink,
-          data: { full_name: name },
-        },
-      });
-      const manualAuthLink =
-        fallbackData?.properties?.action_link ||
-        fallbackData?.properties?.hashed_token ||
-        inviteLink;
-      const resendSent = await sendOperarioInviteEmail({
-        to: email,
-        name,
-        inviteUrl: String(manualAuthLink),
-      });
-      if (resendSent) {
-        revalidatePath("/dashboard");
-        revalidatePath("/dashboard/team");
-        return { ok: true, inviteLink: String(manualAuthLink) };
-      }
-      return {
-        error: `No se pudo enviar email por Supabase (${errMessage}). Usa el enlace manual.`,
-        inviteLink: String(manualAuthLink),
-      };
-    } catch {
-      // Si también falla generateLink, devolvemos al menos el link interno.
-    }
-    return {
-      error: `No se pudo enviar email por Supabase (${errMessage}).`,
-      inviteLink,
-    };
+  const nextPath = `/invite/complete?token=${encodeURIComponent(token)}`;
+  const sent = await sendLuxOpsOperarioInviteEmail({
+    to: email,
+    name,
+    nextPath,
+    redirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
+  });
+  if (!sent.ok) {
+    return { error: sent.error, inviteLink };
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/team");
-  return { ok: true, inviteLink };
+  return { ok: true, inviteLink: sent.confirmUrl };
 }
 
 export async function resendOperarioInviteAction(formData: FormData) {
@@ -545,76 +483,21 @@ export async function resendOperarioInviteAction(formData: FormData) {
   let message = "";
   let outputLink = inviteLink;
 
-  try {
-    const supabaseAdmin = createSupabaseAdminClient();
-    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(invite.email, {
-      redirectTo: inviteLink,
-      data: { full_name: invite.name },
-    });
-    if (error) {
-      const { data: fallbackData } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email: invite.email,
-        options: {
-          redirectTo: inviteLink,
-          data: { full_name: invite.name },
-        },
-      });
-      const manualAuthLink =
-        fallbackData?.properties?.action_link ||
-        fallbackData?.properties?.hashed_token ||
-        inviteLink;
-      const resendSent = await sendOperarioInviteEmail({
-        to: invite.email,
-        name: invite.name,
-        inviteUrl: String(manualAuthLink),
-      });
-      if (resendSent) {
-        status = "resent";
-        message = "";
-        outputLink = String(manualAuthLink);
-      } else {
-        status = "error";
-        message = error.message;
-        outputLink = String(manualAuthLink);
-      }
-    }
-  } catch (error) {
-    const errMessage = error instanceof Error ? error.message : "Error desconocido";
-    try {
-      const supabaseAdmin = createSupabaseAdminClient();
-      const { data: fallbackData } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email: invite.email,
-        options: {
-          redirectTo: inviteLink,
-          data: { full_name: invite.name },
-        },
-      });
-      const manualAuthLink =
-        fallbackData?.properties?.action_link ||
-        fallbackData?.properties?.hashed_token ||
-        inviteLink;
-      const resendSent = await sendOperarioInviteEmail({
-        to: invite.email,
-        name: invite.name,
-        inviteUrl: String(manualAuthLink),
-      });
-      if (resendSent) {
-        status = "resent";
-        message = "";
-        outputLink = String(manualAuthLink);
-      } else {
-        status = "error";
-        message = errMessage;
-        outputLink = String(manualAuthLink);
-      }
-    } catch {
-      // Si falla también generateLink, dejamos fallback al enlace interno.
-    }
+  const nextPath = `/invite/complete?token=${encodeURIComponent(token)}`;
+  const sent = await sendLuxOpsOperarioInviteEmail({
+    to: invite.email,
+    name: invite.name,
+    nextPath,
+    redirectTo: getSupabaseAuthCallbackUrl("/dashboard"),
+  });
+  if (!sent.ok) {
     status = "error";
-    message = errMessage;
+    message = sent.error;
     outputLink = inviteLink;
+  } else {
+    status = "resent";
+    message = "";
+    outputLink = sent.confirmUrl;
   }
 
   revalidatePath("/dashboard/team");

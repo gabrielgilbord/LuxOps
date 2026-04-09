@@ -200,6 +200,50 @@ export async function sendLuxOpsPasswordRecoveryEmail(params: {
   return { ok: true };
 }
 
+/** Invitación operario: enlace corto LuxOps (sin email automático de Supabase). */
+export async function sendLuxOpsOperarioInviteEmail(params: {
+  to: string;
+  name: string;
+  /** Ruta interna post-verificación, ej. /invite/complete?token=... */
+  nextPath: string;
+  /** RedirectTo requerido por Supabase al generar el token (URL absoluta permitida). */
+  redirectTo: string;
+}): Promise<{ ok: true; confirmUrl: string } | { ok: false; error: string }> {
+  const email = params.to.trim().toLowerCase();
+  const link = await generateAuthActionLink({
+    type: "invite",
+    email,
+    redirectTo: params.redirectTo,
+    data: { full_name: params.name },
+  });
+  if ("error" in link) return { ok: false, error: link.error };
+
+  const confirmUrl = getAuthConfirmUrl({
+    tokenHash: link.tokenHash,
+    type: link.verificationType,
+    nextPath: params.nextPath,
+  });
+
+  const tmpl = buildLuxOpsAuthActionEmail({
+    heading: "Invitación a LuxOps",
+    bodyLines: [
+      `${params.name}, te han invitado a LuxOps para trabajar en tu organización.`,
+      "Pulsa el botón para aceptar la invitación y activar tu acceso.",
+    ],
+    buttonLabel: "ACEPTAR INVITACIÓN",
+    actionLink: confirmUrl,
+  });
+
+  const sent = await sendLuxOpsAuthResend({
+    to: email,
+    subject: "📩 Invitación a LuxOps",
+    html: tmpl.html,
+    text: tmpl.text,
+  });
+  if (!sent) return { ok: false, error: "No se pudo enviar la invitación por email." };
+  return { ok: true, confirmUrl };
+}
+
 export async function sendProjectFinishedEmail(params: SendProjectFinishedEmailParams) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = getResendFrom();

@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 /** Tipos de enlace que enviamos por correo y verificamos en `/auth/confirm`. */
-export type AuthEmailVerificationType = "magiclink" | "signup" | "recovery";
+export type AuthEmailVerificationType = "magiclink" | "signup" | "recovery" | "invite";
 
 export type GenerateAuthActionLinkInput =
   | {
@@ -21,10 +21,16 @@ export type GenerateAuthActionLinkInput =
       password: string;
       redirectTo: string;
       data?: Record<string, unknown>;
+    }
+  | {
+      type: "invite";
+      email: string;
+      redirectTo: string;
+      data?: Record<string, unknown>;
     };
 
 function parseVerificationType(raw: string | undefined): AuthEmailVerificationType | null {
-  if (raw === "magiclink" || raw === "signup" || raw === "recovery") return raw;
+  if (raw === "magiclink" || raw === "signup" || raw === "recovery" || raw === "invite") return raw;
   return null;
 }
 
@@ -61,14 +67,23 @@ export async function generateAuthActionLink(
             email: input.email,
             options: { redirectTo: input.redirectTo },
           })
-        : await admin.auth.admin.generateLink({
-            type: "magiclink",
-            email: input.email,
-            options: {
-              redirectTo: input.redirectTo,
-              data: input.data,
-            },
-          });
+        : input.type === "invite"
+          ? await admin.auth.admin.generateLink({
+              type: "invite",
+              email: input.email,
+              options: {
+                redirectTo: input.redirectTo,
+                data: input.data,
+              },
+            })
+          : await admin.auth.admin.generateLink({
+              type: "magiclink",
+              email: input.email,
+              options: {
+                redirectTo: input.redirectTo,
+                data: input.data,
+              },
+            });
 
   const tokenHash = data?.properties?.hashed_token?.trim();
   const verificationType =
