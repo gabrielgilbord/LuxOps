@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import type { Prisma } from "@prisma/client";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -405,6 +406,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const modalityLabelPdf = modalityLabel(project.selfConsumptionModality);
 
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await embedInterBoldFont(pdf);
   const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
