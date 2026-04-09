@@ -55,12 +55,33 @@ const PDF_FOOTER_CLEARANCE_Y = 82;
 /** Altura reservada para la franja de pie (rectángulo + textos). */
 const PDF_FOOTER_BAND_HEIGHT = 56;
 
+function isValidFontBytes(bytes: Uint8Array) {
+  if (!bytes || bytes.byteLength < 4) return false;
+  const b0 = bytes[0];
+  const b1 = bytes[1];
+  const b2 = bytes[2];
+  const b3 = bytes[3];
+  // TTF: 00 01 00 00
+  if (b0 === 0x00 && b1 === 0x01 && b2 === 0x00 && b3 === 0x00) return true;
+  // OTF: 'OTTO'
+  if (b0 === 0x4f && b1 === 0x54 && b2 === 0x54 && b3 === 0x4f) return true;
+  // TrueType collection / legacy tags: 'true' / 'typ1'
+  if (b0 === 0x74 && b1 === 0x72 && b2 === 0x75 && b3 === 0x65) return true; // true
+  if (b0 === 0x74 && b1 === 0x79 && b2 === 0x70 && b3 === 0x31) return true; // typ1
+  return false;
+}
+
 async function embedSwissSansFont(pdf: PDFDocument) {
   try {
     const local = join(process.cwd(), "public", "fonts", "Inter-Regular.ttf");
     const bytes = await readFile(local);
-    if (bytes.byteLength > 1000) {
-      return pdf.embedFont(bytes, { subset: true });
+    const u8 = new Uint8Array(bytes);
+    if (u8.byteLength > 1000 && isValidFontBytes(u8)) {
+      try {
+        return pdf.embedFont(u8, { subset: true });
+      } catch {
+        /* fallback below */
+      }
     }
   } catch {
     /* optional local font */
@@ -75,7 +96,12 @@ async function embedSwissSansFont(pdf: PDFDocument) {
       if (!res.ok) continue;
       const bytes = new Uint8Array(await res.arrayBuffer());
       if (bytes.byteLength < 1000) continue;
-      return pdf.embedFont(bytes, { subset: true });
+      if (!isValidFontBytes(bytes)) continue;
+      try {
+        return pdf.embedFont(bytes, { subset: true });
+      } catch {
+        /* next URL */
+      }
     } catch {
       /* fallback below */
     }
@@ -87,8 +113,13 @@ async function embedInterBoldFont(pdf: PDFDocument) {
   try {
     const local = join(process.cwd(), "public", "fonts", "Inter-Bold.ttf");
     const bytes = await readFile(local);
-    if (bytes.byteLength > 1000) {
-      return pdf.embedFont(bytes, { subset: true });
+    const u8 = new Uint8Array(bytes);
+    if (u8.byteLength > 1000 && isValidFontBytes(u8)) {
+      try {
+        return pdf.embedFont(u8, { subset: true });
+      } catch {
+        /* fallback below */
+      }
     }
   } catch {
     /* optional local font */
@@ -103,7 +134,12 @@ async function embedInterBoldFont(pdf: PDFDocument) {
       if (!res.ok) continue;
       const bytes = new Uint8Array(await res.arrayBuffer());
       if (bytes.byteLength < 1000) continue;
-      return pdf.embedFont(bytes, { subset: true });
+      if (!isValidFontBytes(bytes)) continue;
+      try {
+        return pdf.embedFont(bytes, { subset: true });
+      } catch {
+        /* next URL */
+      }
     } catch {
       /* fallback below */
     }
