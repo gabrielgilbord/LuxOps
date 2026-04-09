@@ -1249,15 +1249,22 @@ export function EjecucionObra({ projectId, serverLegalElectricHints, serverRebtC
       setSignatureSent(false);
       setFinalizeNotice(`No se pudo guardar la firma: ${signatureRejected.reason}`);
     } else if (result.ok) {
-      setSignatureSent(false);
+      // Si el envío no ocurre ahora, igualmente marcamos la obra como finalizada:
+      // la operación queda en cola y se sincronizará cuando vuelva la conexión.
+      localStorage.removeItem(getDraftKey(projectId));
+      setSignatureSent(true);
       setFinalizeNotice(
-        "Firma guardada localmente. Se sincronizará automáticamente al detectar conexión.",
+        "Firma guardada. Cerrando obra… Se sincronizará automáticamente al detectar conexión.",
       );
+      window.setTimeout(() => router.push("/operario/dashboard"), 900);
     } else {
-      setSignatureSent(false);
+      // Sin conexión / fallo de sync: la firma queda guardada en local (cola) y cerramos la obra igualmente.
+      localStorage.removeItem(getDraftKey(projectId));
+      setSignatureSent(true);
       setFinalizeNotice(
-        "Firma guardada localmente. Se sincronizará automáticamente al detectar conexión.",
+        "Firma guardada. Cerrando obra… Se sincronizará automáticamente al detectar conexión.",
       );
+      window.setTimeout(() => router.push("/operario/dashboard"), 900);
     }
     setIsFinalizing(false);
   }

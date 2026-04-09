@@ -140,19 +140,26 @@ function dataUrlToBytes(dataUrl: string) {
 }
 
 async function imageToBytes(source: string, storagePath?: string | null) {
+  const src = (source ?? "").trim();
+  if (!src) return null;
   if (storagePath) {
     const bytes = await downloadStorageBytes({ bucket: "luxops-assets", path: storagePath });
     if (bytes) return bytes;
   }
-  if (source.startsWith("data:image/")) return dataUrlToBytes(source);
-  if (source.includes("/") && !source.startsWith("http")) {
-    const bytes = await downloadStorageBytes({ bucket: "luxops-assets", path: source });
+  if (src.startsWith("data:image/")) return dataUrlToBytes(src);
+  if (src.includes("/") && !src.startsWith("http")) {
+    const bytes = await downloadStorageBytes({ bucket: "luxops-assets", path: src });
     if (bytes) return bytes;
   }
-  const res = await fetch(source);
-  if (!res.ok) return null;
-  const arr = await res.arrayBuffer();
-  return Buffer.from(arr);
+  if (!src.startsWith("http")) return null;
+  try {
+    const res = await fetch(src, { signal: AbortSignal.timeout(12000) });
+    if (!res.ok) return null;
+    const arr = await res.arrayBuffer();
+    return Buffer.from(arr);
+  } catch {
+    return null;
+  }
 }
 
 async function embedAutoImage(pdf: PDFDocument, source: string, storagePath?: string | null) {
