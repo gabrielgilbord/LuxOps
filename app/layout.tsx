@@ -3,7 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { LuxOpsJsonLd } from "@/components/seo/luxops-json-ld";
 import { CookieBanner } from "@/components/legal/cookie-banner";
 import { SiteFooter } from "@/components/legal/site-footer";
-import { getPublicAppUrl } from "@/lib/public-app-url";
+import { getCanonicalSiteUrlForIndexing } from "@/lib/public-app-url";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,7 +20,8 @@ const SITE_TITLE = "LuxOps | El CRM nº1 para Instaladores de Placas Solares";
 const SITE_DESCRIPTION =
   "Gestiona tus instalaciones fotovoltaicas, clientes y presupuestos con el CRM más rápido del sector solar. Optimiza tu oficina técnica hoy.";
 
-const siteUrl = getPublicAppUrl().replace(/\/$/, "");
+/** Misma base que sitemap/robots para URLs absolutas en metadatos (Search Console). */
+const siteUrl = getCanonicalSiteUrlForIndexing().replace(/\/$/, "");
 
 export const metadata: Metadata = {
   metadataBase: new URL(`${siteUrl}/`),

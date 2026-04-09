@@ -15,6 +15,34 @@ export function getPublicAppUrl(): string {
 }
 
 /**
+ * Origen canónico del sitio (https + host, sin path) para sitemap.xml y robots.txt.
+ * Debe coincidir con la propiedad de Google Search Console (mismo esquema y host, p. ej. https://luxops.es).
+ *
+ * Prioridad: `NEXT_PUBLIC_CANONICAL_URL` → `NEXT_PUBLIC_APP_URL` → `VERCEL_URL` → localhost.
+ */
+export function getCanonicalSiteUrlForIndexing(): string {
+  const raw =
+    (process.env.NEXT_PUBLIC_CANONICAL_URL ?? "").trim() ||
+    (process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+  if (raw) {
+    try {
+      const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
+      return `${u.protocol}//${u.host}`;
+    } catch {
+      return raw.replace(/\/$/, "");
+    }
+  }
+
+  const vercelHost = (process.env.VERCEL_URL ?? "")
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
+  if (vercelHost) return `https://${vercelHost}`;
+
+  return "http://localhost:3000";
+}
+
+/**
  * Enlace del botón en correos Auth: nuestra app valida el token y crea sesión.
  * Evita URLs largas de Supabase que Gmail trunca o altera.
  */
