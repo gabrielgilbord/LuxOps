@@ -1,7 +1,32 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 export function BlogArticleCta({ promoCode }: { promoCode?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) {
+        window.clearTimeout(copiedTimerRef.current);
+      }
+    };
+  }, []);
+
+  async function copyCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      if (copiedTimerRef.current) window.clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      // Clipboard API can be blocked by browser permissions; fail silently.
+    }
+  }
+
   return (
     <aside
       className="mt-14 overflow-hidden rounded-2xl border border-yellow-400/25 bg-gradient-to-br from-[#161B22] via-[#12161c] to-[#0B0E14] p-6 text-center shadow-[0_12px_48px_-12px_rgba(250,204,21,0.15)] md:p-10"
@@ -30,10 +55,26 @@ export function BlogArticleCta({ promoCode }: { promoCode?: string }) {
               🎁 <strong className="text-white">¡OFERTA DE LANZAMIENTO!</strong> Sé uno de los{" "}
               <strong className="text-white">5 primeros</strong> y obtén un{" "}
               <strong className="text-white">50% de descuento DE POR VIDA</strong>. Usa el código:{" "}
-              <span className="ml-1 inline-flex items-center rounded-lg border border-[#FBBF24]/50 bg-black/25 px-2.5 py-1 font-extrabold text-[#FBBF24]">
+              <button
+                type="button"
+                onClick={() => copyCode(promoCode)}
+                className="ml-1 inline-flex items-center rounded-lg border border-[#FBBF24]/60 bg-black/25 px-2.5 py-1 font-extrabold text-[#FBBF24] transition hover:bg-black/35 hover:border-[#FBBF24] active:scale-[0.98] active:bg-black/45 cursor-pointer"
+                aria-label={`Copiar código ${promoCode}`}
+                title="Haz clic para copiar"
+              >
                 {promoCode}
-              </span>{" "}
+              </button>{" "}
               al suscribirte.
+            </p>
+            <p
+              className={
+                copied
+                  ? "mt-3 text-xs font-semibold text-yellow-200"
+                  : "mt-3 text-xs text-slate-400"
+              }
+              aria-live="polite"
+            >
+              {copied ? "¡Copiado!" : "Haz clic en el código para copiarlo."}
             </p>
           </div>
         ) : null}
