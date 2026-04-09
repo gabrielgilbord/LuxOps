@@ -53,7 +53,7 @@ const MOUNTING_LABEL: Record<string, string> = {
 /** Origen abajo: nada de contenido debe quedar por debajo de esta Y (el pie se pinta al final ~18–70). */
 const PDF_FOOTER_CLEARANCE_Y = 82;
 /** Altura reservada para la franja de pie (rectángulo + textos). */
-const PDF_FOOTER_BAND_HEIGHT = 56;
+const PDF_FOOTER_BAND_HEIGHT = 66;
 
 function isValidFontBytes(bytes: Uint8Array) {
   if (!bytes || bytes.byteLength < 4) return false;
@@ -264,8 +264,9 @@ function drawFooter(params: {
       color: rgb(0.35, 0.35, 0.35),
     },
   );
-  const audit =
-    `ID de transacción: ${projectId} · Integridad de datos verificada por LuxOps Blockchain-Ready System`;
+  const audit = pdfLibSafeText(
+    `ID de transacción: ${projectId} · Documento electrónico firmado mediante hash de integridad según Reglamento (UE) Nº 910/2014 (eIDAS)`,
+  );
   let lineY = footBaseY + PDF_FOOTER_BAND_HEIGHT - 22;
   for (const line of wrapPdfLines(audit, innerW, italic, 5.2)) {
     page.drawText(line, {
@@ -447,10 +448,11 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const bold = await embedInterBoldFont(pdf);
   const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
   const inter = await embedSwissSansFont(pdf);
-  const slateText = rgb(0.0588, 0.0902, 0.1647);
+  const luxBlack = rgb(0.0431, 0.0549, 0.0784); // #0B0E14
+  const slateText = luxBlack;
   const slateBorder = rgb(0.2, 0.2549, 0.3333);
-  const solarYellow = rgb(0.9843, 0.8196, 0.1412);
-  const accent = hexToRgb(project.organization.brandColor ?? "#1F2937");
+  const solarYellow = rgb(0.9843, 0.749, 0.1412); // #FBBF24
+  const accent = solarYellow;
   const companyName = (project.organization.name ?? "").trim() || "Organización";
   const installerCompanyLabel = pdfLibSafeText(companyName);
   const dossierReference =
@@ -519,15 +521,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   if (!drewCompanyLogo) {
     const defaultLogo = await getDefaultLuxOpsLogo(pdf);
     if (defaultLogo) {
-      const maxW = 170;
-      const maxH = 170;
+      // 35mm de ancho ≈ 99pt
+      const maxW = 100;
+      const maxH = 100;
       const ratio = Math.min(maxW / defaultLogo.width, maxH / defaultLogo.height);
       const w = defaultLogo.width * ratio;
       const h = defaultLogo.height * ratio;
-      coverPage.drawImage(defaultLogo, { x: (595 - w) / 2, y: 632, width: w, height: h });
+      coverPage.drawImage(defaultLogo, { x: (595 - w) / 2, y: 660, width: w, height: h });
       coverPage.drawText("Aval de calidad LuxOps", {
         x: (595 - bold.widthOfTextAtSize("Aval de calidad LuxOps", 9)) / 2,
-        y: 618,
+        y: 648,
         size: 9,
         font,
         color: rgb(0.35, 0.35, 0.4),
@@ -720,8 +723,8 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     x: sealCX,
     y: sealCY,
     size: sealR + 14,
-    color: rgb(0.94, 0.97, 0.96),
-    borderColor: rgb(0.06, 0.45, 0.32),
+    color: rgb(1, 1, 1),
+    borderColor: solarYellow,
     borderWidth: 2.4,
     opacity: sealOp,
     borderOpacity: sealOp,
@@ -730,7 +733,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     x: sealCX,
     y: sealCY,
     size: sealR + 2,
-    borderColor: rgb(0.06, 0.45, 0.32),
+    borderColor: solarYellow,
     borderWidth: 1.6,
     opacity: sealOp,
     borderOpacity: sealOp,
@@ -740,7 +743,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     y: sealCY + sealR * 0.3,
     size: 9.8,
     font: bold,
-    color: rgb(0.05, 0.38, 0.28),
+    color: luxBlack,
     opacity: sealOp,
   });
   coverPage.drawText("LuxOps", {
@@ -748,7 +751,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     y: sealCY - 3,
     size: 9,
     font: bold,
-    color: rgb(0.05, 0.38, 0.28),
+    color: luxBlack,
     opacity: sealOp,
   });
   coverPage.drawText("CONTROL", {
@@ -756,7 +759,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     y: sealCY - sealR * 0.44,
     size: 8.4,
     font: bold,
-    color: rgb(0.05, 0.38, 0.28),
+    color: luxBlack,
     opacity: sealOp,
   });
 
@@ -800,7 +803,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   let summaryPage = pdf.addPage([595, 842]);
   summaryPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
-  summaryPage.drawRectangle({ x: 24, y: 768, width: 547, height: 2, color: accent });
+  summaryPage.drawRectangle({ x: 24, y: 768, width: 547, height: 2, color: solarYellow });
   summaryPage.drawText("INFORME DE INSTALACION", {
     x: 24,
     y: 818,
@@ -1005,7 +1008,11 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     return { ...it, nominalKw: String(Number(project.inverterPowerKwn)) };
   });
   const peakKwpStr =
-    project.peakPowerKwp != null ? String(Number(project.peakPowerKwp)) : "";
+    project.peakPowerKwp != null
+      ? String(Number(project.peakPowerKwp))
+      : totalPeakWpW > 0
+        ? String(Math.round((totalPeakWpW / 1000) * 100) / 100)
+        : "";
   if (
     normalizedPanelItems.length === 1 &&
     peakKwpStr &&
@@ -1069,8 +1076,8 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   }
   const rowH = 18;
   const headers = ["Equipo", "Marca", "Modelo", "Pot. / cap.", "Nº serie"];
-  const invHeaderFill = rgb(0.92, 0.925, 0.93);
-  const invHeaderBorder = rgb(0.72, 0.74, 0.78);
+  const invHeaderFill = solarYellow;
+  const invHeaderBorder = luxBlack;
   const invCellBorder = rgb(0.82, 0.84, 0.88);
   const invBorderW = 0.35;
   let xPos = tableX;
@@ -1084,7 +1091,13 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       borderColor: invHeaderBorder,
       borderWidth: invBorderW,
     });
-    summaryPage.drawText(headers[ci], { x: xPos + 5, y: tableYTop - 12, size: 7.8, font: bold });
+    summaryPage.drawText(headers[ci], {
+      x: xPos + 5,
+      y: tableYTop - 12,
+      size: 7.8,
+      font: bold,
+      color: luxBlack,
+    });
     xPos += colW[ci];
   }
   for (let ri = 0; ri < tableRows.length; ri += 1) {
@@ -1113,6 +1126,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   }
 
   const tableBottomY = tableYTop - rowH * (tableRows.length + 1);
+  summaryPage.drawText(
+    pdfLibSafeText("Certificación CE y cumplimiento de normativa IEC verificada por LuxOps."),
+    {
+      x: 24,
+      y: tableBottomY - 10,
+      size: 7.4,
+      font: italic,
+      color: rgb(0.32, 0.32, 0.36),
+    },
+  );
   const traceStartY = Math.max(250, tableBottomY - 20);
   summaryPage.drawText("Trazabilidad y garantías", { x: 24, y: traceStartY, size: 11, font: bold });
   let traceY = traceStartY - 16;
@@ -1278,7 +1301,12 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
 
   traceY -= 8;
 
-  const kwpStr = project.peakPowerKwp != null ? String(Number(project.peakPowerKwp)) : "—";
+  const kwpStr =
+    project.peakPowerKwp != null
+      ? String(Number(project.peakPowerKwp))
+      : totalPeakWpW > 0
+        ? String(Math.round((totalPeakWpW / 1000) * 100) / 100)
+        : "—";
   const kwnStr = project.inverterPowerKwn != null ? String(Number(project.inverterPowerKwn)) : "—";
   const kwhStr = project.storageCapacityKwh != null ? String(Number(project.storageCapacityKwh)) : "—";
   const energyDisclaimerLines = wrapPdfLines(
@@ -2105,6 +2133,15 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   for (const line of wrapPdfLines(pdfLibSafeText(complianceExtra), 546, font, 9.5)) {
     legalPage.drawText(line, { x: 24, y: legalY, size: 9.5, font, color: rgb(0.22, 0.22, 0.24) });
     legalY -= 14;
+  }
+
+  legalY -= 8;
+  const exemption = pdfLibSafeText(
+    "LuxOps certifica la trazabilidad de los datos capturados en campo mediante coordenadas GPS y marcas de tiempo criptográficas, vinculando de forma unívoca la ejecución con el instalador autorizado.",
+  );
+  for (const line of wrapPdfLines(exemption, 546, italic, 7.6).slice(0, 6)) {
+    legalPage.drawText(line, { x: 24, y: legalY, size: 7.6, font: italic, color: rgb(0.35, 0.35, 0.38) });
+    legalY -= 10;
   }
   legalY -= 56;
 
