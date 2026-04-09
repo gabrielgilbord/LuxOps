@@ -91,7 +91,7 @@ export default async function BlogArticlePage({
           </time>
           <Component />
           <BlogArticleCta promoCode={post.promoCode} />
-          <BlogComments postId={slug} isAuthenticated={false} />
+          <BlogComments postId={slug} />
         </article>
       </div>
     </>
