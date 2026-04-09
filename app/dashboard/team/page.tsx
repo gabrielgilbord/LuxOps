@@ -62,12 +62,12 @@ export default async function TeamPage({
 
         {inviteStatus === "resent" ? (
           <div className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-            ✅ Invitación reenviada por Supabase correctamente.
+            ✅ Invitación enviada correctamente.
           </div>
         ) : null}
         {inviteStatus === "error" ? (
           <div className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            ❌ No se pudo reenviar con Supabase{inviteMessage ? `: ${inviteMessage}` : "."}
+            ❌ No se pudo enviar la invitación{inviteMessage ? `: ${inviteMessage}` : "."}
             {inviteLink ? (
               <span className="ml-1">
                 Enlace manual:{" "}
