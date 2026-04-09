@@ -294,18 +294,18 @@ export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
             <CheckCircle2 className="h-4 w-4" />
             Plan profesional
           </div>
-          <p className="text-6xl font-bold text-yellow-300">150€/mes + IVA</p>
+          <p className="text-6xl font-bold text-yellow-300">150€/mes</p>
           <p className="mt-3 text-sm text-slate-200/85">
             Incluye autenticacion, multiorganizacion y dashboard operativo.
           </p>
-          <ul className="mx-auto mt-4 w-fit space-y-1 text-left text-sm text-slate-100">
+          <ul className="mx-auto mt-4 w-fit space-y-2 text-left text-sm text-slate-100">
             {[
               "Proyectos ilimitados",
               "Sincronización Offline",
               "Soporte 24/7 de campo",
               "Multitenancy activa",
             ].map((item) => (
-              <li key={item} className="inline-flex items-center gap-2">
+              <li key={item} className="inline-flex items-center gap-3">
                 <CheckCircle2 className="h-4 w-4 text-yellow-300" />
                 {item}
               </li>
