@@ -21,7 +21,7 @@ const posts: BlogPostEntry[] = [
       "blockchain-ready",
       "instaladoras solares",
     ],
-    promoCode: "LAUNCH100",
+    promoCode: "FOUNDERS50",
     Component: ArticleLuxOpsLive,
   },
   {

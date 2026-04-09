@@ -318,7 +318,8 @@ export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
               </p>
             ) : null}
             <p className="mb-3 text-xs font-medium text-slate-200/80">
-              ¿Tienes un código promocional? Podrás introducirlo en el siguiente paso.
+              Oferta de lanzamiento disponible: 50% de descuento para siempre para los primeros 5
+              registros con código.
             </p>
             <button
               type="submit"
