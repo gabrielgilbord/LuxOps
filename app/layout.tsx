@@ -46,12 +46,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon-48x48.png", type: "image/png", sizes: "48x48" },
-    ],
-    shortcut: [{ url: "/favicon.ico" }],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: "/favicon-48x48.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
   openGraph: {
@@ -61,20 +58,11 @@ export const metadata: Metadata = {
     siteName: "LuxOps",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: [
-      {
-        url: "/icon.svg",
-        width: 512,
-        height: 512,
-        alt: "LuxOps",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/icon.svg"],
   },
   robots: {
     index: true,
