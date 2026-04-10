@@ -16,6 +16,7 @@ import { ProjectAdminOfficePanel } from "@/components/projects/project-admin-off
 import { getProjectById } from "@/lib/data";
 import { getCurrentDbUser } from "@/lib/authz";
 import { EjecucionObra } from "@/app/operario/obra/[id]/stepper-flow";
+import type { TipoFoto } from "@prisma/client";
 
 type ProjectPageProps = {
   params: Promise<{ id: string }>;
@@ -37,6 +38,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!project) notFound();
   const isAdmin = dbUser?.role === "ADMIN";
+
+  const annexTypes: TipoFoto[] = ["ESQUEMA_UNIFILAR", "ANEXO_PVGIS"];
+  const unifilarPhotos = project.photos.filter((p) => p.tipo === "ESQUEMA_UNIFILAR");
+  const pvgisPhotos = project.photos.filter((p) => p.tipo === "ANEXO_PVGIS");
+  const galleryPhotos = project.photos.filter((p) => !annexTypes.includes(p.tipo));
 
   return (
     <main
@@ -127,32 +133,90 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         </CardContent>
       </Card>
 
-      <Card className={isAdmin ? "mb-4 border border-emerald-500/25 bg-slate-900/30" : "mb-4 border-accent/60"}>
-        <CardContent className="pt-6">
-          <EjecucionObra
-            projectId={project.id}
-            serverLegalElectricHints={{
-              selfConsumptionModality: project.selfConsumptionModality,
-              cableDcSectionMm2: project.cableDcSectionMm2,
-              cableAcSectionMm2: project.cableAcSectionMm2,
-            }}
-            serverRebtContext={{
-              projectRebtCompanyNumber: project.rebtCompanyNumber,
-              organizationRebtCompanyNumber: project.organizationRebtCompanyNumber,
-            }}
-          />
-        </CardContent>
-      </Card>
+      {!isAdmin ? (
+        <Card className="mb-4 border-accent/60">
+          <CardContent className="pt-6">
+            <EjecucionObra
+              projectId={project.id}
+              serverLegalElectricHints={{
+                selfConsumptionModality: project.selfConsumptionModality,
+                cableDcSectionMm2: project.cableDcSectionMm2,
+                cableAcSectionMm2: project.cableAcSectionMm2,
+              }}
+              serverRebtContext={{
+                projectRebtCompanyNumber: project.rebtCompanyNumber,
+                organizationRebtCompanyNumber: project.organizationRebtCompanyNumber,
+              }}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {isAdmin && (unifilarPhotos.length > 0 || pvgisPhotos.length > 0) ? (
+        <div className="mb-4 grid gap-4 sm:grid-cols-2">
+          {unifilarPhotos.length > 0 ? (
+            <Card className="border border-cyan-500/30 bg-slate-900/50 text-slate-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-cyan-200">Esquema unifilar (CIE / REBT)</CardTitle>
+                <p className="text-xs text-slate-400">
+                  Evidencia usada en el dossier; misma fuente que el operario subió en el stepper.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {unifilarPhotos.map((photo) => (
+                  <div key={photo.id} className="overflow-hidden rounded-lg border border-slate-700 bg-black/30">
+                    <Image
+                      src={photo.url}
+                      alt="Esquema unifilar"
+                      width={1200}
+                      height={800}
+                      className="max-h-72 w-full object-contain"
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+          {pvgisPhotos.length > 0 ? (
+            <Card className="border border-amber-500/30 bg-slate-900/50 text-slate-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-amber-200">Anexo PVGIS / producción estimada</CardTitle>
+                <p className="text-xs text-slate-400">
+                  Captura o PDF aportado como anexo; el informe PDF incrusta este archivo cuando procede.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {pvgisPhotos.map((photo) => (
+                  <div key={photo.id} className="overflow-hidden rounded-lg border border-slate-700 bg-black/30">
+                    <Image
+                      src={photo.url}
+                      alt="Anexo PVGIS"
+                      width={1200}
+                      height={800}
+                      className="max-h-72 w-full object-contain"
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
 
       <Card className={isAdmin ? "mb-4 border-slate-800 bg-slate-900/50" : "mb-4"}>
         <CardHeader>
           <CardTitle className="inline-flex items-center gap-2 text-base">
             <ClipboardCheck className={`h-5 w-5 ${isAdmin ? "text-emerald-400" : "text-primary"}`} />
             Fotos del Proyecto
+            {isAdmin ? (
+              <span className="ml-2 text-xs font-normal text-slate-400">
+                (sin unifilar ni PVGIS; van arriba)
+              </span>
+            ) : null}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
-          {project.photos.map((photo) => (
+          {galleryPhotos.map((photo) => (
             <div
               key={photo.id}
               className={
@@ -168,14 +232,31 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                 height={600}
                 className="h-40 w-full object-cover"
               />
-              <div className={`p-2 text-xs ${isAdmin ? "text-slate-500" : "text-muted-foreground"}`}>
-                Tipo: <span className="font-medium">{photoTypeLabel(photo.tipo)}</span>
+              <div
+                className={
+                  isAdmin
+                    ? "p-2 text-xs text-[#FFFFFF]"
+                    : "p-2 text-xs text-muted-foreground"
+                }
+              >
+                Tipo:{" "}
+                <span className={`font-medium ${isAdmin ? "text-[#FFFFFF]" : "text-foreground"}`}>
+                  {photoTypeLabel(photo.tipo)}
+                </span>
               </div>
             </div>
           ))}
-          {project.photos.length === 0 ? (
-            <p className={isAdmin ? "text-sm text-slate-500" : "text-sm text-muted-foreground"}>
-              Aun no hay fotos subidas.
+          {galleryPhotos.length === 0 ? (
+            <p
+              className={
+                isAdmin ? "text-sm text-[#FFFFFF]/90" : "text-sm text-muted-foreground"
+              }
+            >
+              {project.photos.length === 0
+                ? "Aun no hay fotos subidas."
+                : isAdmin
+                  ? "No hay fotos de fases ANTES/DURANTE/DESPUÉS; revisa anexos arriba."
+                  : "Aun no hay fotos en esta galería."}
             </p>
           ) : null}
         </CardContent>

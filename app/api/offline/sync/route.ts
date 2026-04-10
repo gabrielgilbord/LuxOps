@@ -355,12 +355,24 @@ export async function POST(request: Request) {
         const inverterItems = (operation.inverterItems ?? [])
           .map((item) => extendItem(item))
           .filter((item) => item.brand || item.model || item.serial);
+        const totalPanelPeakWp = panelItems.reduce((acc, p) => {
+          const n = Number.parseFloat(String(p.peakWp ?? "").replace(",", "."));
+          return acc + (Number.isFinite(n) && n > 0 ? n : 0);
+        }, 0);
         await prisma.project.update({
           where: { id: operation.projectId },
           data: {
             nBoletin: (operation.nBoletin ?? "").trim() || null,
             fechaCIE: toOptionalDate(operation.fechaCIE) ?? null,
             presupuestoFinal: toPrismaDecimal(operation.presupuestoFinal),
+            assetPanelBrand:
+              panelItems.length > 0 ? panelItems[0].brand.trim() || null : null,
+            assetPanelModel:
+              panelItems.length > 0 ? panelItems[0].model.trim() || null : null,
+            assetPanelSerial:
+              panelItems.length > 0
+                ? panelItems[0].serial.trim() || null
+                : panelSerials[0]?.trim() || null,
             equipmentInverterSerial:
               operation.inverterSerial ||
               inverterItems.map((item) => item.serial).filter(Boolean)[0] ||
@@ -369,6 +381,22 @@ export async function POST(request: Request) {
               inverterItems.length > 0 ? inverterItems[0].brand.trim() || null : null,
             assetInverterModel:
               inverterItems.length > 0 ? inverterItems[0].model.trim() || null : null,
+            assetBatteryBrand:
+              batteryItems.length > 0 ? batteryItems[0].brand.trim() || null : null,
+            assetBatteryModel:
+              batteryItems.length > 0 ? batteryItems[0].model.trim() || null : null,
+            peakPowerKwp:
+              totalPanelPeakWp > 0
+                ? toPrismaDecimal((totalPanelPeakWp / 1000).toFixed(2))
+                : null,
+            inverterPowerKwn:
+              inverterItems[0]?.nominalKw?.trim()
+                ? toPrismaDecimal(inverterItems[0].nominalKw.trim())
+                : null,
+            storageCapacityKwh:
+              batteryItems[0]?.capacityKwh?.trim()
+                ? toPrismaDecimal(batteryItems[0].capacityKwh.trim())
+                : null,
             equipmentInverterItems:
               inverterItems.length > 0 ? (inverterItems as Prisma.InputJsonValue) : Prisma.JsonNull,
             equipmentBatterySerial:

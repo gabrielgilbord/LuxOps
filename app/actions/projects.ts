@@ -22,7 +22,15 @@ import {
 } from "@/lib/public-app-url";
 import { uploadDataUrlToStorage } from "@/lib/storage";
 import { isSelfConsumptionModality } from "@/lib/self-consumption-modality";
-import type { SelfConsumptionModality } from "@prisma/client";
+import type { SelfConsumptionModality, StructureMountingType } from "@prisma/client";
+
+const STRUCTURE_MOUNTING_VALUES = new Set<string>(["COPLANAR", "INCLINACION", "LASTRADA"]);
+
+function parseStructureMounting(raw: string): StructureMountingType | null {
+  const t = raw.trim();
+  if (!t) return null;
+  return STRUCTURE_MOUNTING_VALUES.has(t) ? (t as StructureMountingType) : null;
+}
 
 async function resolveAppBaseUrl(): Promise<string> {
   const h = await headers();
@@ -248,10 +256,11 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
   const projectId = String(formData.get("projectId") ?? "").trim();
   if (!projectId) throw new Error("Proyecto inválido.");
 
-  const parseNullableDecimal = (key: string) => {
+  const parseNullableDecimal = (key: string, maxDecimals = 2) => {
     const raw = String(formData.get(key) ?? "").trim().replace(",", ".");
     if (!raw) return null;
-    if (!/^\d+(\.\d{1,2})?$/.test(raw)) throw new Error(`Valor inválido para ${key}`);
+    const re = new RegExp(`^\\d+(\\.\\d{1,${maxDecimals}})?$`);
+    if (!re.test(raw)) throw new Error(`Valor inválido para ${key}`);
     return raw;
   };
 
@@ -261,16 +270,26 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
   let estimatedRevenue: string | null;
   let presupuestoFinal: string | null;
   let moduleEfficiencyPercent: string | null;
+  let electricVocVolts: string | null;
+  let electricIscAmps: string | null;
+  let earthResistanceOhms: string | null;
+  let panelAzimuthDegrees: string | null;
+  let panelTiltDegrees: string | null;
   try {
-    peakPowerKwp = parseNullableDecimal("peakPowerKwp");
-    inverterPowerKwn = parseNullableDecimal("inverterPowerKwn");
-    storageCapacityKwh = parseNullableDecimal("storageCapacityKwh");
-    estimatedRevenue = parseNullableDecimal("estimatedRevenue");
-    presupuestoFinal = parseNullableDecimal("presupuestoFinal");
-    moduleEfficiencyPercent = parseNullableDecimal("moduleEfficiencyPercent");
+    peakPowerKwp = parseNullableDecimal("peakPowerKwp", 2);
+    inverterPowerKwn = parseNullableDecimal("inverterPowerKwn", 2);
+    storageCapacityKwh = parseNullableDecimal("storageCapacityKwh", 2);
+    estimatedRevenue = parseNullableDecimal("estimatedRevenue", 2);
+    presupuestoFinal = parseNullableDecimal("presupuestoFinal", 2);
+    moduleEfficiencyPercent = parseNullableDecimal("moduleEfficiencyPercent", 2);
+    electricVocVolts = parseNullableDecimal("electricVocVolts", 2);
+    electricIscAmps = parseNullableDecimal("electricIscAmps", 2);
+    earthResistanceOhms = parseNullableDecimal("earthResistanceOhms", 3);
+    panelAzimuthDegrees = parseNullableDecimal("panelAzimuthDegrees", 2);
+    panelTiltDegrees = parseNullableDecimal("panelTiltDegrees", 2);
   } catch {
     throw new Error(
-      "Revisa importes y potencias: solo números con hasta 2 decimales (ej. 12450.00).",
+      "Revisa números del formulario: potencias e importes hasta 2 decimales; tierra hasta 3.",
     );
   }
 
@@ -301,6 +320,8 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
     select: { id: true },
   });
   if (!project) throw new Error("Proyecto no encontrado.");
+
+  const structureMounting = parseStructureMounting(String(formData.get("structureMounting") ?? ""));
 
   await prisma.project.update({
     where: { id: projectId },
@@ -335,6 +356,26 @@ async function performSaveProjectAdminMemory(formData: FormData): Promise<SavePr
       nBoletin,
       fechaCIE,
       quoteReference,
+      electricVocVolts,
+      electricIscAmps,
+      earthResistanceOhms,
+      structureBrand: String(formData.get("structureBrand") ?? "").trim() || null,
+      structureMounting,
+      stringConfiguration: String(formData.get("stringConfiguration") ?? "").trim() || null,
+      warrantyNotes: String(formData.get("warrantyNotes") ?? "").trim() || null,
+      installationIncidentNotes: String(formData.get("installationIncidentNotes") ?? "").trim() || null,
+      panelAzimuthDegrees,
+      panelTiltDegrees,
+      installerProfessionalCard: String(formData.get("installerProfessionalCard") ?? "").trim() || null,
+      photoProtocolNameplates: String(formData.get("photoProtocolNameplates") ?? "") === "on",
+      photoProtocolDistributionBoard: String(formData.get("photoProtocolDistributionBoard") ?? "") === "on",
+      photoProtocolFixings: String(formData.get("photoProtocolFixings") ?? "") === "on",
+      photoProtocolStructureEarthing: String(formData.get("photoProtocolStructureEarthing") ?? "") === "on",
+      clientTrainingAcknowledged: String(formData.get("clientTrainingAcknowledged") ?? "") === "on",
+      prlLineLifeHarness: String(formData.get("prlLineLifeHarness") ?? "") === "on",
+      prlCollectiveProtection: String(formData.get("prlCollectiveProtection") ?? "") === "on",
+      prlRoofTransitOk: String(formData.get("prlRoofTransitOk") ?? "") === "on",
+      prlPpeInUse: String(formData.get("prlPpeInUse") ?? "") === "on",
     },
   });
 

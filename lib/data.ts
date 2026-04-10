@@ -1,8 +1,9 @@
-import type { SelfConsumptionModality } from "@prisma/client";
+import type { SelfConsumptionModality, StructureMountingType } from "@prisma/client";
 import { EstadoProyecto, TipoFoto } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDbUser, requireSubscribedUser } from "@/lib/authz";
 import { createSignedStorageUrl } from "@/lib/storage";
+import { parseEquipmentItemsJson, sumPanelPeakWpW } from "@/lib/equipment-items-json";
 
 export type DashboardProject = {
   id: string;
@@ -51,6 +52,33 @@ export type ProjectDetail = DashboardProject & {
   thermalProtectionModel?: string | null;
   spdBrand?: string | null;
   spdModel?: string | null;
+  electricVocVolts?: string | null;
+  electricIscAmps?: string | null;
+  earthResistanceOhms?: string | null;
+  structureBrand?: string | null;
+  structureMounting?: StructureMountingType | null;
+  stringConfiguration?: string | null;
+  warrantyNotes?: string | null;
+  installationIncidentNotes?: string | null;
+  panelAzimuthDegrees?: string | null;
+  panelTiltDegrees?: string | null;
+  installerProfessionalCard?: string | null;
+  photoProtocolNameplates?: boolean;
+  photoProtocolDistributionBoard?: boolean;
+  photoProtocolFixings?: boolean;
+  photoProtocolStructureEarthing?: boolean;
+  clientTrainingAcknowledged?: boolean;
+  prlLineLifeHarness?: boolean;
+  prlCollectiveProtection?: boolean;
+  prlRoofTransitOk?: boolean;
+  prlPpeInUse?: boolean;
+  prlAckLatitude?: number | null;
+  prlAckLongitude?: number | null;
+  prlAcknowledgedAt?: string | null;
+  /** Resumen legible de filas JSON (solo lectura en admin). */
+  equipmentPanelItemsSummary?: string | null;
+  equipmentInverterItemsSummary?: string | null;
+  equipmentBatteryItemsSummary?: string | null;
   photos: {
     id: string;
     tipo: TipoFoto;
@@ -194,6 +222,26 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
         };
       }),
     );
+    const panelJson = parseEquipmentItemsJson(project.equipmentPanelItems);
+    const inverterJson = parseEquipmentItemsJson(project.equipmentInverterItems);
+    const batteryJson = parseEquipmentItemsJson(project.equipmentBatteryItems);
+    const firstPanel = panelJson[0];
+    const firstInv = inverterJson[0];
+    const firstBat = batteryJson[0];
+    const totalPanelWp = sumPanelPeakWpW(panelJson);
+    const kwpDerived = totalPanelWp > 0 ? (totalPanelWp / 1000).toFixed(2) : null;
+
+    const fmtEquipSummary = (rows: { brand: string; model: string; serial: string }[]) =>
+      rows.length === 0
+        ? null
+        : rows
+            .map((r) => {
+              const parts = [r.brand, r.model, r.serial].filter(Boolean);
+              return parts.length ? parts.join(" · ") : null;
+            })
+            .filter(Boolean)
+            .join(" | ");
+
     const signatures = await Promise.all(
       project.signatures.map(async (signature) => {
         const rawUrl = signature.imageDataUrl?.trim() ?? "";
@@ -249,20 +297,54 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       equipmentInverterSerial: project.equipmentInverterSerial,
       equipmentBatterySerial: project.equipmentBatterySerial,
       equipmentVatimetroSerial: project.equipmentVatimetroSerial,
-      assetPanelBrand: project.assetPanelBrand,
-      assetPanelModel: project.assetPanelModel,
-      assetPanelSerial: project.assetPanelSerial,
-      assetInverterBrand: project.assetInverterBrand,
-      assetInverterModel: project.assetInverterModel,
-      assetBatteryBrand: project.assetBatteryBrand,
-      assetBatteryModel: project.assetBatteryModel,
-      peakPowerKwp: project.peakPowerKwp?.toString() ?? null,
-      inverterPowerKwn: project.inverterPowerKwn?.toString() ?? null,
-      storageCapacityKwh: project.storageCapacityKwh?.toString() ?? null,
+      assetPanelBrand: project.assetPanelBrand ?? firstPanel?.brand ?? null,
+      assetPanelModel: project.assetPanelModel ?? firstPanel?.model ?? null,
+      assetPanelSerial:
+        project.assetPanelSerial ??
+        firstPanel?.serial ??
+        project.equipmentPanelSerials[0] ??
+        null,
+      assetInverterBrand: project.assetInverterBrand ?? firstInv?.brand ?? null,
+      assetInverterModel: project.assetInverterModel ?? firstInv?.model ?? null,
+      assetBatteryBrand: project.assetBatteryBrand ?? firstBat?.brand ?? null,
+      assetBatteryModel: project.assetBatteryModel ?? firstBat?.model ?? null,
+      peakPowerKwp: project.peakPowerKwp?.toString() ?? kwpDerived,
+      inverterPowerKwn:
+        project.inverterPowerKwn?.toString() ?? firstInv?.nominalKw?.replace(",", ".") ?? null,
+      storageCapacityKwh:
+        project.storageCapacityKwh?.toString() ?? firstBat?.capacityKwh?.replace(",", ".") ?? null,
       thermalProtectionBrand: project.thermalProtectionBrand,
       thermalProtectionModel: project.thermalProtectionModel,
       spdBrand: project.spdBrand,
       spdModel: project.spdModel,
+      electricVocVolts: project.electricVocVolts?.toString() ?? null,
+      electricIscAmps: project.electricIscAmps?.toString() ?? null,
+      earthResistanceOhms: project.earthResistanceOhms?.toString() ?? null,
+      structureBrand: project.structureBrand,
+      structureMounting: project.structureMounting,
+      stringConfiguration: project.stringConfiguration,
+      warrantyNotes: project.warrantyNotes,
+      installationIncidentNotes: project.installationIncidentNotes,
+      panelAzimuthDegrees: project.panelAzimuthDegrees?.toString() ?? null,
+      panelTiltDegrees: project.panelTiltDegrees?.toString() ?? null,
+      installerProfessionalCard: project.installerProfessionalCard,
+      photoProtocolNameplates: project.photoProtocolNameplates,
+      photoProtocolDistributionBoard: project.photoProtocolDistributionBoard,
+      photoProtocolFixings: project.photoProtocolFixings,
+      photoProtocolStructureEarthing: project.photoProtocolStructureEarthing,
+      clientTrainingAcknowledged: project.clientTrainingAcknowledged,
+      prlLineLifeHarness: project.prlLineLifeHarness,
+      prlCollectiveProtection: project.prlCollectiveProtection,
+      prlRoofTransitOk: project.prlRoofTransitOk,
+      prlPpeInUse: project.prlPpeInUse,
+      prlAckLatitude: project.prlAckLatitude,
+      prlAckLongitude: project.prlAckLongitude,
+      prlAcknowledgedAt: project.prlAcknowledgedAt
+        ? project.prlAcknowledgedAt.toISOString()
+        : null,
+      equipmentPanelItemsSummary: fmtEquipSummary(panelJson),
+      equipmentInverterItemsSummary: fmtEquipSummary(inverterJson),
+      equipmentBatteryItemsSummary: fmtEquipSummary(batteryJson),
       photosCount: project.photos.length,
       photos,
       signatures,

@@ -16,9 +16,11 @@ import {
   Euro,
   FileStack,
   FileText,
+  HardHat,
   Hash,
   ImagePlus,
   Loader2,
+  MapPin,
   Shield,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +42,32 @@ const smallInputCls =
 const labelCls = "text-xs font-semibold uppercase tracking-wide text-slate-400";
 const sectionShell =
   "rounded-2xl border border-slate-700/80 bg-gradient-to-b from-slate-900/90 to-slate-950/95 p-4 shadow-lg shadow-black/30 ring-1 ring-slate-800/80";
+
+const STRUCTURE_OPTIONS = [
+  { value: "", label: "— Sin especificar —" },
+  { value: "COPLANAR", label: "Coplanar" },
+  { value: "INCLINACION", label: "Inclinación" },
+  { value: "LASTRADA", label: "Lastrada" },
+] as const;
+
+function formatPrlAcknowledged(iso: string | null | undefined) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return {
+    date: d.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }),
+    time: d.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
+  };
+}
 
 type PanelProps = {
   project: ProjectDetail;
@@ -143,8 +171,9 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
           </span>
         </div>
         <p className="mt-1 text-xs leading-relaxed text-slate-400">
-          Memoria para el dossier, datos de expediente, equipamiento de respaldo y precio de la obra.
-          Lo que guardes aquí alimenta informes y el resumen de cobros en el dashboard.
+          Vista de pájaro del expediente: mismos datos que el operario envía al PDF (más memoria de oficina).
+          Los valores de marca/modelo y potencias se rellenan también desde el inventario JSON de campo si hace
+          falta. Usa <span className="font-semibold text-slate-300">Guardar cambios de oficina</span> al final.
         </p>
       </div>
 
@@ -359,6 +388,262 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
 
         <div className={sectionShell}>
           <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <HardHat className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-slate-100">P.R.L. y seguridad en cubierta</h3>
+          </div>
+          <p className="mb-3 text-xs text-slate-400">
+            Estado registrado en base de datos (mismo origen que el dossier). Puedes corregir antes del
+            PDF definitivo; el registro horario con GPS corresponde al momento en que el operario envió la
+            aceptación P.R.L.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                ["prlLineLifeHarness", "Línea de vida / anclajes", project.prlLineLifeHarness],
+                ["prlCollectiveProtection", "Protección colectiva / prensaestopas", project.prlCollectiveProtection],
+                ["prlRoofTransitOk", "Tránsito seguro en cubierta", project.prlRoofTransitOk],
+                ["prlPpeInUse", "EPIs y calzado de seguridad", project.prlPpeInUse],
+              ] as const
+            ).map(([name, label, checked]) => (
+              <label
+                key={name}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-900/40 px-3 py-2"
+              >
+                <input
+                  type="checkbox"
+                  name={name}
+                  defaultChecked={Boolean(checked)}
+                  className="h-4 w-4 rounded border-slate-500 accent-amber-500"
+                />
+                <span className="text-sm text-slate-200">{label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-4 rounded-xl border border-[#FBBF24]/45 bg-[#161B22] p-4 ring-1 ring-[#FBBF24]/15">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#FBBF24]">
+              Registro de seguridad (metadatos legales)
+            </p>
+            {(() => {
+              const ack = formatPrlAcknowledged(project.prlAcknowledgedAt);
+              if (!ack) {
+                return (
+                  <p className="mt-2 text-sm text-slate-400">
+                    Sin constancia horaria con GPS: el operario aún no ha enviado la aceptación P.R.L. o la
+                    sincronización está pendiente.
+                  </p>
+                );
+              }
+              return (
+                <ul className="mt-3 space-y-2 text-sm text-slate-100">
+                  <li>
+                    <span className="text-slate-400">Fecha: </span>
+                    <span className="font-medium capitalize">{ack.date}</span>
+                  </li>
+                  <li>
+                    <span className="text-slate-400">Hora (servidor / dispositivo): </span>
+                    <span className="font-mono font-medium">{ack.time}</span>
+                  </li>
+                  <li className="flex flex-wrap items-center gap-2">
+                    <MapPin className="h-4 w-4 shrink-0 text-[#FBBF24]" aria-hidden />
+                    <span className="text-slate-400">GPS en aceptación: </span>
+                    <span className="font-mono text-xs sm:text-sm">
+                      {typeof project.prlAckLatitude === "number" &&
+                      typeof project.prlAckLongitude === "number"
+                        ? `${project.prlAckLatitude.toFixed(6)}, ${project.prlAckLongitude.toFixed(6)}`
+                        : "—"}
+                    </span>
+                  </li>
+                </ul>
+              );
+            })()}
+          </div>
+        </div>
+
+        <div className={sectionShell}>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <Cpu className="h-4 w-4 text-sky-400" />
+            <h3 className="text-sm font-bold text-slate-100">Mediciones eléctricas (campo)</h3>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className={labelCls}>Voc (V)</span>
+              <input
+                name="electricVocVolts"
+                defaultValue={project.electricVocVolts ?? ""}
+                className={inputCls}
+                inputMode="decimal"
+                placeholder="Ej. 48.5"
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Isc (A)</span>
+              <input
+                name="electricIscAmps"
+                defaultValue={project.electricIscAmps ?? ""}
+                className={inputCls}
+                inputMode="decimal"
+                placeholder="Ej. 12.3"
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Tierra (Ω)</span>
+              <input
+                name="earthResistanceOhms"
+                defaultValue={project.earthResistanceOhms ?? ""}
+                className={inputCls}
+                inputMode="decimal"
+                placeholder="Ej. 0.85"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className={sectionShell}>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <Building2 className="h-4 w-4 text-slate-300" />
+            <h3 className="text-sm font-bold text-slate-100">Estructura y configuración de strings</h3>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className={labelCls}>Marca estructura</span>
+              <input
+                name="structureBrand"
+                defaultValue={project.structureBrand ?? ""}
+                className={inputCls}
+                maxLength={120}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Tipo de montaje</span>
+              <select
+                name="structureMounting"
+                defaultValue={project.structureMounting ?? ""}
+                className={inputCls}
+              >
+                {STRUCTURE_OPTIONS.map((o) => (
+                  <option key={o.value === "" ? "__mount-none" : o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className={labelCls}>Azimut (°)</span>
+              <input
+                name="panelAzimuthDegrees"
+                defaultValue={project.panelAzimuthDegrees ?? ""}
+                className={inputCls}
+                inputMode="decimal"
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Inclinación módulos (°)</span>
+              <input
+                name="panelTiltDegrees"
+                defaultValue={project.panelTiltDegrees ?? ""}
+                className={inputCls}
+                inputMode="decimal"
+              />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className={labelCls}>Configuración de strings</span>
+              <Textarea
+                name="stringConfiguration"
+                defaultValue={project.stringConfiguration ?? ""}
+                className="mt-2 min-h-[5rem] resize-y rounded-xl border border-slate-600/80 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+                placeholder="Ej. 2 strings x 10 módulos…"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className={sectionShell}>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <ImagePlus className="h-4 w-4 text-emerald-400" />
+            <h3 className="text-sm font-bold text-slate-100">Protocolo fotográfico y cierre</h3>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                ["photoProtocolNameplates", "Placas de características", project.photoProtocolNameplates],
+                [
+                  "photoProtocolDistributionBoard",
+                  "Cuadro / distribución",
+                  project.photoProtocolDistributionBoard,
+                ],
+                ["photoProtocolFixings", "Fijaciones", project.photoProtocolFixings],
+                [
+                  "photoProtocolStructureEarthing",
+                  "Puesta a tierra estructura",
+                  project.photoProtocolStructureEarthing,
+                ],
+              ] as const
+            ).map(([name, label, checked]) => (
+              <label
+                key={name}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-900/40 px-3 py-2"
+              >
+                <input
+                  type="checkbox"
+                  name={name}
+                  defaultChecked={Boolean(checked)}
+                  className="h-4 w-4 rounded border-slate-500 accent-emerald-500"
+                />
+                <span className="text-sm text-slate-200">{label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className={labelCls}>Carné profesional del instalador (texto)</span>
+              <input
+                name="installerProfessionalCard"
+                defaultValue={project.installerProfessionalCard ?? ""}
+                className={inputCls}
+                maxLength={200}
+              />
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2.5 sm:col-span-2">
+              <input
+                type="checkbox"
+                name="clientTrainingAcknowledged"
+                defaultChecked={Boolean(project.clientTrainingAcknowledged)}
+                className="h-4 w-4 rounded border-slate-500 accent-emerald-500"
+              />
+              <span className="text-sm font-medium text-slate-200">
+                Formación / entrega al cliente reconocida
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div className={sectionShell}>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <FileText className="h-4 w-4 text-orange-200" />
+            <h3 className="text-sm font-bold text-slate-100">Notas de obra</h3>
+          </div>
+          <div className="grid gap-4">
+            <label className="block">
+              <span className={labelCls}>Garantías y observaciones</span>
+              <Textarea
+                name="warrantyNotes"
+                defaultValue={project.warrantyNotes ?? ""}
+                className="mt-2 min-h-[5rem] resize-y rounded-xl border border-slate-600/80 bg-slate-900/90 px-3 py-2 text-sm text-slate-100"
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Incidencias en instalación</span>
+              <Textarea
+                name="installationIncidentNotes"
+                defaultValue={project.installationIncidentNotes ?? ""}
+                className="mt-2 min-h-[5rem] resize-y rounded-xl border border-slate-600/80 bg-slate-900/90 px-3 py-2 text-sm text-slate-100"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className={sectionShell}>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
             <ImagePlus className="h-4 w-4 text-cyan-400" />
             <h3 className="text-sm font-bold text-slate-100">Anexo unifilar</h3>
           </div>
@@ -464,6 +749,35 @@ export function ProjectAdminOfficePanel({ project }: PanelProps) {
               />
             </fieldset>
           </div>
+          {(project.equipmentPanelItemsSummary ||
+            project.equipmentInverterItemsSummary ||
+            project.equipmentBatteryItemsSummary) && (
+            <div className="mt-4 rounded-xl border border-slate-700/80 bg-slate-950/50 p-3">
+              <p className={labelCls}>Inventario múltiple capturado en campo (JSON)</p>
+              <p className="mt-2 text-[11px] text-slate-500">
+                Referencia cruzada con el PDF; los campos editables arriba son la fila principal o valores
+                derivados.
+              </p>
+              {project.equipmentPanelItemsSummary ? (
+                <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                  <span className="font-semibold text-slate-400">Paneles: </span>
+                  {project.equipmentPanelItemsSummary}
+                </p>
+              ) : null}
+              {project.equipmentInverterItemsSummary ? (
+                <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                  <span className="font-semibold text-slate-400">Inversores: </span>
+                  {project.equipmentInverterItemsSummary}
+                </p>
+              ) : null}
+              {project.equipmentBatteryItemsSummary ? (
+                <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                  <span className="font-semibold text-slate-400">Baterías: </span>
+                  {project.equipmentBatteryItemsSummary}
+                </p>
+              ) : null}
+            </div>
+          )}
         </div>
 
         <div className={sectionShell}>
