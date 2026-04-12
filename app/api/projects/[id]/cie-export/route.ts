@@ -39,58 +39,125 @@ function pickCieFields(p: {
   };
 }
 
+/** Solo ASCII para `filename=` (cabeceras rotas con comillas / UTF-8 → 500 en algunos proxies). */
+function asciiSafeFileSlug(cliente: string): string {
+  const base = cliente
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase()
+    .slice(0, 48);
+  return base || "proyecto";
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await getCurrentDbUser();
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
-  const org = await prisma.organization.findUnique({
-    where: { id: user.organizationId },
-    select: { isSubscribed: true, subscriptionStatus: true },
-  });
-  if (!org?.isSubscribed || !["active", "trialing"].includes(org.subscriptionStatus ?? "active")) {
-    return NextResponse.json({ error: "Suscripción inactiva" }, { status: 402 });
-  }
-  const { id } = await params;
-
-  const project = await prisma.project.findFirst({
-    where: { id, organizationId: user.organizationId },
-    select: {
-      cliente: true,
-      direccion: true,
-      cups: true,
-      catastralReference: true,
-      ownerTaxId: true,
-      electricVocVolts: true,
-      electricIscAmps: true,
-      earthResistanceOhms: true,
-      thermalProtectionBrand: true,
-      thermalProtectionModel: true,
-      spdBrand: true,
-      spdModel: true,
-      peakPowerKwp: true,
-      equipmentPanelItems: true,
-      equipmentInverterItems: true,
-    },
-  });
-
-  if (!project) return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
-
-  const text = buildCieExportText(pickCieFields(project));
   const url = new URL(request.url);
   const download = url.searchParams.get("download") === "1";
-  const filename = `cie-${project.cliente.replaceAll(/\s+/g, "-").slice(0, 48).toLowerCase()}.txt`;
 
-  if (download) {
-    return new NextResponse(text, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+  try {
+    const user = await getCurrentDbUser();
+    if (!user) {
+      console.error("[cie-export] Sin sesión", { download, path: url.pathname });
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    if (user.role !== "ADMIN") {
+      console.error("[cie-export] Rol no admin", {
+        userId: user.id,
+        role: user.role,
+        download,
+      });
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const org = await prisma.organization.findUnique({
+      where: { id: user.organizationId },
+      select: { isSubscribed: true, subscriptionStatus: true },
+    });
+    if (!org?.isSubscribed || !["active", "trialing"].includes(org.subscriptionStatus ?? "active")) {
+      console.error("[cie-export] Suscripción inactiva", {
+        userId: user.id,
+        orgId: user.organizationId,
+        isSubscribed: org?.isSubscribed,
+        subscriptionStatus: org?.subscriptionStatus,
+      });
+      return NextResponse.json({ error: "Suscripción inactiva" }, { status: 402 });
+    }
+
+    const { id: projectId } = await params;
+    if (!projectId?.trim()) {
+      console.error("[cie-export] projectId vacío", { userId: user.id });
+      return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
+    }
+
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, organizationId: user.organizationId },
+      select: {
+        cliente: true,
+        direccion: true,
+        cups: true,
+        catastralReference: true,
+        ownerTaxId: true,
+        electricVocVolts: true,
+        electricIscAmps: true,
+        earthResistanceOhms: true,
+        thermalProtectionBrand: true,
+        thermalProtectionModel: true,
+        spdBrand: true,
+        spdModel: true,
+        peakPowerKwp: true,
+        equipmentPanelItems: true,
+        equipmentInverterItems: true,
       },
     });
+
+    if (!project) {
+      console.error("[cie-export] Proyecto no encontrado o otra org", {
+        userId: user.id,
+        orgId: user.organizationId,
+        projectId,
+      });
+      return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
+    }
+
+    const text = buildCieExportText(pickCieFields(project));
+    const slug = asciiSafeFileSlug(project.cliente);
+    const filenameAscii = `cie-${slug}.txt`;
+    const cacheHeaders = {
+      "Cache-Control": "private, no-store, max-age=0",
+    } as const;
+
+    if (download) {
+      return new NextResponse(text, {
+        headers: {
+          ...cacheHeaders,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${filenameAscii}"; filename*=UTF-8''${encodeURIComponent(filenameAscii)}`,
+        },
+      });
+    }
+    return NextResponse.json(
+      { text },
+      {
+        headers: cacheHeaders,
+      },
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error("[cie-export] Error generando export", {
+      message,
+      stack,
+      download,
+      url: request.url,
+    });
+    return NextResponse.json(
+      { error: "Error al generar el archivo CIE. Revisa los logs del servidor." },
+      { status: 500 },
+    );
   }
-  return NextResponse.json({ text });
 }

@@ -131,6 +131,7 @@ function CieExportModalBody({
           </Button>
           <a
             href={`/api/projects/${projectId}/cie-export?download=1`}
+            download
             className="inline-flex h-8 items-center justify-center rounded-lg border border-yellow-400/50 bg-gradient-to-r from-amber-400/25 via-yellow-400/20 to-amber-400/25 px-3 text-xs font-bold text-yellow-100 shadow-md ring-1 ring-yellow-400/25 hover:from-amber-400/35 hover:to-amber-400/30 disabled:pointer-events-none disabled:opacity-50"
             {...(!loading && text ? {} : { "aria-disabled": true, onClick: (e) => e.preventDefault() })}
           >

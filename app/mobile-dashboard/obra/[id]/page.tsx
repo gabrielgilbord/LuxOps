@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getProjectById } from "@/lib/data";
 import { EjecucionObra } from "@/app/operario/obra/[id]/stepper-flow";
 import { requireOperarioUser } from "@/lib/authz";
+import { OperarioLogoutButton } from "@/components/operario/operario-logout-button";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -16,10 +17,13 @@ export default async function MobileObraPage({ params }: Props) {
 
   return (
     <main className="min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden bg-slate-950 px-3 py-4 text-white sm:px-4 sm:py-5">
-      <header className="mb-4 w-full min-w-0 rounded-xl border border-white/15 bg-slate-900 px-3 py-3 sm:px-4">
-        <p className="text-xs text-slate-300">Modo Tejado</p>
-        <h1 className="text-lg font-bold">{project.cliente}</h1>
-        <p className="text-xs text-slate-300">{project.direccion}</p>
+      <header className="mb-4 flex w-full min-w-0 items-start justify-between gap-3 rounded-xl border border-white/15 bg-slate-900 px-3 py-3 sm:px-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-slate-300">Modo Tejado</p>
+          <h1 className="text-lg font-bold">{project.cliente}</h1>
+          <p className="text-xs text-slate-300">{project.direccion}</p>
+        </div>
+        <OperarioLogoutButton />
       </header>
       <EjecucionObra
         projectId={project.id}

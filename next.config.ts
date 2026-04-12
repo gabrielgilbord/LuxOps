@@ -26,11 +26,18 @@ const nextConfig: NextConfig = {
   },
 };
 
+/** Debe ir antes del `runtimeCaching` por defecto: evita que el SW cachee GET /api/* (p. ej. descarga CIE). */
+const apiNetworkOnly = {
+  urlPattern: /\/api\//,
+  handler: "NetworkOnly" as const,
+};
+
 export default withPWA({
   dest: "public",
   register: true,
   skipWaiting: true,
   runtimeCaching: [
+    apiNetworkOnly,
     ...runtimeCaching,
     {
       urlPattern: /^https?.*/,

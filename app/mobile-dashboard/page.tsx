@@ -5,6 +5,7 @@ import { requireOperarioUser } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OfflineWarmup } from "@/app/mobile-dashboard/offline-warmup";
 import { LuxOpsLogo } from "@/components/brand/luxops-logo";
+import { OperarioLogoutButton } from "@/components/operario/operario-logout-button";
 
 export default async function MobileDashboardPage() {
   const dbUser = await requireOperarioUser();
@@ -17,8 +18,8 @@ export default async function MobileDashboardPage() {
   return (
     <main className="min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden bg-slate-950 px-3 py-4 text-white sm:px-4 sm:py-5">
       <OfflineWarmup />
-      <header className="mb-4 flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-white/15 bg-slate-900 px-3 py-3 sm:px-4">
-        <div>
+      <header className="mb-4 flex w-full min-w-0 items-start justify-between gap-3 rounded-xl border border-white/15 bg-slate-900 px-3 py-3 sm:px-4">
+        <div className="min-w-0 flex-1">
           <div className="inline-flex items-center gap-2">
             <LuxOpsLogo darkBackground className="h-6 w-auto" />
           </div>
@@ -27,11 +28,12 @@ export default async function MobileDashboardPage() {
             <h1 className="text-base font-bold">Mis obras asignadas</h1>
           </div>
           <p className="text-[11px] text-slate-300">{org?.name ?? "Organización"}</p>
+          <p className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400">
+            <WifiOff className="h-4 w-4" />
+            Modo campo
+          </p>
         </div>
-        <span className="inline-flex items-center gap-1 text-xs text-slate-300">
-          <WifiOff className="h-4 w-4" />
-          Modo campo
-        </span>
+        <OperarioLogoutButton />
       </header>
 
       <div className="space-y-3">
