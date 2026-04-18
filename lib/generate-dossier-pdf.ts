@@ -50,10 +50,10 @@ const MOUNTING_LABEL: Record<string, string> = {
   LASTRADA: "Lastrada",
 };
 
-/** Origen abajo: nada de contenido debe quedar por debajo de esta Y (el pie se pinta al final ~18–70). */
-const PDF_FOOTER_CLEARANCE_Y = 82;
-/** Altura reservada para la franja de pie (rectángulo + textos). */
-const PDF_FOOTER_BAND_HEIGHT = 66;
+/** Origen abajo: reserva generosa para la franja de pie (evita solape con tablas / trazabilidad). */
+const PDF_FOOTER_CLEARANCE_Y = 112;
+/** Altura de la franja de pie (más compacta → menos invasión sobre el cuerpo). */
+const PDF_FOOTER_BAND_HEIGHT = 54;
 /** Tinta para textos legales y pie (contraste impresión). */
 const PDF_LEGAL_INK = rgb(0, 0, 0);
 const PDF_LEGAL_MUTED = rgb(51 / 255, 51 / 255, 51 / 255);
@@ -173,6 +173,17 @@ function hexToRgb(hex: string) {
   return rgb(r, g, b);
 }
 
+/** Color corporativo (#RRGGBB o RRGGBB). null si inválido → caller usa fallback. */
+function parseBrandColorRgb(raw: string | null | undefined) {
+  const s = (raw ?? "").trim();
+  const hex = s.startsWith("#") ? s.slice(1) : s;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  return rgb(r, g, b);
+}
+
 function dataUrlToBytes(dataUrl: string) {
   const parts = dataUrl.split(",");
   if (parts.length < 2) return null;
@@ -261,8 +272,8 @@ function drawFooter(params: {
     `Documento generado por LuxOps para ${companyName} · Página ${pageNumber}/${totalPages}`,
     {
       x: padX,
-      y: footBaseY + PDF_FOOTER_BAND_HEIGHT - 10,
-      size: 8,
+      y: footBaseY + PDF_FOOTER_BAND_HEIGHT - 9,
+      size: 6.5,
       font: italic,
       color: PDF_LEGAL_MUTED,
     },
@@ -270,17 +281,17 @@ function drawFooter(params: {
   const audit = pdfLibSafeText(
     `ID de transacción: ${projectId} · Documento electrónico firmado mediante hash de integridad según Reglamento (UE) Nº 910/2014 (eIDAS)`,
   );
-  let lineY = footBaseY + PDF_FOOTER_BAND_HEIGHT - 22;
-  for (const line of wrapPdfLines(audit, innerW, italic, 5.2)) {
+  let lineY = footBaseY + PDF_FOOTER_BAND_HEIGHT - 20;
+  for (const line of wrapPdfLines(audit, innerW, italic, 4.3).slice(0, 3)) {
     page.drawText(line, {
       x: padX,
       y: lineY,
-      size: 5.2,
+      size: 4.3,
       font: italic,
       color: PDF_LEGAL_MUTED,
     });
-    lineY -= 7;
-    if (lineY < footBaseY + 6) break;
+    lineY -= 5.2;
+    if (lineY < footBaseY + 5) break;
   }
 }
 
@@ -455,8 +466,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   const slateText = luxBlack;
   const slateBorder = rgb(0.2, 0.2549, 0.3333);
   const solarYellow = rgb(0.9843, 0.749, 0.1412); // #FBBF24
-  /** Dorado corporativo (#EAB308) — sello “VERIFICADO” y acentos de marca. */
-  const sealBrandGold = rgb(234 / 255, 179 / 255, 8 / 255);
+  const sealAccentFallback = rgb(234 / 255, 179 / 255, 8 / 255);
+  const sealAccent =
+    parseBrandColorRgb(project.organization.brandColor ?? undefined) ?? sealAccentFallback;
   /** Texto legal / impresión: máximo contraste (evita “texto invisible” al imprimir). */
   const pdfInk = rgb(0, 0, 0);
   const pdfInkMuted = rgb(51 / 255, 51 / 255, 51 / 255); // #333333
@@ -732,7 +744,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     y: sealCY,
     size: sealR + 14,
     color: rgb(1, 1, 1),
-    borderColor: sealBrandGold,
+    borderColor: sealAccent,
     borderWidth: 2.4,
     opacity: sealOp,
     borderOpacity: sealOp,
@@ -741,7 +753,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     x: sealCX,
     y: sealCY,
     size: sealR + 2,
-    borderColor: sealBrandGold,
+    borderColor: sealAccent,
     borderWidth: 1.6,
     opacity: sealOp,
     borderOpacity: sealOp,
@@ -751,7 +763,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     y: sealCY + sealR * 0.3,
     size: 9.8,
     font: bold,
-    color: sealBrandGold,
+    color: sealAccent,
     opacity: Math.min(1, sealOp + 0.15),
   });
   coverPage.drawText("LuxOps", {
@@ -767,7 +779,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     y: sealCY - sealR * 0.44,
     size: 8.4,
     font: bold,
-    color: sealBrandGold,
+    color: sealAccent,
     opacity: Math.min(1, sealOp + 0.12),
   });
 
@@ -1009,7 +1021,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   });
   const tableX = 24;
   const tableYTop = 372;
-  const colW = [102, 92, 92, 78, 175];
+  const colW = [86, 82, 122, 74, 183];
   const panelItemsFromDb = parseEquipmentItems(project.equipmentPanelItems);
   const batteryItemsFromDb = parseEquipmentItems(project.equipmentBatteryItems);
   const inverterItemsFromDb = parseEquipmentItems(project.equipmentInverterItems);
@@ -1129,72 +1141,120 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       "—",
     ]);
   }
-  const rowH = 24;
-  const cellTextYOffset = 3.2;
+  const invHeaderH = 22;
+  const invFontSize = 7.2;
+  const invLineGap = 8.4;
   const headers = ["Equipo", "Marca", "Modelo", "Pot. / cap.", "Nº serie"];
   const invHeaderFill = solarYellow;
   const invHeaderBorder = luxBlack;
   const invCellBorder = rgb(0.82, 0.84, 0.88);
   const invBorderW = 0.35;
+  const headerBandBottom = tableYTop - invHeaderH;
   let xPos = tableX;
   for (let ci = 0; ci < headers.length; ci += 1) {
     summaryPage.drawRectangle({
       x: xPos,
-      y: tableYTop - rowH,
+      y: headerBandBottom,
       width: colW[ci],
-      height: rowH,
+      height: invHeaderH,
       color: invHeaderFill,
       borderColor: invHeaderBorder,
       borderWidth: invBorderW,
     });
     summaryPage.drawText(headers[ci], {
       x: xPos + 5,
-      y: tableYTop - rowH / 2 - cellTextYOffset,
+      y: headerBandBottom + invHeaderH / 2 - 3.4,
       size: 7.8,
       font: bold,
       color: luxBlack,
     });
     xPos += colW[ci];
   }
+  let inventoryRowBottom = headerBandBottom;
   for (let ri = 0; ri < tableRows.length; ri += 1) {
-    const yTop = tableYTop - rowH * (ri + 1);
     const rowFill = ri % 2 === 0 ? rgb(1, 1, 1) : rgb(0.992, 0.993, 0.996);
+    const cellLines = [0, 1, 2, 3, 4].map((ci) =>
+      wrapPdfLines(pdfLibSafeText(String(tableRows[ri][ci])), colW[ci] - 10, font, invFontSize).slice(
+        0,
+        4,
+      ),
+    );
+    const maxLines = Math.max(1, ...cellLines.map((a) => a.length));
+    const rowH = Math.max(22, 8 + (maxLines - 1) * invLineGap + invFontSize);
+    const rb = inventoryRowBottom - rowH;
     let x = tableX;
     for (let ci = 0; ci < 5; ci += 1) {
       summaryPage.drawRectangle({
         x,
-        y: yTop - rowH,
+        y: rb,
         width: colW[ci],
         height: rowH,
         color: rowFill,
         borderColor: invCellBorder,
         borderWidth: invBorderW,
       });
-      summaryPage.drawText(String(tableRows[ri][ci]), {
-        x: x + 5,
-        y: yTop - rowH / 2 - cellTextYOffset,
-        size: 7.6,
-        font,
-        maxWidth: colW[ci] - 10,
-        color: pdfInk,
-      });
+      const lines = cellLines[ci];
+      const blockH = (lines.length - 1) * invLineGap + invFontSize * 0.78;
+      let ty = rb + rowH / 2 - blockH / 2 + invFontSize * 0.28;
+      for (const ln of lines) {
+        summaryPage.drawText(ln, {
+          x: x + 5,
+          y: ty,
+          size: invFontSize,
+          font,
+          maxWidth: colW[ci] - 10,
+          color: pdfInk,
+        });
+        ty -= invLineGap;
+      }
       x += colW[ci];
     }
+    inventoryRowBottom = rb;
   }
 
-  const tableBottomY = tableYTop - rowH * (tableRows.length + 1);
+  const tableBottomY = inventoryRowBottom;
+  let postTableY = tableBottomY - 10;
+  const summaryTraceReserve = 220;
+  if (postTableY < PDF_FOOTER_CLEARANCE_Y + summaryTraceReserve) {
+    summaryPage = pdf.addPage([595, 842]);
+    summaryPage.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(1, 1, 1) });
+    summaryPage.drawRectangle({ x: 24, y: 768, width: 547, height: 2, color: solarYellow });
+    summaryPage.drawText("INFORME DE INSTALACION (continuación)", {
+      x: 24,
+      y: 818,
+      size: 14,
+      font: bold,
+      color: pdfInk,
+    });
+    summaryPage.drawText("Trazabilidad, garantías y memoria", {
+      x: 24,
+      y: 792,
+      size: 9,
+      font,
+      color: pdfInkMuted,
+    });
+    postTableY = 772;
+  }
+
+  const certBlurbY = postTableY - 2;
   summaryPage.drawText(
     pdfLibSafeText("Certificación CE y cumplimiento de normativa IEC verificada por LuxOps."),
     {
       x: 24,
-      y: tableBottomY - 14,
+      y: certBlurbY,
       size: 7.4,
       font: italic,
       color: pdfInkMuted,
     },
   );
-  const traceStartY = Math.max(250, tableBottomY - 20);
-  summaryPage.drawText("Trazabilidad y garantías", { x: 24, y: traceStartY, size: 11, font: bold });
+  const traceStartY = certBlurbY - 24;
+  summaryPage.drawText("Trazabilidad y garantías", {
+    x: 24,
+    y: traceStartY,
+    size: 11,
+    font: bold,
+    color: pdfInk,
+  });
   let traceY = traceStartY - 16;
   const serialRows: [string, string | null][] = [
     [
@@ -1484,7 +1544,7 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     { x: 24, y: traceY, size: 9, font, color: rgb(0.35, 0.35, 0.35) },
   );
 
-  const CERT_BOTTOM_SAFE = PDF_FOOTER_CLEARANCE_Y + 18;
+  const CERT_BOTTOM_SAFE = PDF_FOOTER_CLEARANCE_Y + 28;
   const PAGE_BREAK_MIN_SPACE = 150;
 
   const drawNewCertPage = (continuation: boolean): { page: PDFPage; cy: number } => {
@@ -1553,13 +1613,14 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       ["Estado del tejado/soporte apto para el tránsito.", "Sí"],
       ["EPIS (Casco, guantes, calzado) en uso.", "Sí"],
     ];
-    const prlLh = 18;
+    const prlLh = 20;
     const prlC1 = 365;
     const prlC2 = 110;
     for (const [label, ok] of prlItems) {
+      const rb = cy - prlLh;
       certPage.drawRectangle({
         x: 40,
-        y: cy - prlLh + 14,
+        y: rb,
         width: prlC1,
         height: prlLh,
         borderColor: slateBorder,
@@ -1567,15 +1628,16 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       });
       certPage.drawRectangle({
         x: 40 + prlC1,
-        y: cy - prlLh + 14,
+        y: rb,
         width: prlC2,
         height: prlLh,
         borderColor: slateBorder,
         borderWidth: 0.5,
       });
+      const prlMid = rb + prlLh / 2 - 3.35;
       certPage.drawText(pdfLibSafeText(label), {
         x: 44,
-        y: cy - prlLh / 2 - 2,
+        y: prlMid,
         size: 7.5,
         font: inter,
         color: pdfInk,
@@ -1583,12 +1645,12 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       });
       certPage.drawText(pdfLibSafeText(ok), {
         x: 44 + prlC1 + 42,
-        y: cy - prlLh / 2 - 2,
+        y: prlMid,
         size: 8,
         font: inter,
         color: pdfInk,
       });
-      cy -= prlLh;
+      cy = rb - 1;
     }
     cy -= 8;
     certPage.drawText("Protocolo de seguridad validado por el operario antes de iniciar trabajos", {
@@ -1665,9 +1727,10 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     const valLines = wrapPdfLines(pdfLibSafeText(val), c2 - 12, inter, 8);
     const rowH = Math.max(lhBase, 18 + Math.max(0, valLines.length - 1) * 10);
     ensureCertVerticalSpace(rowH + 36);
+    const rb = cy - rowH;
     certPage.drawRectangle({
       x: 40,
-      y: cy - rowH + 14,
+      y: rb,
       width: c1,
       height: rowH,
       borderColor: slateBorder,
@@ -1675,13 +1738,13 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     });
     certPage.drawRectangle({
       x: 40 + c1,
-      y: cy - rowH + 14,
+      y: rb,
       width: c2,
       height: rowH,
       borderColor: slateBorder,
       borderWidth: 0.5,
     });
-    const rowMidY = cy - rowH / 2 - 2.5;
+    const rowMidY = rb + rowH / 2 - 3.35;
     certPage.drawText(pdfLibSafeText(k), {
       x: 44,
       y: rowMidY,
@@ -1690,8 +1753,13 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
       color: pdfInk,
       maxWidth: c1 - 12,
     });
+    const vGap = 9.5;
+    const valBlock =
+      (Math.max(1, valLines.length) - 1) * vGap + 8 * 0.72;
     let valY =
-      valLines.length <= 1 ? rowMidY : cy - 10 - (valLines.length - 1) * 10;
+      valLines.length <= 1
+        ? rowMidY
+        : rb + rowH / 2 - valBlock / 2 + 8 * 0.28;
     for (const vl of valLines.length > 0 ? valLines : ["-"]) {
       certPage.drawText(vl, {
         x: 44 + c1,
@@ -1701,9 +1769,9 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
         color: pdfInk,
         maxWidth: c2 - 12,
       });
-      valY -= 10;
+      valY -= vGap;
     }
-    cy -= rowH;
+    cy = rb - 2;
   }
   cy -= 10;
   ensureCertVerticalSpace(48);
@@ -1745,9 +1813,10 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
   ];
   for (const [k, val] of protoRows) {
     ensureCertVerticalSpace(lhBase + 36);
+    const protoRb = cy - lhBase;
     certPage.drawRectangle({
       x: 40,
-      y: cy - lhBase + 14,
+      y: protoRb,
       width: c1,
       height: lhBase,
       borderColor: slateBorder,
@@ -1755,27 +1824,28 @@ export async function generateDossierPdfBuffer(project: DossierProject): Promise
     });
     certPage.drawRectangle({
       x: 40 + c1,
-      y: cy - lhBase + 14,
+      y: protoRb,
       width: c2,
       height: lhBase,
       borderColor: slateBorder,
       borderWidth: 0.5,
     });
+    const protoMid = protoRb + lhBase / 2 - 3.35;
     certPage.drawText(pdfLibSafeText(k), {
       x: 44,
-      y: cy - lhBase / 2 - 2,
+      y: protoMid,
       size: 8,
       font: inter,
       color: pdfInk,
     });
     certPage.drawText(pdfLibSafeText(val), {
       x: 44 + c1,
-      y: cy - lhBase / 2 - 2,
+      y: protoMid,
       size: 8,
       font: inter,
       color: pdfInk,
     });
-    cy -= lhBase;
+    cy = protoRb - 2;
   }
   if (annualYieldKwh != null) {
     ensureCertVerticalSpace(68);

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "pdf:smoke": "tsx scripts/pdf-dossier-smoke.ts",
     "icons": "node scripts/generate-icons.mjs",
     "postinstall": "node scripts/generate-icons.mjs",
     "prebuild": "node scripts/generate-icons.mjs",
