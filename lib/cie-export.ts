@@ -50,8 +50,17 @@ export type CieProjectFields = {
   spdBrand: string | null;
   spdModel: string | null;
   peakPowerKwp: Prisma.Decimal | null;
+  /** Potencia nominal inversor (oficina), kWn */
+  inverterPowerKwn: Prisma.Decimal | null;
   equipmentPanelItems: Prisma.JsonValue | null;
   equipmentInverterItems: Prisma.JsonValue | null;
+  /** N/S inversor si solo hay uno en expediente */
+  equipmentInverterSerial: string | null;
+  /** Activos / memoria oficina (prioridad si fila JSON viene vacía) */
+  assetPanelBrand: string | null;
+  assetPanelModel: string | null;
+  assetInverterBrand: string | null;
+  assetInverterModel: string | null;
 };
 
 export function isCieReady(p: CieProjectFields): boolean {
@@ -77,27 +86,101 @@ function decStr(v: Prisma.Decimal | null | undefined): string {
   return s || "—";
 }
 
+function officePanelBrand(p: CieProjectFields, row: PanelRow, index: number): string {
+  const b = row.brand?.trim();
+  if (b) return b;
+  if (index === 0) return (p.assetPanelBrand ?? "").trim() || "—";
+  return "—";
+}
+
+function officePanelModel(p: CieProjectFields, row: PanelRow, index: number): string {
+  const m = row.model?.trim();
+  if (m) return m;
+  if (index === 0) return (p.assetPanelModel ?? "").trim() || "—";
+  return "—";
+}
+
+function officeInvBrand(p: CieProjectFields, row: InverterRow, index: number): string {
+  const b = row.brand?.trim();
+  if (b) return b;
+  if (index === 0) return (p.assetInverterBrand ?? "").trim() || "—";
+  return "—";
+}
+
+function officeInvModel(p: CieProjectFields, row: InverterRow, index: number): string {
+  const m = row.model?.trim();
+  if (m) return m;
+  if (index === 0) return (p.assetInverterModel ?? "").trim() || "—";
+  return "—";
+}
+
+function officeInvNominalKw(
+  p: CieProjectFields,
+  row: InverterRow,
+  index: number,
+): string {
+  const nk = row.nominalKw?.trim();
+  if (nk) return nk;
+  if (index === 0 && p.inverterPowerKwn != null) {
+    const v = Number(p.inverterPowerKwn);
+    if (Number.isFinite(v)) return String(v);
+  }
+  return "";
+}
+
 export function buildCieExportText(p: CieProjectFields): string {
   const panels = parsePanelJson(p.equipmentPanelItems);
   const sumWp = sumPanelPeakWpW(panels);
   const kwpOffice = p.peakPowerKwp != null ? Number(p.peakPowerKwp) : null;
   const potenciaPicoStr =
     sumWp > 0
-      ? `${sumWp} W (${(sumWp / 1000).toFixed(3)} kWp) — sumatorio paneles`
+      ? `${sumWp} W (${(sumWp / 1000).toFixed(3)} kWp) — sumatorio paneles (campo + oficina)`
       : kwpOffice != null && Number.isFinite(kwpOffice) && kwpOffice > 0
-        ? `${kwpOffice} kWp (dato oficina)`
+        ? `${kwpOffice} kWp (dato oficina / memoria)`
         : "—";
+  const kwpOfficeStr =
+    kwpOffice != null && Number.isFinite(kwpOffice) && kwpOffice > 0
+      ? `${kwpOffice} kWp`
+      : "— (no registrado en oficina)";
+
+  let nominalSumKw = 0;
+  for (const row of panels) {
+    const nk = Number(String(row.nominalKw ?? "").replace(",", "."));
+    if (Number.isFinite(nk) && nk > 0) nominalSumKw += nk;
+  }
+  const potenciaNominalPanelesStr =
+    nominalSumKw > 0 ? `${nominalSumKw.toFixed(3)} kWn (sumatorio nominal filas panel)` : "—";
+
+  const panelLines =
+    panels.length > 0
+      ? panels
+          .map((row, i) => {
+            const peak = row.peakWp?.trim() ? `${row.peakWp.trim()} W` : "—";
+            const nom = row.nominalKw?.trim() ? `${row.nominalKw.trim()} kWn` : "—";
+            return `  Panel ${i + 1}: ${officePanelBrand(p, row, i)} ${officePanelModel(p, row, i)} · Pico ${peak} · Nominal ${nom}`;
+          })
+          .join("\n")
+      : `  (sin filas en inventario) — activo oficina: ${(p.assetPanelBrand ?? "").trim() || "—"} ${(p.assetPanelModel ?? "").trim() || ""}`;
 
   const inverters = parseInverterJson(p.equipmentInverterItems);
+  const invSerial = (p.equipmentInverterSerial ?? "").trim();
   const invLines =
     inverters.length > 0
       ? inverters
-          .map(
-            (inv, i) =>
-              `  Inversor ${i + 1}: ${inv.nominalKw ? `${inv.nominalKw} kWn` : "—"} · ${inv.brand || "—"} ${inv.model || ""}`,
-          )
+          .map((inv, i) => {
+            const nk = officeInvNominalKw(p, inv, i);
+            const nkStr = nk ? `${nk} kWn` : "—";
+            const serialNote =
+              invSerial && (inverters.length === 1 || i === 0) ? ` · N/S ${invSerial}` : "";
+            return `  Inversor ${i + 1}: ${nkStr} · ${officeInvBrand(p, inv, i)} ${officeInvModel(p, inv, i)}${serialNote}`;
+          })
           .join("\n")
-      : "  —";
+      : `  — (sin filas JSON) · Oficina: ${(p.assetInverterBrand ?? "").trim() || "—"} ${(p.assetInverterModel ?? "").trim() || ""}${
+          invSerial ? ` · N/S ${invSerial}` : ""
+        }`;
+
+  const kwnOffice =
+    p.inverterPowerKwn != null ? `${decStr(p.inverterPowerKwn)} kWn (campo oficina)` : "—";
 
   return `
 ═══════════════════════════════════════════════════════════
@@ -115,18 +198,25 @@ Dirección instalación: ${p.direccion}
 
 POTENCIAS (EQUIPO GENERADOR)
 ----------------------------
-Potencia pico fotovoltaica: ${potenciaPicoStr}
-Inversores:
+Potencia pico fotovoltaica (prioridad sumatorio paneles): ${potenciaPicoStr}
+Potencia pico declarada oficina (kWp): ${kwpOfficeStr}
+Potencia nominal paneles (sumatorio kWn en filas, si consta): ${potenciaNominalPanelesStr}
+Potencia nominal inversor / inversores (oficina): ${kwnOffice}
+
+Paneles (marca / modelo / pico / nominal — oficina rellena huecos en fila 1):
+${panelLines}
+
+Inversores (kWn / marca / modelo — oficina rellena huecos):
 ${invLines}
 
 MEDICIONES ELÉCTRICAS (CAMPO)
 -----------------------------
 Tensión circuito abierto Voc (V): ${decStr(p.electricVocVolts)}
 Corriente cortocircuito Isc (A): ${decStr(p.electricIscAmps)}
-Resistencia de tierra (Ω): ${decStr(p.earthResistanceOhms)}
+Resistencia de puesta a tierra medida (ohm): ${decStr(p.earthResistanceOhms)}
 
-PROTECCIONES DECLARADAS
------------------------
+PROTECCIONES DECLARADAS (OFICINA / REBT)
+----------------------------------------
 Térmicos / magnetotérmicos — Marca: ${p.thermalProtectionBrand?.trim() || "—"}
 Térmicos / magnetotérmicos — Modelo: ${p.thermalProtectionModel?.trim() || "—"}
 Protección sobretensiones (SPD) — Marca: ${p.spdBrand?.trim() || "—"}

@@ -17,8 +17,14 @@ function pickCieFields(p: {
   spdBrand: string | null;
   spdModel: string | null;
   peakPowerKwp: CieProjectFields["peakPowerKwp"];
+  inverterPowerKwn: CieProjectFields["inverterPowerKwn"];
   equipmentPanelItems: CieProjectFields["equipmentPanelItems"];
   equipmentInverterItems: CieProjectFields["equipmentInverterItems"];
+  equipmentInverterSerial: string | null;
+  assetPanelBrand: string | null;
+  assetPanelModel: string | null;
+  assetInverterBrand: string | null;
+  assetInverterModel: string | null;
 }): CieProjectFields {
   return {
     cups: p.cups,
@@ -34,8 +40,14 @@ function pickCieFields(p: {
     spdBrand: p.spdBrand,
     spdModel: p.spdModel,
     peakPowerKwp: p.peakPowerKwp,
+    inverterPowerKwn: p.inverterPowerKwn,
     equipmentPanelItems: p.equipmentPanelItems,
     equipmentInverterItems: p.equipmentInverterItems,
+    equipmentInverterSerial: p.equipmentInverterSerial,
+    assetPanelBrand: p.assetPanelBrand,
+    assetPanelModel: p.assetPanelModel,
+    assetInverterBrand: p.assetInverterBrand,
+    assetInverterModel: p.assetInverterModel,
   };
 }
 
@@ -110,8 +122,14 @@ export async function GET(
         spdBrand: true,
         spdModel: true,
         peakPowerKwp: true,
+        inverterPowerKwn: true,
         equipmentPanelItems: true,
         equipmentInverterItems: true,
+        equipmentInverterSerial: true,
+        assetPanelBrand: true,
+        assetPanelModel: true,
+        assetInverterBrand: true,
+        assetInverterModel: true,
       },
     });
 

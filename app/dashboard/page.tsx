@@ -343,8 +343,14 @@ export default async function DashboardPage() {
                 spdBrand: p.spdBrand,
                 spdModel: p.spdModel,
                 peakPowerKwp: p.peakPowerKwp,
+                inverterPowerKwn: p.inverterPowerKwn,
                 equipmentPanelItems: p.equipmentPanelItems,
                 equipmentInverterItems: p.equipmentInverterItems,
+                equipmentInverterSerial: p.equipmentInverterSerial,
+                assetPanelBrand: p.assetPanelBrand,
+                assetPanelModel: p.assetPanelModel,
+                assetInverterBrand: p.assetInverterBrand,
+                assetInverterModel: p.assetInverterModel,
               }),
             }))}
             unassignedProjects={unassignedProjects}
