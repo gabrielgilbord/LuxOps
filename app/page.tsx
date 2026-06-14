@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { LandingPage } from "@/app/components/landing-page";
 import { getAllBlogPosts } from "@/lib/blog/registry";
+import { prisma } from "@/lib/prisma";
+import { ensureSuperAdminFromEnv } from "@/lib/super-admin";
 
 function firstString(
   value: string | string[] | undefined,
@@ -50,6 +52,23 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   } = await supabase.auth.getUser();
 
   if (user) {
+    await ensureSuperAdminFromEnv({
+      email: user.email ?? "",
+      supabaseUserId: user.id,
+      name: user.user_metadata?.full_name,
+    });
+
+    const dbUser = await prisma.user.findUnique({
+      where: { supabaseUserId: user.id },
+      select: { role: true },
+    });
+
+    if (dbUser?.role === "SUPER_ADMIN") {
+      redirect("/super-admin");
+    }
+    if (dbUser?.role === "OPERARIO") {
+      redirect("/mobile-dashboard");
+    }
     redirect("/dashboard");
   }
 

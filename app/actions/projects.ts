@@ -237,6 +237,102 @@ export async function createProjectAction(
   redirect("/dashboard");
 }
 
+export async function createFiberProjectAction(
+  _prev: CreateProjectFormState,
+  formData: FormData,
+): Promise<CreateProjectFormState> {
+  const admin = await requireAdminUser();
+
+  const org = await prisma.organization.findUnique({
+    where: { id: admin.organizationId },
+    select: { vertical: true },
+  });
+  if (org?.vertical !== "FIBER") {
+    return { error: "Esta organización no está configurada para fibra óptica." };
+  }
+
+  const cliente = String(formData.get("cliente") ?? "").trim();
+  const direccion = String(formData.get("direccion") ?? "").trim();
+  const serviceContractId = String(formData.get("serviceContractId") ?? "").trim();
+  const fiberTypeRaw = String(formData.get("fiberInstallationType") ?? "FTTH").trim();
+  const ownerTaxId = String(formData.get("ownerTaxId") ?? "").trim().toUpperCase();
+  const assignedUserId = String(formData.get("assignedUserId") ?? "").trim();
+  const clienteNotificacionEmail = String(formData.get("clienteNotificacionEmail") ?? "").trim();
+  const estimatedRevenueRaw = String(formData.get("estimatedRevenue") ?? "").trim().replace(",", ".");
+
+  if (!cliente || !direccion || !assignedUserId) {
+    return { error: "Completa cliente, dirección y técnico asignado." };
+  }
+  if (!["FTTH", "FTTB", "FTTO"].includes(fiberTypeRaw)) {
+    return { error: "Tipo de instalación no válido." };
+  }
+  if (
+    clienteNotificacionEmail &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clienteNotificacionEmail)
+  ) {
+    return { error: "El email de notificación no es válido." };
+  }
+  if (estimatedRevenueRaw && !/^\d+(\.\d{1,2})?$/.test(estimatedRevenueRaw)) {
+    return { error: "El importe estimado debe ser un número válido." };
+  }
+
+  const assignedUser = await prisma.user.findFirst({
+    where: {
+      id: assignedUserId,
+      organizationId: admin.organizationId,
+      role: "OPERARIO",
+    },
+    select: { id: true, name: true, email: true },
+  });
+  if (!assignedUser) {
+    return { error: "El técnico seleccionado no es válido." };
+  }
+
+  const initials = (assignedUser.name ?? assignedUser.email)
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((chunk) => chunk[0]?.toUpperCase() ?? "")
+    .join("");
+
+  let created: { id: string; cliente: string };
+  try {
+    created = await prisma.project.create({
+      data: {
+        cliente,
+        direccion,
+        serviceContractId: serviceContractId || null,
+        fiberInstallationType: fiberTypeRaw as "FTTH" | "FTTB" | "FTTO",
+        ownerTaxId: ownerTaxId || "",
+        estado: "PRESUPUESTO",
+        progreso: 0,
+        organizationId: admin.organizationId,
+        assignedUserId: assignedUser.id,
+        operarioNombre: assignedUser.name ?? assignedUser.email,
+        operarioInitials: initials || "TC",
+        clienteNotificacionEmail: clienteNotificacionEmail || null,
+        estimatedRevenue: estimatedRevenueRaw || null,
+      },
+      select: { id: true, cliente: true },
+    });
+  } catch (e) {
+    console.error("LuxOps createFiberProjectAction DB:", e);
+    return { error: "No se pudo guardar la obra en la base de datos." };
+  }
+
+  const appBase = await resolveAppBaseUrl();
+  void sendOperarioObraAssignedEmail({
+    to: assignedUser.email,
+    operarioName: assignedUser.name ?? assignedUser.email,
+    cliente: created.cliente,
+    obraUrl: `${appBase}/mobile-dashboard/obra/${created.id}`,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/mobile-dashboard");
+  redirect("/dashboard");
+}
+
 export type SaveProjectAdminMemoryState = { ok?: boolean; error?: string };
 
 export async function saveProjectAdminMemoryAction(

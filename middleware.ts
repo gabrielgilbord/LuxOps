@@ -29,7 +29,8 @@ export async function middleware(request: NextRequest) {
   if (
     (pathname.startsWith("/dashboard") ||
       pathname.startsWith("/mobile-dashboard") ||
-      pathname.startsWith("/operario")) &&
+      pathname.startsWith("/operario") ||
+      pathname.startsWith("/super-admin")) &&
     !user
   ) {
     const redirectUrl = request.nextUrl.clone();
@@ -41,5 +42,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/mobile-dashboard/:path*", "/operario/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/mobile-dashboard/:path*",
+    "/operario/:path*",
+    "/super-admin/:path*",
+  ],
 };

@@ -130,6 +130,24 @@ const traceabilitySchema = baseSchema.extend({
   photoProtocolStructureEarthing: z.boolean().optional(),
 });
 
+const fiberInstallSchema = baseSchema.extend({
+  kind: z.literal("fiberInstall"),
+  serviceContractId: z.string().trim().max(64).optional(),
+  fiberInstallationType: z.enum(["FTTH", "FTTB", "FTTO"]).optional(),
+  ontSerial: z.string().trim().min(1).max(120),
+  routerSerial: z.string().trim().max(120).optional(),
+  fiberDropLengthMeters: z.string().trim().max(32).optional(),
+  fiberInstallationNotes: z.string().trim().max(4000).optional(),
+});
+
+const fiberSignatureSchema = baseSchema.extend({
+  kind: z.literal("fiberSignature"),
+  clientSignatureDataUrl: z.string().startsWith("data:image/"),
+  installerSignatureDataUrl: z.string().startsWith("data:image/"),
+  latitude: z.number(),
+  longitude: z.number(),
+});
+
 const syncPayloadSchema = z.object({
   operations: z.array(
     z.discriminatedUnion("kind", [
@@ -138,6 +156,8 @@ const syncPayloadSchema = z.object({
       signatureSchema,
       checklistSchema,
       traceabilitySchema,
+      fiberInstallSchema,
+      fiberSignatureSchema,
     ]),
   ),
 });
@@ -146,7 +166,9 @@ function operationPriority(kind: string) {
   if (kind === "prlAck") return 0;
   if (kind === "photo") return 1;
   if (kind === "checklist") return 2;
+  if (kind === "fiberInstall") return 3;
   if (kind === "traceability") return 3;
+  if (kind === "fiberSignature") return 5;
   return 4;
 }
 
@@ -519,6 +541,80 @@ export async function POST(request: Request) {
           projectId: operation.projectId,
           organizationId: dbUser.organizationId,
           userId: dbUser.id,
+        });
+        await sendProjectFinishedEmail({
+          organizationId: dbUser.organizationId,
+          projectId: operation.projectId,
+        });
+        successIds.push(operation.id);
+      } else if (operation.kind === "fiberInstall") {
+        await prisma.project.update({
+          where: { id: operation.projectId },
+          data: {
+            serviceContractId: (operation.serviceContractId ?? "").trim() || null,
+            fiberInstallationType: operation.fiberInstallationType ?? null,
+            ontSerial: operation.ontSerial.trim(),
+            routerSerial: (operation.routerSerial ?? "").trim() || null,
+            fiberDropLengthMeters: toPrismaDecimal(operation.fiberDropLengthMeters),
+            fiberInstallationNotes: (operation.fiberInstallationNotes ?? "").trim() || null,
+            estado: "EN_INSTALACION",
+          },
+        });
+        successIds.push(operation.id);
+      } else if (operation.kind === "fiberSignature") {
+        const clientMeta = parseDataUrlMeta(operation.clientSignatureDataUrl);
+        const installerMeta = parseDataUrlMeta(operation.installerSignatureDataUrl);
+        if (!clientMeta || !installerMeta) {
+          rejected.push({ id: operation.id, reason: "Formato de firma inválido" });
+          continue;
+        }
+        const requiredTypes = await prisma.photo.findMany({
+          where: { projectId: operation.projectId },
+          select: { tipo: true },
+        });
+        const hasAntes = requiredTypes.some((p) => p.tipo === "ANTES");
+        const hasDespues = requiredTypes.some((p) => p.tipo === "DESPUES");
+        if (!hasAntes || !hasDespues) {
+          rejected.push({
+            id: operation.id,
+            reason: "Faltan evidencias obligatorias: ANTES y DESPUES",
+          });
+          continue;
+        }
+        const projectFiber = await prisma.project.findUnique({
+          where: { id: operation.projectId },
+          select: { ontSerial: true },
+        });
+        if (!projectFiber?.ontSerial?.trim()) {
+          rejected.push({ id: operation.id, reason: "Falta registrar el serial de la ONT" });
+          continue;
+        }
+        const clientUploaded = await uploadDataUrlToStorage({
+          bucket: "luxops-assets",
+          path: `organizations/${dbUser.organizationId}/projects/${operation.projectId}/signatures/${operation.id}/client`,
+          dataUrl: operation.clientSignatureDataUrl,
+        });
+        const installerUploaded = await uploadDataUrlToStorage({
+          bucket: "luxops-assets",
+          path: `organizations/${dbUser.organizationId}/projects/${operation.projectId}/signatures/${operation.id}/installer`,
+          dataUrl: operation.installerSignatureDataUrl,
+        });
+        await prisma.projectSignature.create({
+          data: {
+            projectId: operation.projectId,
+            imageDataUrl: clientUploaded.path,
+            storagePath: clientUploaded.path,
+            installerImageDataUrl: installerUploaded.path,
+            installerStoragePath: installerUploaded.path,
+            installerName: dbUser.name ?? dbUser.email ?? null,
+            clientName: project.cliente ?? null,
+            latitude: operation.latitude,
+            longitude: operation.longitude,
+          },
+        });
+        await prisma.project.update({
+          where: { id: operation.projectId },
+          data: { estado: "FINALIZADO", progreso: 100 },
         });
         await sendProjectFinishedEmail({
           organizationId: dbUser.organizationId,

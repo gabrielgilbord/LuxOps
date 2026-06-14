@@ -189,6 +189,34 @@ export function useOfflineSync(projectId: string) {
             progreso: operation.progreso,
           };
           break;
+        case "fiberInstall":
+          fullOp = {
+            id: crypto.randomUUID(),
+            projectId,
+            createdAt: new Date().toISOString(),
+            sync_pending: true,
+            kind: "fiberInstall",
+            serviceContractId: operation.serviceContractId,
+            fiberInstallationType: operation.fiberInstallationType,
+            ontSerial: operation.ontSerial,
+            routerSerial: operation.routerSerial,
+            fiberDropLengthMeters: operation.fiberDropLengthMeters,
+            fiberInstallationNotes: operation.fiberInstallationNotes,
+          };
+          break;
+        case "fiberSignature":
+          fullOp = {
+            id: crypto.randomUUID(),
+            projectId,
+            createdAt: new Date().toISOString(),
+            sync_pending: true,
+            kind: "fiberSignature",
+            clientSignatureDataUrl: operation.clientSignatureDataUrl,
+            installerSignatureDataUrl: operation.installerSignatureDataUrl,
+            latitude: operation.latitude,
+            longitude: operation.longitude,
+          };
+          break;
       }
 
       await queueOperation(fullOp);

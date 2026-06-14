@@ -60,13 +60,13 @@ export function LandingPage({ latestBlogPosts = [] }: LandingPageProps) {
       <section className="relative mx-auto grid w-full max-w-7xl gap-10 px-5 pb-20 pt-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pt-24">
         <div className="animate-fade-in-up">
           <p className="mb-4 inline-flex rounded-full border border-yellow-300/35 bg-yellow-300/15 px-3 py-1 text-xs font-bold text-yellow-200">
-            SaaS para instaladoras solares
+            SaaS para instaladoras solares y fibra óptica
           </p>
           <h1 className="text-5xl font-bold tracking-tight text-transparent sm:text-6xl bg-gradient-to-r from-sky-200 via-sky-300 to-yellow-300 bg-clip-text">
-            LuxOps: operativa solar, control total.
+            LuxOps: operativa de campo, control total.
           </h1>
           <p className="mt-5 max-w-xl text-base text-slate-200/90 sm:text-lg">
-            Gestiona equipos de tejado y oficina en una sola plataforma con
+            Gestiona equipos de tejado, técnicos de fibra y oficina en una sola plataforma con
             multitenancy, fotos geolocalizadas y trazabilidad por organizacion.
           </p>
           <Link

@@ -79,6 +79,12 @@ export type ProjectDetail = DashboardProject & {
   equipmentPanelItemsSummary?: string | null;
   equipmentInverterItemsSummary?: string | null;
   equipmentBatteryItemsSummary?: string | null;
+  serviceContractId?: string | null;
+  fiberInstallationType?: string | null;
+  ontSerial?: string | null;
+  routerSerial?: string | null;
+  fiberDropLengthMeters?: string | null;
+  fiberInstallationNotes?: string | null;
   photos: {
     id: string;
     tipo: TipoFoto;
@@ -345,6 +351,12 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       equipmentPanelItemsSummary: fmtEquipSummary(panelJson),
       equipmentInverterItemsSummary: fmtEquipSummary(inverterJson),
       equipmentBatteryItemsSummary: fmtEquipSummary(batteryJson),
+      serviceContractId: project.serviceContractId,
+      fiberInstallationType: project.fiberInstallationType,
+      ontSerial: project.ontSerial,
+      routerSerial: project.routerSerial,
+      fiberDropLengthMeters: project.fiberDropLengthMeters?.toString() ?? null,
+      fiberInstallationNotes: project.fiberInstallationNotes,
       photosCount: project.photos.length,
       photos,
       signatures,

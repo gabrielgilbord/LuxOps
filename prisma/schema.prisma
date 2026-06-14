@@ -41,6 +41,20 @@ enum SelfConsumptionModality {
 enum UserRole {
   ADMIN
   OPERARIO
+  SUPER_ADMIN
+}
+
+/// Vertical de negocio de la organización (instaladora)
+enum OrganizationVertical {
+  SOLAR
+  FIBER
+}
+
+/// Tipo de instalación de fibra óptica
+enum FiberInstallationType {
+  FTTH
+  FTTB
+  FTTO
 }
 
 enum StructureMountingType {
@@ -74,6 +88,7 @@ model EquipmentCatalogEntry {
 model Organization {
   id                    String    @id @default(cuid())
   name                  String
+  vertical              OrganizationVertical @default(SOLAR)
   taxAddress            String?
   logoUrl               String?
   logoPath              String?
@@ -224,6 +239,13 @@ model Project {
   prlAcknowledgedAt           DateTime?
   clienteNotificacionEmail   String?
   subsidyPackDownloadedAt    DateTime?
+  /** Fibra — nº contrato / línea de servicio del operador */
+  serviceContractId          String?
+  fiberInstallationType    FiberInstallationType?
+  ontSerial                  String?
+  routerSerial               String?
+  fiberDropLengthMeters      Decimal?       @db.Decimal(8, 2)
+  fiberInstallationNotes     String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   organizationId   String

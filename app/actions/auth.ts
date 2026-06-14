@@ -6,6 +6,7 @@ import { sendLuxOpsPasswordRecoveryEmail } from "@/lib/email";
 import { getSupabaseAuthResetPasswordUrl } from "@/lib/public-app-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createStripeCheckoutSession } from "@/lib/stripe-checkout";
+import { ensureSuperAdminFromEnv } from "@/lib/super-admin";
 
 function safeInternalNextPath(raw: string): string | null {
   const t = raw.trim();
@@ -66,11 +67,20 @@ export async function loginAction(
   } = await supabase.auth.getUser();
 
   if (user) {
+    await ensureSuperAdminFromEnv({
+      email: user.email ?? email,
+      supabaseUserId: user.id,
+      name: user.user_metadata?.full_name,
+    });
+
     const dbUser = await prisma.user.findUnique({
       where: { supabaseUserId: user.id },
       select: { role: true },
     });
 
+    if (dbUser?.role === "SUPER_ADMIN") {
+      redirect("/super-admin");
+    }
     if (dbUser?.role === "OPERARIO") {
       redirect("/mobile-dashboard");
     }

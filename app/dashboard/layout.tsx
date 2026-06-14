@@ -19,6 +19,7 @@ export default async function DashboardLayout({
       isSubscribed: true,
       rebtCompanyNumber: true,
       taxAddress: true,
+      vertical: true,
     },
   });
   if (!orgGate) {
@@ -29,6 +30,7 @@ export default async function DashboardLayout({
     isOrganizationProfileIncomplete({
       rebtCompanyNumber: orgGate.rebtCompanyNumber,
       taxAddress: orgGate.taxAddress,
+      vertical: orgGate.vertical,
     })
   ) {
     redirect("/onboarding?continue=1");

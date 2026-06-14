@@ -105,6 +105,30 @@ export type OfflineOperation =
       photoProtocolStructureEarthing?: boolean;
       sync_pending: true;
       createdAt: string;
+    }
+  | {
+      id: string;
+      kind: "fiberInstall";
+      projectId: string;
+      serviceContractId?: string;
+      fiberInstallationType?: "FTTH" | "FTTB" | "FTTO";
+      ontSerial: string;
+      routerSerial: string;
+      fiberDropLengthMeters?: string;
+      fiberInstallationNotes?: string;
+      sync_pending: true;
+      createdAt: string;
+    }
+  | {
+      id: string;
+      kind: "fiberSignature";
+      projectId: string;
+      clientSignatureDataUrl: string;
+      installerSignatureDataUrl: string;
+      latitude: number;
+      longitude: number;
+      sync_pending: true;
+      createdAt: string;
     };
 
 /** Payload para encolar (sin id, proyecto, timestamps ni flag de sync). */
@@ -176,6 +200,22 @@ export type OfflineOperationPayload =
       photoProtocolDistributionBoard?: boolean;
       photoProtocolFixings?: boolean;
       photoProtocolStructureEarthing?: boolean;
+    }
+  | {
+      kind: "fiberInstall";
+      serviceContractId?: string;
+      fiberInstallationType?: "FTTH" | "FTTB" | "FTTO";
+      ontSerial: string;
+      routerSerial: string;
+      fiberDropLengthMeters?: string;
+      fiberInstallationNotes?: string;
+    }
+  | {
+      kind: "fiberSignature";
+      clientSignatureDataUrl: string;
+      installerSignatureDataUrl: string;
+      latitude: number;
+      longitude: number;
     };
 
 const DB_NAME = "luxops-offline-db";

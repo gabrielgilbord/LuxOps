@@ -2,11 +2,21 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getOrganizationOperarios } from "@/app/actions/projects";
 import { requireAdminUser } from "@/lib/authz";
+import { prisma } from "@/lib/prisma";
 import { NewProjectForm } from "@/components/dashboard/new-project-form";
+import { NewFiberProjectForm } from "@/components/dashboard/new-fiber-project-form";
+import { isFiberVertical } from "@/lib/organization-vertical";
 
 export default async function NewProjectPage() {
-  await requireAdminUser();
-  const operarios = await getOrganizationOperarios();
+  const admin = await requireAdminUser();
+  const [operarios, org] = await Promise.all([
+    getOrganizationOperarios(),
+    prisma.organization.findUnique({
+      where: { id: admin.organizationId },
+      select: { vertical: true },
+    }),
+  ]);
+  const isFiber = isFiberVertical(org?.vertical);
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6">
@@ -19,7 +29,11 @@ export default async function NewProjectPage() {
           Volver al dashboard
         </Link>
 
-        <NewProjectForm operarios={operarios} />
+        {isFiber ? (
+          <NewFiberProjectForm operarios={operarios} />
+        ) : (
+          <NewProjectForm operarios={operarios} />
+        )}
       </div>
     </main>
   );

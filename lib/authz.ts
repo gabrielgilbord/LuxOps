@@ -41,6 +41,15 @@ export async function requireAuthenticatedUser() {
   return dbUser;
 }
 
+export async function requireSuperAdminUser() {
+  const dbUser = await requireAuthenticatedUser();
+  if (dbUser.role !== "SUPER_ADMIN") {
+    if (dbUser.role === "OPERARIO") redirect("/mobile-dashboard");
+    redirect("/dashboard");
+  }
+  return dbUser;
+}
+
 async function requireSubscribedOrganization(organizationId: string) {
   const organization = await prisma.organization.findUnique({
     where: { id: organizationId },
@@ -56,6 +65,7 @@ async function requireSubscribedOrganization(organizationId: string) {
 
 export async function requireAdminUser() {
   const dbUser = await requireAuthenticatedUser();
+  if (dbUser.role === "SUPER_ADMIN") redirect("/super-admin");
   if (dbUser.role !== "ADMIN") redirect("/mobile-dashboard");
   await requireSubscribedOrganization(dbUser.organizationId);
   return dbUser;
@@ -63,12 +73,14 @@ export async function requireAdminUser() {
 
 export async function requireAdminUserForDashboard() {
   const dbUser = await requireAuthenticatedUser();
+  if (dbUser.role === "SUPER_ADMIN") redirect("/super-admin");
   if (dbUser.role !== "ADMIN") redirect("/mobile-dashboard");
   return dbUser;
 }
 
 export async function requireOperarioUser() {
   const dbUser = await requireAuthenticatedUser();
+  if (dbUser.role === "SUPER_ADMIN") redirect("/super-admin");
   if (dbUser.role !== "OPERARIO") redirect("/dashboard");
   await requireSubscribedOrganization(dbUser.organizationId);
   return dbUser;
@@ -76,6 +88,7 @@ export async function requireOperarioUser() {
 
 export async function requireSubscribedUser() {
   const dbUser = await requireAuthenticatedUser();
+  if (dbUser.role === "SUPER_ADMIN") redirect("/super-admin");
   await requireSubscribedOrganization(dbUser.organizationId);
   return dbUser;
 }
