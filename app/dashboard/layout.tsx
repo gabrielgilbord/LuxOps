@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { requireAdminUserForDashboard } from "@/lib/authz";
 import { DashboardNavShell } from "@/app/dashboard/nav-shell";
 import { getOrgForDashboard } from "@/lib/cache/dashboard-queries";
-import { LuxOpsLogo } from "@/components/brand/luxops-logo";
+import { ProductLogo } from "@/components/brand/product-logo";
 import { prisma } from "@/lib/prisma";
 import { isOrganizationProfileIncomplete } from "@/lib/organization-profile";
+import { isFiberVertical } from "@/lib/organization-vertical";
+import { getProductBrand } from "@/lib/product-brand";
 
 export default async function DashboardLayout({
   children,
@@ -38,6 +40,8 @@ export default async function DashboardLayout({
 
   const org = await getOrgForDashboard(admin.organizationId);
   const orgName = org?.name ?? "Organización";
+  const isFiber = isFiberVertical(orgGate.vertical);
+  const brand = getProductBrand(orgGate.vertical);
   const userLabel = admin.name || admin.email || "AD";
   const status = (org?.subscriptionStatus ?? "active").toLowerCase();
   const showSubscriptionAlert = ["past_due", "unpaid", "canceled", "incomplete"].includes(status);
@@ -50,10 +54,19 @@ export default async function DashboardLayout({
             href="/dashboard"
             className="group relative inline-flex items-center gap-2 text-lg font-bold tracking-tight"
           >
-            <span className="pointer-events-none absolute -inset-x-2 -inset-y-1 -z-10 rounded-full bg-yellow-300/10 blur-md" />
-            <LuxOpsLogo darkBackground className="h-7 w-auto" />
+            <span
+              className={`pointer-events-none absolute -inset-x-2 -inset-y-1 -z-10 rounded-full blur-md ${
+                isFiber ? "bg-cyan-400/10" : "bg-yellow-300/10"
+              }`}
+            />
+            <ProductLogo vertical={orgGate.vertical} darkBackground className="h-7 w-auto" />
           </Link>
-          <DashboardNavShell organizationName={orgName} userLabel={userLabel} />
+          <DashboardNavShell
+            organizationName={orgName}
+            userLabel={userLabel}
+            isFiber={isFiber}
+            productName={brand.name}
+          />
         </div>
       </header>
       {showSubscriptionAlert ? (

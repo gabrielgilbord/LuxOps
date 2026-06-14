@@ -5,6 +5,6 @@ import { prisma } from "@/lib/prisma";
 export const getOrgForDashboard = cache(async (organizationId: string) => {
   return prisma.organization.findUnique({
     where: { id: organizationId },
-    select: { name: true, subscriptionStatus: true },
+    select: { name: true, subscriptionStatus: true, vertical: true },
   });
 });

@@ -201,6 +201,8 @@ export function useOfflineSync(projectId: string) {
             ontSerial: operation.ontSerial,
             routerSerial: operation.routerSerial,
             fiberDropLengthMeters: operation.fiberDropLengthMeters,
+            fiberOpticalPowerDbm: operation.fiberOpticalPowerDbm,
+            fiberVlanId: operation.fiberVlanId,
             fiberInstallationNotes: operation.fiberInstallationNotes,
           };
           break;

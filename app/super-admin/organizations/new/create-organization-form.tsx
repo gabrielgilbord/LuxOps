@@ -46,8 +46,8 @@ export function CreateOrganizationForm() {
           defaultValue="SOLAR"
           className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-violet-400/70"
         >
-          <option value="SOLAR">Solar fotovoltaica</option>
-          <option value="FIBER">Fibra óptica</option>
+          <option value="SOLAR">LuxOps — Solar</option>
+          <option value="FIBER">FibOps — Fibra óptica</option>
         </select>
         <textarea
           name="taxAddress"

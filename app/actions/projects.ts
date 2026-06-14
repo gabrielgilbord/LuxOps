@@ -253,6 +253,11 @@ export async function createFiberProjectAction(
 
   const cliente = String(formData.get("cliente") ?? "").trim();
   const direccion = String(formData.get("direccion") ?? "").trim();
+  const clientPhone = String(formData.get("clientPhone") ?? "").trim();
+  const installFloorDoor = String(formData.get("installFloorDoor") ?? "").trim();
+  const fiberOperator = String(formData.get("fiberOperator") ?? "").trim();
+  const fiberOrderReference = String(formData.get("fiberOrderReference") ?? "").trim();
+  const fiberCtoReference = String(formData.get("fiberCtoReference") ?? "").trim();
   const serviceContractId = String(formData.get("serviceContractId") ?? "").trim();
   const fiberTypeRaw = String(formData.get("fiberInstallationType") ?? "FTTH").trim();
   const ownerTaxId = String(formData.get("ownerTaxId") ?? "").trim().toUpperCase();
@@ -262,6 +267,15 @@ export async function createFiberProjectAction(
 
   if (!cliente || !direccion || !assignedUserId) {
     return { error: "Completa cliente, dirección y técnico asignado." };
+  }
+  if (!clientPhone || clientPhone.length < 9) {
+    return { error: "Teléfono del cliente obligatorio (mín. 9 dígitos)." };
+  }
+  if (!installFloorDoor) {
+    return { error: "Indica piso, puerta o ubicación interior." };
+  }
+  if (!fiberOperator) {
+    return { error: "Selecciona el operador de telecomunicaciones." };
   }
   if (!["FTTH", "FTTB", "FTTO"].includes(fiberTypeRaw)) {
     return { error: "Tipo de instalación no válido." };
@@ -301,6 +315,11 @@ export async function createFiberProjectAction(
       data: {
         cliente,
         direccion,
+        clientPhone,
+        installFloorDoor,
+        fiberOperator,
+        fiberOrderReference: fiberOrderReference || null,
+        fiberCtoReference: fiberCtoReference || null,
         serviceContractId: serviceContractId || null,
         fiberInstallationType: fiberTypeRaw as "FTTH" | "FTTB" | "FTTO",
         ownerTaxId: ownerTaxId || "",

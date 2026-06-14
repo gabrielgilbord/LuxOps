@@ -115,6 +115,8 @@ export type OfflineOperation =
       ontSerial: string;
       routerSerial: string;
       fiberDropLengthMeters?: string;
+      fiberOpticalPowerDbm?: string;
+      fiberVlanId?: string;
       fiberInstallationNotes?: string;
       sync_pending: true;
       createdAt: string;
@@ -208,6 +210,8 @@ export type OfflineOperationPayload =
       ontSerial: string;
       routerSerial: string;
       fiberDropLengthMeters?: string;
+      fiberOpticalPowerDbm?: string;
+      fiberVlanId?: string;
       fiberInstallationNotes?: string;
     }
   | {

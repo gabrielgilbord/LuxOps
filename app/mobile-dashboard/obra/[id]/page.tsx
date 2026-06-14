@@ -25,7 +25,7 @@ export default async function MobileObraPage({ params }: Props) {
   if (!project || project.assignedUserId !== dbUser.id) notFound();
 
   const isFiber = isFiberVertical(org?.vertical);
-  const modeLabel = isFiber ? "Modo Campo — Fibra" : "Modo Tejado";
+  const modeLabel = isFiber ? "FibOps · Modo Campo" : "Modo Tejado";
 
   return (
     <main className="min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden bg-slate-950 px-3 py-4 text-white sm:px-4 sm:py-5">
@@ -42,6 +42,10 @@ export default async function MobileObraPage({ params }: Props) {
           projectId={project.id}
           initialContractId={project.serviceContractId}
           initialFiberType={project.fiberInstallationType}
+          initialOperator={project.fiberOperator}
+          initialOrderRef={project.fiberOrderReference}
+          initialCtoRef={project.fiberCtoReference}
+          initialFloorDoor={project.installFloorDoor}
         />
       ) : (
         <EjecucionObra

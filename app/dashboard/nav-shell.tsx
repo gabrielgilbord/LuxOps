@@ -20,16 +20,24 @@ import { logoutAction } from "@/app/actions/auth";
 type Props = {
   organizationName: string;
   userLabel: string;
+  isFiber?: boolean;
+  productName?: string;
 };
 
-const NAV_ITEMS = [
+const BASE_NAV = [
   { href: "/dashboard", label: "Panel de Control", icon: LayoutDashboard },
   { href: "/dashboard/team", label: "Equipo", icon: Users },
-  { href: "/dashboard/reports", label: "Informes", icon: FileText },
+  { href: "/dashboard/reports", label: "Informes", icon: FileText, solarOnly: true },
   { href: "/dashboard/settings", label: "Configuración", icon: Settings },
 ] as const;
 
-export function DashboardNavShell({ organizationName, userLabel }: Props) {
+export function DashboardNavShell({
+  organizationName,
+  userLabel,
+  isFiber = false,
+  productName = "LuxOps",
+}: Props) {
+  const NAV_ITEMS = BASE_NAV.filter((item) => !("solarOnly" in item && item.solarOnly && isFiber));
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const pathname = usePathname();

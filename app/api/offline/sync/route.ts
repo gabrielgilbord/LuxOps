@@ -137,6 +137,8 @@ const fiberInstallSchema = baseSchema.extend({
   ontSerial: z.string().trim().min(1).max(120),
   routerSerial: z.string().trim().max(120).optional(),
   fiberDropLengthMeters: z.string().trim().max(32).optional(),
+  fiberOpticalPowerDbm: z.string().trim().max(16).optional(),
+  fiberVlanId: z.string().trim().max(64).optional(),
   fiberInstallationNotes: z.string().trim().max(4000).optional(),
 });
 
@@ -556,6 +558,8 @@ export async function POST(request: Request) {
             ontSerial: operation.ontSerial.trim(),
             routerSerial: (operation.routerSerial ?? "").trim() || null,
             fiberDropLengthMeters: toPrismaDecimal(operation.fiberDropLengthMeters),
+            fiberOpticalPowerDbm: toPrismaDecimal(operation.fiberOpticalPowerDbm),
+            fiberVlanId: (operation.fiberVlanId ?? "").trim() || null,
             fiberInstallationNotes: (operation.fiberInstallationNotes ?? "").trim() || null,
             estado: "EN_INSTALACION",
           },

@@ -80,10 +80,17 @@ export type ProjectDetail = DashboardProject & {
   equipmentInverterItemsSummary?: string | null;
   equipmentBatteryItemsSummary?: string | null;
   serviceContractId?: string | null;
+  fiberOperator?: string | null;
+  clientPhone?: string | null;
+  installFloorDoor?: string | null;
+  fiberOrderReference?: string | null;
+  fiberCtoReference?: string | null;
   fiberInstallationType?: string | null;
   ontSerial?: string | null;
   routerSerial?: string | null;
   fiberDropLengthMeters?: string | null;
+  fiberOpticalPowerDbm?: string | null;
+  fiberVlanId?: string | null;
   fiberInstallationNotes?: string | null;
   photos: {
     id: string;
@@ -352,10 +359,17 @@ export async function getProjectById(id: string): Promise<ProjectDetail | null> 
       equipmentInverterItemsSummary: fmtEquipSummary(inverterJson),
       equipmentBatteryItemsSummary: fmtEquipSummary(batteryJson),
       serviceContractId: project.serviceContractId,
+      fiberOperator: project.fiberOperator,
+      clientPhone: project.clientPhone,
+      installFloorDoor: project.installFloorDoor,
+      fiberOrderReference: project.fiberOrderReference,
+      fiberCtoReference: project.fiberCtoReference,
       fiberInstallationType: project.fiberInstallationType,
       ontSerial: project.ontSerial,
       routerSerial: project.routerSerial,
       fiberDropLengthMeters: project.fiberDropLengthMeters?.toString() ?? null,
+      fiberOpticalPowerDbm: project.fiberOpticalPowerDbm?.toString() ?? null,
+      fiberVlanId: project.fiberVlanId,
       fiberInstallationNotes: project.fiberInstallationNotes,
       photosCount: project.photos.length,
       photos,

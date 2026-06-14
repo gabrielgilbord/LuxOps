@@ -19,6 +19,10 @@ type Props = {
   projectId: string;
   initialContractId?: string | null;
   initialFiberType?: string | null;
+  initialOperator?: string | null;
+  initialOrderRef?: string | null;
+  initialCtoRef?: string | null;
+  initialFloorDoor?: string | null;
 };
 
 function makeId() {
@@ -29,6 +33,10 @@ export function FiberEjecucionObra({
   projectId,
   initialContractId,
   initialFiberType,
+  initialOperator,
+  initialOrderRef,
+  initialCtoRef,
+  initialFloorDoor,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -43,6 +51,8 @@ export function FiberEjecucionObra({
   const [dropLength, setDropLength] = useState("");
   const [contractId, setContractId] = useState(initialContractId ?? "");
   const [fiberType, setFiberType] = useState(initialFiberType ?? "FTTH");
+  const [opticalPower, setOpticalPower] = useState("");
+  const [vlanId, setVlanId] = useState("");
   const [notes, setNotes] = useState("");
   const [installSaved, setInstallSaved] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -91,6 +101,10 @@ export function FiberEjecucionObra({
       setNotice("El serial de la ONT es obligatorio.");
       return;
     }
+    if (!opticalPower.trim()) {
+      setNotice("Registra la potencia óptica medida en la ONT (dBm).");
+      return;
+    }
     await enqueue({
       kind: "fiberInstall",
       serviceContractId: contractId.trim() || undefined,
@@ -98,6 +112,8 @@ export function FiberEjecucionObra({
       ontSerial: ontSerial.trim(),
       routerSerial: routerSerial.trim(),
       fiberDropLengthMeters: dropLength.trim() || undefined,
+      fiberOpticalPowerDbm: opticalPower.trim() || undefined,
+      fiberVlanId: vlanId.trim() || undefined,
       fiberInstallationNotes: notes.trim() || undefined,
     });
     setInstallSaved(true);
@@ -149,7 +165,8 @@ export function FiberEjecucionObra({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2 text-xs">
+      <div className="flex items-center justify-between rounded-xl border border-cyan-500/20 bg-slate-900/80 px-3 py-2 text-xs">
+        <span className="font-semibold text-cyan-200">FibOps</span>
         <span>
           Paso {step}/{TOTAL_STEPS} · {progress}%
         </span>
@@ -227,7 +244,35 @@ export function FiberEjecucionObra({
 
       {step === 3 ? (
         <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-          <h2 className="font-bold">3. Equipos y trazabilidad</h2>
+          <h2 className="font-bold text-cyan-200">3. ONT, router y mediciones</h2>
+          {(initialOperator || initialOrderRef || initialCtoRef || initialFloorDoor) ? (
+            <dl className="mt-2 grid gap-1 rounded-lg border border-slate-800 bg-slate-950/80 p-3 text-xs text-slate-400">
+              {initialOperator ? (
+                <div className="flex justify-between gap-2">
+                  <dt>Operador</dt>
+                  <dd className="text-slate-200">{initialOperator}</dd>
+                </div>
+              ) : null}
+              {initialOrderRef ? (
+                <div className="flex justify-between gap-2">
+                  <dt>Pedido</dt>
+                  <dd className="text-slate-200">{initialOrderRef}</dd>
+                </div>
+              ) : null}
+              {initialCtoRef ? (
+                <div className="flex justify-between gap-2">
+                  <dt>CTO/NAP</dt>
+                  <dd className="text-slate-200">{initialCtoRef}</dd>
+                </div>
+              ) : null}
+              {initialFloorDoor ? (
+                <div className="flex justify-between gap-2">
+                  <dt>Ubicación</dt>
+                  <dd className="text-slate-200">{initialFloorDoor}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
           <div className="mt-3 grid gap-2">
             <input
               value={contractId}
@@ -260,7 +305,20 @@ export function FiberEjecucionObra({
               value={dropLength}
               onChange={(e) => setDropLength(e.target.value)}
               inputMode="decimal"
-              placeholder="Metros de drop (opcional)"
+              placeholder="Metros de drop"
+              className="h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm"
+            />
+            <input
+              value={opticalPower}
+              onChange={(e) => setOpticalPower(e.target.value)}
+              inputMode="decimal"
+              placeholder="Potencia óptica ONT (dBm) *"
+              className="h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm"
+            />
+            <input
+              value={vlanId}
+              onChange={(e) => setVlanId(e.target.value)}
+              placeholder="VLAN / ID servicio (opcional)"
               className="h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm"
             />
             <textarea

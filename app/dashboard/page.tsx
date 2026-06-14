@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Camera,
+  Cable,
   CheckCircle2,
   FolderPlus,
   Plus,
@@ -12,6 +13,8 @@ import { getProjects } from "@/app/actions/projects";
 import { isCieReady } from "@/lib/cie-export";
 import { requireAdminUserForDashboard } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
+import { isFiberVertical } from "@/lib/organization-vertical";
+import { getProductBrand } from "@/lib/product-brand";
 import { Card, CardContent } from "@/components/ui/card";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { AnimatedCount } from "@/components/dashboard/animated-count";
@@ -38,7 +41,7 @@ export default async function DashboardPage() {
     }),
     prisma.organization.findUnique({
       where: { id: admin.organizationId },
-      select: { logoPath: true },
+      select: { logoPath: true, vertical: true },
     }),
     prisma.project.count({
       where: { organizationId: admin.organizationId, estado: "FINALIZADO" },
@@ -69,6 +72,9 @@ export default async function DashboardPage() {
       },
     }),
   ]);
+  const isFiber = isFiberVertical(org?.vertical);
+  const brand = getProductBrand(org?.vertical);
+  const accentIcon = isFiber ? "text-cyan-300" : "text-yellow-300";
   const capitalReady = Number(cashflowAgg._sum.estimatedRevenue ?? 0);
   const officeHoursSaved = finalizedProjectsCount * 2;
   const activeProjects = projects.filter((p) => p.estado === "EN_INSTALACION").length;
@@ -93,8 +99,10 @@ export default async function DashboardPage() {
     },
     {
       id: "project",
-      title: "Crea tu primera instalación",
-      description: "Activa tu flujo de trabajo en tejado y oficina en minutos.",
+      title: isFiber ? "Crea tu primera instalación FTTH" : "Crea tu primera instalación",
+      description: isFiber
+        ? "Activa el flujo FibOps de oficina y campo en minutos."
+        : "Activa tu flujo de trabajo en tejado y oficina en minutos.",
       href: "/dashboard/new-project",
       complete: projects.length > 0,
       icon: FolderPlus,
@@ -172,19 +180,27 @@ export default async function DashboardPage() {
           <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                Panel de Control de Instalaciones
+                {isFiber ? `Panel FibOps — ${brand.tagline}` : "Panel de Control de Instalaciones"}
               </h1>
               <p className="mt-2 text-sm font-medium text-slate-300">
-                Gestiona tus obras, checklists y documentacion en un solo lugar.
+                {isFiber
+                  ? "Gestiona pedidos de operador, técnicos y evidencias de fibra."
+                  : "Gestiona tus obras, checklists y documentacion en un solo lugar."}
               </p>
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch lg:max-w-[min(100%,28rem)] lg:flex-nowrap lg:justify-end">
               <Link
                 href="/dashboard/new-project"
-                className="inline-flex h-12 min-w-0 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-400 px-4 text-sm font-bold text-amber-950 shadow-lg shadow-amber-500/30 ring-1 ring-amber-200/80 transition hover:-translate-y-0.5 hover:from-amber-200 hover:via-yellow-300 hover:to-amber-300 sm:px-5"
+                className={`inline-flex h-12 min-w-0 shrink-0 items-center justify-center rounded-xl px-4 text-sm font-bold shadow-lg ring-1 transition hover:-translate-y-0.5 sm:px-5 ${
+                  isFiber
+                    ? "bg-gradient-to-r from-cyan-400 via-teal-400 to-cyan-400 text-cyan-950 shadow-cyan-500/30 ring-cyan-200/80 hover:from-cyan-300 hover:via-teal-300"
+                    : "bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-400 text-amber-950 shadow-amber-500/30 ring-amber-200/80 hover:from-amber-200 hover:via-yellow-300 hover:to-amber-300"
+                }`}
               >
                 <Plus className="mr-1 h-4 w-4 shrink-0" />
-                <span className="truncate sm:whitespace-normal">Nuevo Proyecto de Instalacion</span>
+                <span className="truncate sm:whitespace-normal">
+                  {isFiber ? "Nueva instalación FTTH" : "Nuevo Proyecto de Instalacion"}
+                </span>
               </Link>
               <Link
                 href="/dashboard/team"
@@ -192,12 +208,14 @@ export default async function DashboardPage() {
               >
                 Gestionar Equipo
               </Link>
+              {!isFiber ? (
               <Link
                 href="/dashboard/reports"
                 className="inline-flex h-12 shrink-0 items-center justify-center rounded-xl border border-slate-500/60 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 px-4 text-sm font-bold text-white shadow-md shadow-black/20 ring-1 ring-slate-400/20 transition hover:from-slate-600 hover:to-slate-900 sm:px-5"
               >
                 Generación de Informes
               </Link>
+              ) : null}
             </div>
           </div>
 
@@ -206,7 +224,11 @@ export default async function DashboardPage() {
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between">
                   <p className="text-xs font-medium text-slate-300">Proyectos Activos</p>
-                  <Sun className="h-6 w-6 text-yellow-300" />
+                  {isFiber ? (
+                    <Cable className={`h-6 w-6 ${accentIcon}`} />
+                  ) : (
+                    <Sun className={`h-6 w-6 ${accentIcon}`} />
+                  )}
                 </div>
                 <p className="mt-2 text-4xl font-bold tracking-tight text-white">
                   {activeProjects}
@@ -217,7 +239,7 @@ export default async function DashboardPage() {
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between">
                   <p className="text-xs font-medium text-slate-300">Pendientes de Firma</p>
-                  <Signature className="h-6 w-6 text-yellow-300" />
+                  <Signature className={`h-6 w-6 ${accentIcon}`} />
                 </div>
                 <p className="mt-2 text-4xl font-bold tracking-tight text-white">
                   {pendingSignature}
@@ -230,7 +252,7 @@ export default async function DashboardPage() {
                   <p className="text-xs font-medium text-slate-300">
                     Evidencias Totales
                   </p>
-                  <Camera className="h-6 w-6 text-yellow-300" />
+                  <Camera className={`h-6 w-6 ${accentIcon}`} />
                 </div>
                 <p className="mt-2 text-4xl font-bold tracking-tight text-white">
                   {new Intl.NumberFormat("es-ES").format(totalEvidencePhotos)}
@@ -262,7 +284,7 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-          {closedWithoutZipCount > 0 ? (
+          {!isFiber && closedWithoutZipCount > 0 ? (
             <div className="mt-4 rounded-2xl border-2 border-amber-400/60 bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-yellow-500/15 px-5 py-4 shadow-lg shadow-amber-900/20 ring-1 ring-amber-300/40">
               <p className="text-sm font-bold text-amber-100">
                 Listos para facturar
@@ -279,6 +301,7 @@ export default async function DashboardPage() {
               </p>
             </div>
           ) : null}
+          {!isFiber ? (
           <div className="mt-5 rounded-2xl border border-yellow-300/25 bg-slate-900/80 p-4">
             <p className="text-sm font-semibold text-slate-200">🏆 Éxito en el tejado</p>
             <p className="mt-1 text-4xl font-extrabold tracking-tight text-yellow-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.35)]">
@@ -288,6 +311,17 @@ export default async function DashboardPage() {
               Cada informe es una obra bien terminada y una subvención más cerca.
             </p>
           </div>
+          ) : (
+          <div className="mt-5 rounded-2xl border border-cyan-400/25 bg-slate-900/80 p-4">
+            <p className="text-sm font-semibold text-slate-200">FibOps en campo</p>
+            <p className="mt-1 text-4xl font-extrabold tracking-tight text-cyan-300">
+              <AnimatedCount value={finalizedProjectsCount} /> instalaciones cerradas
+            </p>
+            <p className="mt-1 text-xs text-slate-300">
+              ONT, potencia óptica y firmas trazadas por obra.
+            </p>
+          </div>
+          )}
         </SpotlightCard>
 
         {projects.length === 0 ? (
